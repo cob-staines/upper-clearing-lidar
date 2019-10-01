@@ -1,0 +1,42 @@
+name: lidar_processing
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.7
+  - pip
+  - jupyter
+  - nodejs
+  - jupyterlab
+  - ipywidgets
+  - numpy
+  - matplotlib
+  - mpl_sample_data
+  - pandas
+  - statsmodels
+  - seaborn
+  - plotnine
+  - pivottablejs
+  - pandas-profiling
+  - altair
+  - vega_datasets
+  - numba
+  - pytest
+  - cython
+  - tqdm
+  - markdown
+  - pdal
+  - python-pdal
+  - gdal
+  - spyder-kernels
+  - pip:
+    - expyriment
+    - pygame
+    - jupyterlab-solutions
+    - jupyterlab_code_formatter
+    - nb_black
+    - ipympl
+    - scikit-misc
+    - pySerial
+    - tqdm
+    - clean_ipynb

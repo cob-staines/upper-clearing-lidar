@@ -1,0 +1,27 @@
+initiate system:
+
+install jupyterlab-variableinspector
+	cd (project dir)?
+	git clone https://github.com/lckr/jupyterlab-variableInspector
+
+	cd jupyterlab-variableInspector
+	npm install
+	npm run build
+	jupyter labextension install
+
+	verify:
+		jupyter labextension list
+
+windows -> cmd (as admin)
+	cd C:\Users\Cob\Documents\educational\usask\research\repos\upper-clearing-lidar\python
+	jupyter lab .
+
+
+new conda environment
+	conda create -f environment.yml
+	conda activate???
+
+new python file
+	create new file
+	right-click -> create console for Editor
+
