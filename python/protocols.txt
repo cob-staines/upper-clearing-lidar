@@ -18,10 +18,21 @@ windows -> cmd (as admin)
 
 
 new conda environment
-	conda create -f environment.yml
-	conda activate???
+	conda env create -f environment.yml
+	conda activate lidar_processing
+	jupyter labextension install @lckr/jupyterlab_variableinspector
+
+update env
+	conda update lidar_processing
 
 new python file
 	create new file
 	right-click -> create console for Editor
 
+get into environment & launch
+	conda activate lidar_processing
+	cd C:\Users\Cob\Documents\educational\usask\research\repos\upper-clearing-lidar\python
+	jupyter labextension install @lckr/jupyterlab_variableinspector
+	jupyter lab .
+
+	

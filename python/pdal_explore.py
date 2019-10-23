@@ -1,15 +1,30 @@
-datapath = """C:\\Users\\Cob\\Documents\\educational\\usask\\research\\data\\LiDAR\\esc\\19_052_a_2_120m_grid_WGS84_utm_N11_nocolor - Scanner 1 - 190221_181450_Scanner_1 - originalpoints.las"""
+datapath = """C:\\Users\\Cob\\Documents\\educational\\usask\\research\\data\\LiDAR\\19_045\\19_045_grid_60m_WGS84_utm11N_nocolor - Scanner 1 - 190214_190320_Scanner_1 - originalpoints.las"""
 
 json = """
 {
   "pipeline": [
-    "C:/Users/Cob/Documents/educational/usask/research/data/LiDAR/esc/19_052_a_2_120m_grid_WGS84_utm_N11.las",
+    "C:/Users/Cob/Documents/educational/usask/research/data/LiDAR/19_045/19_045_grid_60m_WGS84_utm11N_nocolor - Scanner 1 - 190214_190320_Scanner_1 - originalpoints.las",
     {
         "type": "filters.sort",
         "dimension": "X"
     }
   ]
 }"""
+
+json = """
+{
+    "pipeline": [
+        "C:/Users/Cob/Documents/educational/usask/research/data/LiDAR/19_045/19_045_grid_60m_WGS84_utm11N_nocolor - Scanner 1 - 190214_190320_Scanner_1 - originalpoints.las",
+        "C:/Users/Cob/Documents/educational/usask/research/data/LiDAR/19_045/outpit.las",
+    ]
+}"""
+
+json = """
+[
+    "C:/Users/Cob/Documents/educational/usask/research/data/LiDAR/19_045/19_045_grid_60m_WGS84_utm11N_nocolor - Scanner 1 - 190214_190320_Scanner_1 - originalpoints.las",
+    "C:/Users/Cob/Documents/educational/usask/research/data/LiDAR/19_045/output.las",
+]
+"""
 
 import pdal
 pipeline = pdal.Pipeline(json)

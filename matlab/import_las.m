@@ -1,4 +1,4 @@
-data_dir = 'C:/Users/Cob/Documents/educational/usask/research/data/LiDAR/esc/19_052_a_2_120m_grid_WGS84_utm_N11_nocolor - Scanner 1 - 190221_181450_Scanner_1 - originalpoints.las';
+data_dir = 'C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\19_045\19_045_grid_60m_WGS84_utm11N_nocolor.las';
 
 data = lasdata(data_dir, 'loadall');
 
