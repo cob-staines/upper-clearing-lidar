@@ -1,0 +1,167 @@
+Root dir: SWSL/Processing/19_xxx
+
+GNSS PPP Correction
+	convert to RINEX
+		open 'Infinity' -- Leica proprietary software
+		import Leica GPS data (larger file with corresponding date)
+		export as RINEX (.19o, biggest file)
+	submit to CSRS-PPP
+		CSRS-PPP (https://webapp.geod.nrcan.gc.ca/geod/tools-outils/ppp.php?locale=en) (google nrcan)
+		Options: Static, ITRF
+	download output to 'xx_yyy_c/base/'
+
+DJI M600 GNSS/IMU flight path correction
+	Create PosPac project
+		open PosPac, new default project
+		double-click on 'Mission' (left pannel)
+			change name to date
+		save project  (ex. 10Oct)"
+	import RINEX (.18o)
+		import base data from '07/base'
+		correct Northing/Easting from PPP output
+	import flight paths
+		import trajectory data from '/02/02/INS-GPS_1'
+			omit 'unknown' and 'base data' files
+		rover antenna type -- 'Antcom G5ANT_2AT1'
+	correct base coordinates
+		right click on base station child -> 'coordinate manager'
+		correct coordinates (lat/lons and elevation from PPP output)
+		apply changes, close
+	set base station
+		right click base station -- 'set base station' -- ok
+		take note of fixed solution (100% ideal)
+	correct lever-arm
+		project settings
+			GNSS -> lever-arm mounting angle -> standard deviation -> '0.030' (lowered for antenna correction)
+	GNSS-Intertial processing
+		Click 'GNSS-Intertial Processor'
+		confirm GNSS Mode: In-Fusion Single Base, w/ base station assigned
+		run
+	copy over output files
+		Manually transport flight path files (sbet, pinkaru, smrmsg) from PosProc project folder (Docs/POSPac UAV/xxx/yyy/yyy/Proc) to sensor folder (19_yyy_a_z/05_INS_GPS_PROC/01)
+
+LiDAR processing
+	prep for merge (for each flight)
+		Open RiProcess project
+			"coordinate reference system missing, use default?" -> yes
+				import -> none
+				RiProcess GLCS -> WGS84/Geocentric
+				export -> WGS84 UTM_North zone 11 (ESPG::32611)
+		import trajectories
+			double-click trajectory
+			import sbet file (correct to flight date if needed, convert .out to .put)
+				"quit" when "conversion finished
+			"rename trajectory" -> yes
+			remove records outside trajectory time frame
+	merge
+		duplicate 1st flight project, rename as "xxx_merge"
+		open "xxx_merge"
+		tool -> project merge wizard (for each additional flight)
+		assign camera and scanner to trajectory
+			right click device -> assign to all		
+		camera data wizard (if desired)
+			add all records
+			add all trigger data (04-CAMERA/01-EIF/...)
+			add photos folder
+			insert camera mount -- camera mount.4x4 (mount data on snowstorm desktop)
+		RXPcutter
+			right-click corrected trajectory (orange) -> analyze
+			zoom in to identify start and end timestamp of each scan
+			RXP wizard
+		
+		data processing wizard (tasks 2, 3, 4, 6)
+		add views (as desired)
+		export point cloud data (WGS84 UTM_North zone 11)
+			all laser data (raw timestamp)
+			rxp laser data
+			all trajectories
+			
+
+LAStools
+
+primary tools:
+lasprecision -- rescale to proper scaling outputs
+las2las -- filter by value threshold
+lasduplicate -- removes all duplicate points (must specify -unique_xyz, otherwise default is xy only)
+lasnoise -- classify noise by isolation
+lasground -- identify ground points (class 2) from last retruns (default)
+lasheight -- calculate point attribute of height above ground (after lasground)
+lasclassify
+blast2dem -- build TIN, and then DEM from ground points (class 2)
+
+additional tools:
+lasvalidate -- identifies issues with file/conformance with ASPRS LAS 1.0 to 1.4 specifications
+lasclip -- cropping tool with shapefile input
+lastrack -- takes in trajectory file, calculates attributes height-above-track for each point, optionally classifies points by xy/z bin. -store_xyz_range_as_extra_bytes ^ calculates 3-d distance from point to platform!
+lasthin -- keeps points within uniform grid cell by attribute (lowest height, highest height, random, central etc.). may be useful for developing DEM where point density is variable
+las2tin -- builds TIN, can specify "-concavity 10" to remove all triangles with edge length of 10 units
+las2dem -- las to tin to dem, with interesting features for rasterizing point density
+lasvoxel -- computes voxelation of points and attributes
+lascontrol -- control points, likely excessive considering relatively few control points for snow depth
+lasoptomize -- use before distributing files for cleaning and optimization
+
+lasprecision -i 19_045_grid_60m_WGS84_utm11N_nocolor.las -all
+
+nviz with GRASS for visualization/animation
+
+las2las -i laspy_out.las -o laspy_out_02.laz
+
+2019-10-21
+
+las_inspect.py runs package laspy to import, manipulate, and export las files
+
+	lastools.lasdiff on laspy imported and exported las file:
+
+		checking 'laspy_in.las' against 'laspy_out.las'
+	 		different number_of_points_by_return[4]: 260 266
+	  		different max_x: 628516.415 628516.4145
+	 		different min_y: 5646173.3575 5646173.35875
+	 		different max_z: 2001.7275 2001.7265
+	 		different min_z: 1431.6825 1431.68275
+		headers have 5 differences.
+			raw points are identical.
+		both have 21400255 points. took 2.421 secs.
+
+	comparing read-then-write outputs between lastools.las2las and laspy.file.File
+
+		checking 'laspy_in_las2las.las' against 'laspy_out.las'
+			different system_identifier: 'LAStools (c) by rapidlasso GmbH' 'EXTRACTION'
+			different generating_software: 'las2las (version 190927)' 'RiPROCESS 1.8.5'
+			different number_of_points_by_return[4]: 260 266
+		headers have 3 differences.
+			raw points are identical.
+		both have 21400255 points. took 2.44 secs.
+
+this tells us that both laspy and lastools are fixing the header max/mins upon writing, and that software are compatible
+
+appears that laspy does QC on number of points by return where lastools does not.
+A quick count of points where return_num == 5 in python tell sus that 260 is the correct number. So why does the output come away with 266? Are there any returns with return_num >5? yes! 6! So laspy attaches these to the 5th entry in the header, whereas lastools does not. headers and points are otherwise identical between the two. Very good!
+
+Next tasks:
+	1) join with trajectory data
+		download LAS file with reliable trajectory file
+		try lastrack!
+	2) is IMU or RPX time correct (to inform 2nd pass processing)
+
+2019-10-22
+
+No overlap in join between subset of las point gps_times and trajectory times, as considdered in las_traj_compare.py. Next tasks:
+	1)floor function
+	2)interpolation functions (woah expensive!)
+	3)tools on the web?
+
+interpolate through pandas is possible, linear is expensive and may be unnecesary. Could be better to do nearest or floor? Do time experiment in python.
+
+~500 million points (over all 6 days)
+
+2019-10-24
+
+Ran out of memory running lasground on all points for 19_149. Will try limiting to smaller areas and running again.
+
+2019-10-25
+
+implemented tiling for memory management. Keep in mind that buffer on each tile needs to be removed for raster outputs.
+
+issues removing buffer when using las_merge... could use lasduplicate again but seems inefficient. Not sure yet which tool to use here.
+
+next want to generate histogram of scanning angles for ground points in upper forest and upper clearing subsets
