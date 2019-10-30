@@ -74,15 +74,15 @@ lasmerge -i batch_out\07_no_buffer\*.laz ^
           -keep_class 2 ^
           -o batch_out\07_no_buffer\19_149_all_WGS84_utm11_ground-points.laz
 
-:: clip to upper clearing
+:: clip to upper clearing poly
 lasclip -i batch_out\07_no_buffer\19_149_all_WGS84_utm11_ground-points.laz ^
           -poly batch_out\upper_clearing_poly.shp ^
-          -o batch_out\07_no_buffer\19_149_all_WGS84_utm11_ground-points_upper-clearing.laz
+          -o batch_out\07_no_buffer\19_149_all_WGS84_utm11_ground-points_upper-clearing.las
 
-:: clip to upper forest
+:: clip to upper forest poly
 lasclip -i batch_out\07_no_buffer\19_149_all_WGS84_utm11_ground-points.laz ^
           -poly batch_out\upper_forest_poly.shp ^
-          -o batch_out\07_no_buffer\19_149_all_WGS84_utm11_ground-points_upper-forest.laz
+          -o batch_out\07_no_buffer\19_149_all_WGS84_utm11_ground-points_upper-forest.las
 
 :: output raster of point density
 lasgrid -i batch_out\07_no_buffer\19_149_all_WGS84_utm11_ground-points.laz ^
@@ -104,6 +104,11 @@ blast2dem -i batch_out\ground_01.laz ^
           -step 1.0 ^
           -kill 3 ^
           -o batch_out\dem_01.png
+
+lastrack -i 19_149_ladder_forest_WGS84_utm11N_nocolor.las ^
+          -track 19_149_trajectory_interpolated_forest_ladder.las ^
+          -store_xyz_range_as_extra_bytes ^
+          -o batch_out\forest_ladder_track.las
 
 :: ----------TOOLBOX---------- (no particula order here)
 
