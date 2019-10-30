@@ -165,3 +165,10 @@ implemented tiling for memory management. Keep in mind that buffer on each tile 
 issues removing buffer when using las_merge... could use lasduplicate again but seems inefficient. Not sure yet which tool to use here.
 
 next want to generate histogram of scanning angles for ground points in upper forest and upper clearing subsets
+
+2019-10-28
+	recall that laspy needs LAS files, not laz.
+	careful navigating pandas.df.to_csv for precision errors
+	interpolated trajectory to las timesteps, output as las
+	run lastrack to output distance xyz-distance_from_track
+	issues in python with las attribute containing "-"(dash), needs to be resolved to plot intensity vs distance

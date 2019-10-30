@@ -6,14 +6,12 @@ import matplotlib.pyplot as plt
 
 # config
 filedir = """C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\LiDAR\\19_149\\"""
-filename_in = """19_149_ladder_forest_WGS84_utm11N_nocolor - Scanner 1 - 190529_184952_Scanner_1 - originalpoints.las"""
-datapath = filedir + filename_in
+datapath = filedir + """19_149_ladder_forest_WGS84_utm11N_nocolor.las"""
 
 # read data in
 inFile = laspy.file.File(datapath, mode="r")
 # isolate gps_time
-las_time = pd.DataFrame(inFile.gps_time)
-las_time = las_time.rename({0: 'Time[s]'}, axis=1)
+las_time = pd.DataFrame({'Time[s]': inFile.gps_time})
 
 #subset for test case
 sub = las_time[:1000]
@@ -32,4 +30,4 @@ outer = traj.merge(sub, on="Time[s]", how='outer')
 outer = outer.sort_values(by="Time[s]")
 #interpolate to fill nans
 outer = outer.set_index('Time[s]')
-interpolated = outer.interpolate(method="linear", axis=1)
+interpolated = outer.interpolate(method="nearest")
