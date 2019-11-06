@@ -64,11 +64,13 @@ LiDAR processing
 			add all trigger data (04-CAMERA/01-EIF/...)
 			add photos folder
 			insert camera mount -- camera mount.4x4 (mount data on snowstorm desktop)
+		Data processing wizard	
+		RiPrecision
 		RXPcutter
 			right-click corrected trajectory (orange) -> analyze
 			zoom in to identify start and end timestamp of each scan
 			RXP wizard
-		
+			rename cut with scan name for transparency
 		data processing wizard (tasks 2, 3, 4, 6)
 		add views (as desired)
 		export point cloud data (WGS84 UTM_North zone 11)
@@ -172,3 +174,16 @@ next want to generate histogram of scanning angles for ground points in upper fo
 	interpolated trajectory to las timesteps, output as las
 	run lastrack to output distance xyz-distance_from_track
 	issues in python with las attribute containing "-"(dash), needs to be resolved to plot intensity vs distance
+
+2019-11-01
+	plots of interest
+		clearing nadir intensity with distance
+		clearing intensity with angle (distance corrected)
+		1st-returns 10-20m height cleaing/forest/snow/no snow intensity with distance
+	is imu plot or rpxcutter better for determining edges of scans?
+		imu plot is better. Ok. Time to go re-export all the merged data.
+
+2019-11-05
+	intensity with distance (low angle, first return, ground points, clearing) looks linear
+	lastrack does not seem to output reasonable values. try doing manually in python
+		3d dist ex. https://stackoverflow.com/questions/20184992/finding-3d-distances-using-an-inbuilt-function-in-python

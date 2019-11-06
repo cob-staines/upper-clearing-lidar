@@ -107,7 +107,7 @@ blast2dem -i batch_out\ground_01.laz ^
 
 lastrack -i 19_149_ladder_forest_WGS84_utm11N_nocolor.las ^
           -track 19_149_trajectory_interpolated_forest_ladder.las ^
-          -store_xyz_range_as_extra_bytes ^
+          -store_xyz_range_as_extra_bytes
           -o batch_out\forest_ladder_track.las
 
 :: ----------TOOLBOX---------- (no particula order here)
