@@ -1,6 +1,7 @@
 import laspy
 import pandas as pd
 import matplotlib
+import numpy as np
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import time
@@ -11,37 +12,47 @@ las_in = """OUTPUT_FILES\\19_050_ladder_clearing_WGS84_utm11N_clearing_ground-po
 traj_in = '19_050_all_WGS84_utm11N_trajectories.txt'
 traj_out = '19_050_all_WGS84_utm11N_trajectories_interpolated_clearing_ladder.las'
 
-
 # import las
 inFile = laspy.file.File(filedir + las_in, mode="r")
 # pull only gps_time
-las_time = pd.DataFrame({'Time[s]': inFile.gps_time})
+las_data = pd.DataFrame({'gps_time': inFile.gps_time,
+                         'x': inFile.x,
+                         'y': inFile.y,
+                         'z': inFile.z,
+                         'intensity': inFile.intensity})
 
 # import trajectory
 traj = pd.read_csv(filedir + traj_in)
-# throw our pitch, roll, yaw (or until needed later)
-traj = traj[['Time[s]', 'Easting[m]', 'Northing[m]', 'Height[m]']]
+# rename columns for consistency
+traj = traj.rename(columns={'Time[s]': "gps_time",
+                            'Easting[m]': "easting_m",
+                            'Northing[m]': "northing_m",
+                            'Height[m]': "height_m"})
+# throw our pitch, roll, yaw (at least until needed later...)
+traj = traj[['gps_time', 'easting_m', 'northing_m', 'height_m']]
 
 # resample traj to las gps times and interpolate
 
-# append las times to traj
-outer = traj.append(las_time, sort=0)
+# outer merge las and traj on gps_time
+outer = traj.merge(las_data.gps_time, on="gps_time", how="outer")
+
 # order by gps time
-outer = outer.sort_values(by="Time[s]")
+outer = outer.sort_values(by="gps_time")
 # set index as gps_time for nearest neighbor interpolation
-outer = outer.set_index('Time[s]')
+outer = outer.set_index('gps_time')
 # interpolate by nearest neighbor
-interpolated = outer.interpolate(method="nearest")
+interpolated = outer.interpolate(method="nearest") #issues with other columns.... can we specify?
+# resent index for clarity
 interpolated = interpolated.reset_index()
 
-output_file = laspy.file.File(filedir + traj_out, mode="w", header=inFile.header)
-output_file.gps_time = interpolated['Time[s]'].values
-output_file.x = interpolated['Easting[m]'].values
-output_file.y = interpolated['Northing[m]'].values
-output_file.z = interpolated['Height[m]'].values
-output_file.close()
+# calculate point distance from track
+las_data = las_data.merge(interpolated, on="gps_time", how="left")
+p1 = np.array([las_data.easting_m, las_data.northing_m, las_data.height_m])
+p2 = np.array([las_data.x, las_data.y, las_data.z])
+squared_dist = np.sum((p1-p2)**2, axis=0)
+las_data = las_data.assign(distance_to_track=np.sqrt(squared_dist))
 
-# compare points with traj
-points = pd.DataFrame({'Time[s]': inFile.gps_time, 'x': inFile.x, 'y': inFile.y, 'z': inFile.z})
-comparison = interpolated.merge(points, on="Time[s]", how='inner')
+# plot height vs. distance
+las_data.plot.scatter(x='distance_to_track', y='intensity')
 
+# linear regression
