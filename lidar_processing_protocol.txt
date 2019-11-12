@@ -187,3 +187,16 @@ next want to generate histogram of scanning angles for ground points in upper fo
 	intensity with distance (low angle, first return, ground points, clearing) looks linear
 	lastrack does not seem to output reasonable values. try doing manually in python
 		3d dist ex. https://stackoverflow.com/questions/20184992/finding-3d-distances-using-an-inbuilt-function-in-python
+
+2019-11-06
+	need to chack for identical times between las and traj! Use merge instead of append, fixes issue when joining las times with trajectory times
+
+2019-11-07
+	Resources available in Okhrimenko and Hopkinson (2019) for intensity analysis of LiDAR
+		range normalization
+		atmospheic correction
+		optical power stability validation
+
+2019-11-09
+	Why is there still a significant and positive correlation between intensity and height after range normalization?
+		could correspond to sensor temp? Plot 120m ground points intensity vs time to observe trend

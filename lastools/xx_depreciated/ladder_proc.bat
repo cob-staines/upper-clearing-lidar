@@ -1,11 +1,18 @@
+:: folder in which temp and output files will be saved to
 SET DIR_WORKING=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\19_050
+:: folder containing lastools and license
 SET DIR_LASTOOLS=C:\Users\Cob\index\educational\usask\research\masters\code_lib\lastools\LAStools\bin;
+:: folder containing site polygons
 SET DIR_SITE_LIBRARY=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\site_library
 
-SET FILE_IN_BASE=19_050_ladder_clearing_WGS84_utm11N
-SET FILE_IN_EXT=.las
+
+SET PRODUCT_ID=19_050_ladder_clearing_intensity-analysis
+SET FILE_IN=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\19_050\19_050_ladder_clearing_WGS84_utm11N.las
 
 SET ORIGINAL_SCALE_FACTOR=0.00025
+SET NUM_CORES=4
+SET TILE_SIZE=100
+SET TILE_BUFFER=20
 
 :: initial setup
 pushd %DIR_WORKING%
@@ -35,20 +42,20 @@ cd ..
 :: ----------PROTOCOL---------- (sequential data processing)
 
 :: should check each file prior to rescaling to verify actual precision
-lasprecision -i %FILE_IN_BASE%%FILE_IN_EXT% ^
+lasprecision -i %FILE_IN% ^
           -rescale %ORIGINAL_SCALE_FACTOR% %ORIGINAL_SCALE_FACTOR% %ORIGINAL_SCALE_FACTOR% ^
           -odir TEMP_FILES\01_precision\ -odix _01 -olaz
 
 :: clip las by shpfile
-lasclip -i TEMP_FILES\01_precision\%FILE_IN_BASE%_01.laz ^
+lasclip -i TEMP_FILES\01_precision\%PRODUCT_ID%_01.laz ^
           -poly C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\site_library\site_poly.shp ^
           -odir TEMP_FILES\02_clip\ -ocut 3 -odix _02 -olaz
 
 :: tile las for memory management
-lastile -i TEMP_FILES\02_clip\%FILE_IN_BASE%_02.laz ^
+lastile -i TEMP_FILES\02_clip\%PRODUCT_ID%_02.laz ^
           -set_classification 0 -set_user_data 0 ^
           -tile_size 100 -buffer 20 ^
-          -odir TEMP_FILES\03_tile\ -o %FILE_IN_BASE%.laz
+          -odir TEMP_FILES\03_tile\ -o %PRODUCT_ID%.laz
 
 :: remove xyz duplicate points
 lasduplicate -i TEMP_FILES\03_tile\*.laz ^
@@ -83,26 +90,20 @@ lastile -i TEMP_FILES\07_vegetation\*.laz ^
           -cores 4 ^
           -odir TEMP_FILES\08_no_buffer\ -olaz -ocut 3 -odix _08
 
-:: merge all ground points into one file
 :: output ground points
 lasmerge -i TEMP_FILES\08_no_buffer\*.laz ^
           -keep_class 2 ^
-          -o OUTPUT_FILES\%FILE_IN_BASE%_ground-points.laz
+          -o OUTPUT_FILES\%PRODUCT_ID%_ground-points.laz
 
 :: output high vegetation
 lasmerge -i TEMP_FILES\08_no_buffer\*.laz ^
           -keep_class 5 ^
-          -o OUTPUT_FILES\%FILE_IN_BASE%_vegetation-points.laz
+          -o OUTPUT_FILES\%PRODUCT_ID%_vegetation-points.laz
 
 :: ladder_clearing
 :: clip to upper clearing poly, filter by 1st return, filter to +/- 5 deg
-lasclip -i OUTPUT_FILES\%FILE_IN_BASE%_ground-points.laz ^
+lasclip -i OUTPUT_FILES\%PRODUCT_ID%_ground-points.laz ^
           -poly C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\site_library\upper_clearing_poly.shp ^
-          -keep_return 1 ^
+          -keep_single ^
           -keep_scan_angle -5 5 ^
-          -o OUTPUT_FILES\%FILE_IN_BASE%_clearing_ground-points_1st-return_5deg.las
-
-lastrack -i OUTPUT_FILES\%FILE_IN_BASE%_clearing_ground-points_1st-return_5deg.las ^
-          -19_050_all_WGS84_utm11N_trajectories_interpolated_clearing_ladder.las ^
-          -store_xyz_range_as_extra_bytes
-          -o OUTPUT_FILES\%FILE_IN_BASE%_clearing_ground-points_1st-return_5deg_track.las
+          -o OUTPUT_FILES\%PRODUCT_ID%_clearing_ground-points_single-return_5deg.las
