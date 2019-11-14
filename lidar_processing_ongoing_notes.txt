@@ -1,0 +1,103 @@
+2019-10-21
+
+las_inspect.py runs package laspy to import, manipulate, and export las files
+
+	lastools.lasdiff on laspy imported and exported las file:
+
+		checking 'laspy_in.las' against 'laspy_out.las'
+	 		different number_of_points_by_return[4]: 260 266
+	  		different max_x: 628516.415 628516.4145
+	 		different min_y: 5646173.3575 5646173.35875
+	 		different max_z: 2001.7275 2001.7265
+	 		different min_z: 1431.6825 1431.68275
+		headers have 5 differences.
+			raw points are identical.
+		both have 21400255 points. took 2.421 secs.
+
+	comparing read-then-write outputs between lastools.las2las and laspy.file.File
+
+		checking 'laspy_in_las2las.las' against 'laspy_out.las'
+			different system_identifier: 'LAStools (c) by rapidlasso GmbH' 'EXTRACTION'
+			different generating_software: 'las2las (version 190927)' 'RiPROCESS 1.8.5'
+			different number_of_points_by_return[4]: 260 266
+		headers have 3 differences.
+			raw points are identical.
+		both have 21400255 points. took 2.44 secs.
+
+this tells us that both laspy and lastools are fixing the header max/mins upon writing, and that software are compatible
+
+appears that laspy does QC on number of points by return where lastools does not.
+A quick count of points where return_num == 5 in python tell sus that 260 is the correct number. So why does the output come away with 266? Are there any returns with return_num >5? yes! 6! So laspy attaches these to the 5th entry in the header, whereas lastools does not. headers and points are otherwise identical between the two. Very good!
+
+Next tasks:
+	1) join with trajectory data
+		download LAS file with reliable trajectory file
+		try lastrack!
+	2) is IMU or RPX time correct (to inform 2nd pass processing)
+
+2019-10-22
+
+No overlap in join between subset of las point gps_times and trajectory times, as considdered in las_traj_compare.py. Next tasks:
+	1)floor function
+	2)interpolation functions (woah expensive!)
+	3)tools on the web?
+
+interpolate through pandas is possible, linear is expensive and may be unnecesary. Could be better to do nearest or floor? Do time experiment in python.
+
+~500 million points (over all 6 days)
+
+2019-10-24
+
+Ran out of memory running lasground on all points for 19_149. Will try limiting to smaller areas and running again.
+
+2019-10-25
+
+implemented tiling for memory management. Keep in mind that buffer on each tile needs to be removed for raster outputs.
+
+issues removing buffer when using las_merge... could use lasduplicate again but seems inefficient. Not sure yet which tool to use here.
+
+next want to generate histogram of scanning angles for ground points in upper forest and upper clearing subsets
+
+2019-10-28
+	recall that laspy needs LAS files, not laz.
+	careful navigating pandas.df.to_csv for precision errors
+	interpolated trajectory to las timesteps, output as las
+	run lastrack to output distance xyz-distance_from_track
+	issues in python with las attribute containing "-"(dash), needs to be resolved to plot intensity vs distance
+
+2019-11-01
+	plots of interest
+		clearing nadir intensity with distance
+		clearing intensity with angle (distance corrected)
+		1st-returns 10-20m height cleaing/forest/snow/no snow intensity with distance
+	is imu plot or rpxcutter better for determining edges of scans?
+		imu plot is better. Ok. Time to go re-export all the merged data.
+
+2019-11-05
+	intensity with distance (low angle, first return, ground points, clearing) looks linear
+	lastrack does not seem to output reasonable values. try doing manually in python
+		3d dist ex. https://stackoverflow.com/questions/20184992/finding-3d-distances-using-an-inbuilt-function-in-python
+
+2019-11-06
+	need to chack for identical times between las and traj! Use merge instead of append, fixes issue when joining las times with trajectory times
+
+2019-11-07
+	Resources available in Okhrimenko and Hopkinson (2019) for intensity analysis of LiDAR
+		range normalization
+		atmospheic correction
+		optical power stability validation
+
+2019-11-09
+	Why is there still a significant and positive correlation between intensity and height after range normalization?
+		could correspond to sensor temp? Plot 120m ground points intensity vs time to observe trend
+
+2019-11-12
+	Does not appear to correspond to sensor temp, evidenced by no signal in time with gridded_120m scan. Martyn's advice was to look at 2-d map, try this next.
+	Is it possible that the "trend" of range-normalized intensity with height is actually an artifact of filtering? I use only ground points, but I do not understand well the process of ground point classification. What if I look at all points?
+
+	Perhaps justification for my first look at vertical_clearing scans. lets go.
+
+2019-11-14
+	We have snow depth maps! Currently no holes representing large triangles. Let's try running this with much smaller max_TIN_EDGE
+
+	Data management: create living document as metadata guide for data

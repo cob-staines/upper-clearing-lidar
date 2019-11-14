@@ -27,6 +27,7 @@ mkdir .\TEMP_FILES
 
 :: make output folders
 cd TEMP_FILES
+mkdir .\00_quality
 mkdir .\01_precision
 mkdir .\02_clip
 mkdir .\03_tile
@@ -34,6 +35,16 @@ mkdir .\04_duplicate
 cd ..
 
 :: ----------PROTOCOL----------
+
+
+:: need to parse output to catch fails, warnings, etc.
+lasinfo -i %FILE_IN% ^
+        -compute_density ^
+        -odir TEMP_FILES\00_quality -otxt
+
+lasvalidate -i %FILE_IN% ^
+            -no_CRS_fail ^
+            -o TEMP_FILES\00_quality\validate.xml
 
 :: should check each file prior to rescaling to verify actual precision
 lasprecision -i %FILE_IN% ^

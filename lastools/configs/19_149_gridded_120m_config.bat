@@ -1,14 +1,21 @@
-SET PRODUCT_ID=19_045_ladder_clearing_intensity-analysis
-SET FILE_IN=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\19_045\19_045_ladder_clearing_WGS84_utm11N.las
+SET PRODUCT_ID=19_149_gridded_120m_intensity-analysis
+SET FILE_IN=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\19_149\19_149_gridded_120m_WGS84_utm11N.las
 
 :: folder in which temp and output files will be saved to
-SET DIR_WORKING=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\19_045
+SET DIR_WORKING=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\19_149
 :: folder containing lastools and license
 SET DIR_LASTOOLS=C:\Users\Cob\index\educational\usask\research\masters\code_lib\lastools\LAStools\bin;
 :: folder containing site polygons
 SET DIR_SITE_LIBRARY=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\site_library
 :: folder containing batch files
 SET DIR_BAT=C:\Users\Cob\index\educational\usask\research\masters\repos\upper-clearing-lidar\lastools
+
+:: PROJECTION
+SET EPSG=32611
+
+:: CLASSES
+SET CLASS_GROUND=2
+SET CLASS_NOISE=7
 
 
 :: __________ PROTOCOL__________
@@ -33,18 +40,35 @@ call %DIR_BAT%\las_01_quality_control.bat
 SET NOISE_ISOLATION=20
 SET NOISE_STEP=2.0
 SET GROUND_STEP=2.0
+SET HEIGHT_THRESHOLD_LOW=-3
+SET HEIGHT_THRESHOLD_HIGH=40
+
 
 call %DIR_BAT%\las_02_classification.bat
 :: dependencies
+     :: CLASS_GROUND
+     :: CLASS_NOISE
      :: NUM_CORES
      :: NOISE_ISOLATION
      :: NOISE_STEP
      :: GROUND_STEP
+     :: HEIGHT_THRESHOLD_LOW
+     :: HEIGHT_THRESHOLD_HIGH
 
 call %DIR_BAT%\las_03_remove_buffer.bat
 :: dependencies
      :: NUM_CORES
 
+SET RESOLUTION_DEM=.25
+SET RESOLUTION_THIN=.125
+SET MAX_TIN_EDGE=1
+call %DIR_BAT%\las_03_output_dem.bat
+:: dependencies
+     :: CLASS_GROUND
+     :: NUM_CORES
+     :: RESOLUTION_DEM
+     :: RESOLUTION_THIN
+     :: MAX_TIN_EDGE
 
 :: __________ MANUAL OUTPUTS __________
 

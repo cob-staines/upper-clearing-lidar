@@ -1,5 +1,5 @@
-SET PRODUCT_ID=19_045_ladder_clearing_intensity-analysis
-SET FILE_IN=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\19_045\19_045_ladder_clearing_WGS84_utm11N.las
+SET PRODUCT_ID=19_045_vertical_clearing_02_intensity-analysis
+SET FILE_IN=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\19_045\19_045_vertical_clearing_02_WGS84_utm11N.las
 
 :: folder in which temp and output files will be saved to
 SET DIR_WORKING=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\19_045
