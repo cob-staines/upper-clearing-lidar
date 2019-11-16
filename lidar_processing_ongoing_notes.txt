@@ -101,3 +101,30 @@ next want to generate histogram of scanning angles for ground points in upper fo
 	We have snow depth maps! Currently no holes representing large triangles. Let's try running this with much smaller max_TIN_EDGE
 
 	Data management: create living document as metadata guide for data
+
+	Data objectives:
+		Snow analysis
+			Snow depth maps
+				What resolution? Justify with validation and point density
+			Depth validation (snow survey/GPS)
+			Depth to SWE relationship
+				Clearing
+				Forest
+			SWE maps
+
+		Canopy analysis
+			hemispherical LAI (CANEYE)
+			hemispherical CC (CANEYE)
+			LAI (Python?)
+				validate or calibrate with hemisphericals
+			CC (Python?)
+				validate or calibrate with hemisphericals
+
+		Experimental
+			Reflectance
+			Fractal dim
+		Surveying
+			Point density
+			scanning angle
+			footprint
+			perspective

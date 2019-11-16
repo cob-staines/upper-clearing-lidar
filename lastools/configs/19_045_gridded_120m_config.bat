@@ -75,12 +75,12 @@ call %DIR_BAT%\las_03_output_dem.bat
 mkdir .\OUTPUT_FILES
 
 :: output ground points
-lasmerge -i TEMP_FILES\08_no_buffer\*.laz ^
+lasmerge -i TEMP_FILES\09_no_buffer\*.laz ^
           -keep_class 2 ^
           -o OUTPUT_FILES\%PRODUCT_ID%_ground-points.laz
 
 :: output high vegetation
-lasmerge -i TEMP_FILES\08_no_buffer\*.laz ^
+lasmerge -i TEMP_FILES\09_no_buffer\*.laz ^
           -keep_class 5 ^
           -o OUTPUT_FILES\%PRODUCT_ID%_vegetation-points.laz
 

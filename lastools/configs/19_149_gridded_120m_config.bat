@@ -75,12 +75,12 @@ call %DIR_BAT%\las_03_output_dem.bat
 mkdir .\OUTPUT_FILES
 
 :: output ground points
-lasmerge -i TEMP_FILES\08_no_buffer\*.laz ^
+lasmerge -i TEMP_FILES\09_no_buffer\*.laz ^
           -keep_class 2 ^
           -o OUTPUT_FILES\%PRODUCT_ID%_ground-points.laz
 
 :: output high vegetation
-lasmerge -i TEMP_FILES\08_no_buffer\*.laz ^
+lasmerge -i TEMP_FILES\09_no_buffer\*.laz ^
           -keep_class 5 ^
           -o OUTPUT_FILES\%PRODUCT_ID%_vegetation-points.laz
 
@@ -91,3 +91,23 @@ lasclip -i OUTPUT_FILES\%PRODUCT_ID%_ground-points.laz ^
           -keep_single ^
           -keep_scan_angle -5 5 ^
           -o OUTPUT_FILES\%PRODUCT_ID%_clearing_ground-points_single-return_5deg.las
+
+lasgrid -i OUTPUT_FILES\%PRODUCT_ID%_ground-points.laz ^
+          -step 0.25 ^
+          -point_density ^
+          -o OUTPUT_FILES\%PRODUCT_ID%_point-density.bil
+
+lasgrid -i OUTPUT_FILES\%PRODUCT_ID%_ground-points.laz ^
+          -step 0.25 ^
+          -elevation -stddev ^
+          -o OUTPUT_FILES\%PRODUCT_ID%_elevation-stddev.bil
+
+lasgrid -i OUTPUT_FILES\%PRODUCT_ID%_ground-points.laz ^
+          -step 0.25 ^
+          -intensity -mean ^
+          -o OUTPUT_FILES\%PRODUCT_ID%_intentisy-mean.bil
+          
+lasgrid -i OUTPUT_FILES\%PRODUCT_ID%_ground-points.laz ^
+          -step 0.25 ^
+          -scan_angle_abs_lowest ^
+          -o OUTPUT_FILES\%PRODUCT_ID%_scan_angle_abs_lowest.bil
