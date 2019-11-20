@@ -1,25 +1,12 @@
 :: las_01_quality_control.bat
 :: dependencies
-     :: DIR_WORKING
-     :: DIR_LASTOOLS
-     :: DIR_SITE_LIBRARY
-     :: PRODUCT_ID
      :: FILE_IN
+     :: PRODUCT_ID
      :: ORIGINAL_SCALE_FACTOR
+     :: SITE_MASK
      :: NUM_CORES
      :: TILE_SIZE
      :: TILE_BUFFER
-
-
-:: include LAStools in PATH to allow running script from here
-set PATH=%PATH%;%DIR_LASTOOLS%
-
-:: initial setup
-pushd %DIR_WORKING%
-
-:: make product folder
-mkdir .\%PRODUCT_ID%
-cd %PRODUCT_ID%
 
 :: make temp folder
 mkdir .\TEMP_FILES
@@ -53,7 +40,7 @@ lasprecision -i %FILE_IN% ^
 
 :: clip las by shpfile
 lasclip -i TEMP_FILES\01_precision\%PRODUCT_ID%_01.laz ^
-          -poly C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\site_library\site_poly.shp ^
+          -poly %SITE_MASK% ^
           -odir TEMP_FILES\02_clip\ -ocut 3 -odix _02 -olaz
 
 :: tile las for memory management

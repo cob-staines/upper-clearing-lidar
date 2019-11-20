@@ -23,7 +23,9 @@ las_data = pd.DataFrame({'gps_time': inFile.gps_time,
                          'y': inFile.y,
                          'z': inFile.z,
                          'intensity': inFile.intensity})
+header = inFile.header
 inFile.close()
+las_data = las_data.assign(las=True)
 
 # import trajectory
 traj = pd.read_csv(filedir + traj_in)
@@ -34,11 +36,20 @@ traj = traj.rename(columns={'Time[s]': "gps_time",
                             'Height[m]': "height_m"})
 # throw our pitch, roll, yaw (at least until needed later...)
 traj = traj[['gps_time', 'easting_m', 'northing_m', 'height_m']]
+traj = traj.assign(las=False)
 
 # resample traj to las gps times and interpolate
 
 # outer merge las and traj on gps_time
-outer = traj.merge(las_data.gps_time, on="gps_time", how="outer")
+# outer = traj.merge(las_data.gps_time, on="gps_time", how="outer")
+# more efficient to append and drop duplicates
+outer = traj.append(las_data[['gps_time']], sort=False)
+outer = outer.drop_duplicates(['gps_time'], keep='first')
+
+# join too costly, instead keep track of index
+outer = las_data[['gps_time', 'las']].append(traj, sort=False)
+outer = outer.reset_index()
+outer = outer.rename(columns={"index": "index_las"})
 
 # order by gps time
 outer = outer.sort_values(by="gps_time")
@@ -47,15 +58,27 @@ outer = outer.set_index('gps_time')
 # interpolate by nearest neighbor
 interpolated = outer.interpolate(method="nearest")  # issues with other columns.... can we specify?
 # resent index for clarity
+
+interpolated = interpolated[interpolated['las']]
+interpolated = interpolated.sort_values(by="index_las")
 interpolated = interpolated.reset_index()
+interpolated = interpolated[['easting_m', 'northing_m', 'height_m']]
+
+merged = pd.concat([las_data, interpolated], axis=1)
+merged = merged.drop('las', axis=1)
 
 # calculate point distance from track
-las_data = las_data.merge(interpolated, on="gps_time", how="left")
-p1 = np.array([las_data.easting_m, las_data.northing_m, las_data.height_m])
-p2 = np.array([las_data.x, las_data.y, las_data.z])
+p1 = np.array([merged.easting_m, merged.northing_m, merged.height_m])
+p2 = np.array([merged.x, merged.y, merged.z])
 squared_dist = np.sum((p1 - p2) ** 2, axis=0)
-las_data = las_data.assign(distance_to_track=np.sqrt(squared_dist))
+merged = merged.assign(distance_to_track=np.sqrt(squared_dist))
 
+# calculate angle from nadir
+dp = p1 - p2
+phi = np.arctan(np.sqrt(dp[0]**2 + dp[1]**2)/dp[2]) #*180/np.pi #for degrees
+merged = merged.assign(angle_from_nadir=phi)
+
+# --------------------------------SANDBOX---------------------------------
 # range normalization (Okhrimernko and Hopkinson 2019)
 norm_range = 80  # m
 las_data = las_data.assign(intensity_norm=las_data.intensity * las_data.distance_to_track ** 2 / norm_range ** 2)
@@ -95,17 +118,34 @@ curve_x = las_data.distance_to_track
 curve_y = las_data.intensity/1000
 
 
-def func(x, a, b):
-    return a * np.exp(-b * x)
-
-def func(x, a, b):
-    return a * x ** -b
+def func(x, a, b, c):
+    return a * np.exp(-b * x) * x ** -c
 
 
-popt, pcov = curve_fit(func, curve_x, curve_y, p0=[1., .5])
+popt, pcov = curve_fit(func, curve_x, curve_y, p0=[1000., .001, 1])
 
+plt.scatter(las_data.distance_to_track, las_data.intensity/1000, s=1)
 plt.scatter(curve_x, curve_y)
 plt.plot(curve_x, func(curve_x, *popt), color='red')
+
+
+def func(I, x1, x2, b, c):
+    return I * np.exp(b * (x1 - x2)) * x1 ** c * x2 ** -c
+
+
+b = 0.0012043585743089392
+# b = popt[1]
+c = 0.23473660663020066
+# c = popt[2]
+temp = func(las_data.intensity, las_data.distance_to_track, 80, b, c)
+las_data = las_data.assign(intensity_range_norm=temp)
+
+plt01 = las_data.plot.scatter(x='distance_to_track', y='intensity_range_norm', s=1)
+plt01 = las_data.plot.scatter(x='angle_from_nadir', y='intensity_range_norm', s=1)
+
+las_data = las_data.assign(intensity_angle_norm=las_data.intensity_range_norm / (np.cos(las_data.angle_from_nadir)) ** 2)
+
+plt03 = las_data.plot.scatter(x='angle_from_nadir', y='intensity_angle_norm', s=1)
 
 # curve-normalized
 

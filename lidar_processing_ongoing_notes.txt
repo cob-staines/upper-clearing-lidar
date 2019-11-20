@@ -128,3 +128,11 @@ next want to generate histogram of scanning angles for ground points in upper fo
 			scanning angle
 			footprint
 			perspective
+
+2019-11-18
+	split las_01_quality control.bat into 2, adding las_00_dir_setup.bat to allow for faster manual apperations out of config files
+	range normalized in python usin curve-fitting of exponential*power function
+	implemented range normalization in cleaner form in intensity_normalization.py
+	
+	want to compare scanning angle, roll, and angle from nadir:
+		hypothesis: angle from nadir = scanning angle + roll

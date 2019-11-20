@@ -6,12 +6,21 @@ SET DIR_WORKING=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR
 :: folder containing lastools and license
 SET DIR_LASTOOLS=C:\Users\Cob\index\educational\usask\research\masters\code_lib\lastools\LAStools\bin;
 :: folder containing site polygons
-SET DIR_SITE_LIBRARY=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\site_library
+SET SITE_MASK=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\site_library\site_poly.shp
 :: folder containing batch files
 SET DIR_BAT=C:\Users\Cob\index\educational\usask\research\masters\repos\upper-clearing-lidar\lastools
 
+:: PROJECTION
+SET EPSG=32611
+
+:: CLASSES
+SET CLASS_GROUND=2
+SET CLASS_NOISE=7
+
 
 :: __________ PROTOCOL__________
+
+call %DIR_BAT%\las_00_dir_setup.bat
 
 SET ORIGINAL_SCALE_FACTOR=0.00025
 SET NUM_CORES=4
@@ -67,3 +76,9 @@ lasclip -i OUTPUT_FILES\%PRODUCT_ID%_ground-points.laz ^
           -keep_single ^
           -keep_scan_angle -5 5 ^
           -o OUTPUT_FILES\%PRODUCT_ID%_clearing_ground-points_single-return_5deg.las
+
+          :: clip to upper clearing poly, filter by 1st return
+lasclip -i OUTPUT_FILES\%PRODUCT_ID%_ground-points.laz ^
+          -poly C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\site_library\upper_clearing_poly.shp ^
+          -keep_single ^
+          -o OUTPUT_FILES\%PRODUCT_ID%_clearing_ground-points_single-return.las
