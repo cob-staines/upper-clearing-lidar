@@ -23,7 +23,6 @@ call %DIR_BAT%\las_00_dir_setup.bat
 :: __________ PROTOCOL__________
 
 
-
 SET ORIGINAL_SCALE_FACTOR=0.00025
 SET NUM_CORES=4
 SET TILE_SIZE=100
@@ -44,6 +43,8 @@ call %DIR_BAT%\las_01_quality_control.bat
 SET NOISE_ISOLATION=20
 SET NOISE_STEP=2.0
 SET GROUND_STEP=2.0
+SET HEIGHT_THRESHOLD_LOW=-3
+SET HEIGHT_THRESHOLD_HIGH=40
 
 call %DIR_BAT%\las_02_classification.bat
 :: dependencies
@@ -69,7 +70,7 @@ lasmerge -i TEMP_FILES\08_no_buffer\*.laz ^
 :: output high vegetation
 lasmerge -i TEMP_FILES\08_no_buffer\*.laz ^
           -keep_class 5 ^
-          -o OUTPUT_FILES\%PRODUCT_ID%_vegetation-points.laz
+          -o OUTPUT_FILES\%PRODUCT_ID%_vegetation-points.las
 
 :: ladder_clearing
 :: clip to upper clearing poly, filter by 1st return, filter to +/- 5 deg
@@ -83,3 +84,18 @@ lasclip -i OUTPUT_FILES\%PRODUCT_ID%_ground-points.laz ^
 lasmerge -i TEMP_FILES\08_no_buffer\*.laz ^
           -drop_class 7 ^
           -o OUTPUT_FILES\%PRODUCT_ID%_all-points.las
+
+
+
+:: output high vegetation first returns above height
+
+lasheight -i TEMP_FILES\06_ground\*.laz ^
+          -classify_above 15 5 -classify_above 40 7 ^
+          -cores %NUM_CORES% ^
+          -odir TEMP_FILES\07_vegetation\ -olaz -ocut 3 -odix _07
+
+lasmerge -i TEMP_FILES\08_no_buffer\*.laz ^
+          -keep_class 5 ^
+          -keep_first ^
+          -o OUTPUT_FILES\%PRODUCT_ID%_vegetation-points_above-15m.las
+

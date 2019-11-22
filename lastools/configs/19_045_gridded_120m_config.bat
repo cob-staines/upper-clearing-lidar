@@ -18,9 +18,10 @@ SET CLASS_GROUND=2
 SET CLASS_NOISE=7
 
 
+call %DIR_BAT%\las_00_dir_setup.bat
+
 :: __________ PROTOCOL__________
 
-call %DIR_BAT%\las_00_dir_setup.bat
 
 SET ORIGINAL_SCALE_FACTOR=0.00025
 SET NUM_CORES=4
@@ -45,7 +46,6 @@ SET GROUND_STEP=2.0
 SET HEIGHT_THRESHOLD_LOW=-3
 SET HEIGHT_THRESHOLD_HIGH=40
 
-
 call %DIR_BAT%\las_02_classification.bat
 :: dependencies
      :: CLASS_GROUND
@@ -64,6 +64,7 @@ call %DIR_BAT%\las_03_remove_buffer.bat
 SET RESOLUTION_DEM=.25
 SET RESOLUTION_THIN=.125
 SET MAX_TIN_EDGE=1
+
 call %DIR_BAT%\las_03_output_dem.bat
 :: dependencies
      :: CLASS_GROUND
@@ -71,6 +72,12 @@ call %DIR_BAT%\las_03_output_dem.bat
      :: RESOLUTION_DEM
      :: RESOLUTION_THIN
      :: MAX_TIN_EDGE
+
+SET RESOLUTION_CANOPY=.25
+call %DIR_BAT%\las_04_canopy_raster.bat
+:: dependencies
+    :: NUM_CORES
+    :: RESOLUTION_CANOPY
 
 :: __________ MANUAL OUTPUTS __________
 

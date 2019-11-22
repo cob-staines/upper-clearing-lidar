@@ -18,9 +18,10 @@ SET CLASS_GROUND=2
 SET CLASS_NOISE=7
 
 
+call %DIR_BAT%\las_00_dir_setup.bat
+
 :: __________ PROTOCOL__________
 
-call %DIR_BAT%\las_00_dir_setup.bat
 
 SET ORIGINAL_SCALE_FACTOR=0.00025
 SET NUM_CORES=4
@@ -44,7 +45,6 @@ SET NOISE_STEP=2.0
 SET GROUND_STEP=2.0
 SET HEIGHT_THRESHOLD_LOW=-3
 SET HEIGHT_THRESHOLD_HIGH=40
-
 
 call %DIR_BAT%\las_02_classification.bat
 :: dependencies

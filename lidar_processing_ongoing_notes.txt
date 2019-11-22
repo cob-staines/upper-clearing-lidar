@@ -136,3 +136,6 @@ next want to generate histogram of scanning angles for ground points in upper fo
 	
 	want to compare scanning angle, roll, and angle from nadir:
 		hypothesis: angle from nadir = scanning angle + roll
+2019-11-20
+	successfully created output for python range normalizaition. Some bugs to fix, but generally gooks good. next step is to run it for a big file and see what it looks like!
+	could run for vegetation points of 120m gridded?

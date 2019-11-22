@@ -69,7 +69,7 @@ def las_traj(las_in, traj_in):
 
     # calculate angle from nadir
     dp = p1 - p2
-    phi = np.arctan(np.sqrt(dp[0] ** 2 + dp[1] ** 2) / dp[2])  # *180/np.pi #for degrees
-    merged = merged.assign(angle_from_nadir=phi)
+    phi = np.arctan(np.sqrt(dp[0] ** 2 + dp[1] ** 2) / dp[2])*180/np.pi #in degrees
+    merged = merged.assign(angle_from_nadir_deg=phi)
 
     return [merged, laspy_header]
