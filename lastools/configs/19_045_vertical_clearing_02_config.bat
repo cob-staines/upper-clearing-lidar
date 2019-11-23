@@ -18,9 +18,10 @@ SET CLASS_GROUND=2
 SET CLASS_NOISE=7
 
 
+call %DIR_BAT%\las_00_dir_setup.bat
+
 :: __________ PROTOCOL__________
 
-call %DIR_BAT%\las_00_dir_setup.bat
 
 SET ORIGINAL_SCALE_FACTOR=0.00025
 SET NUM_CORES=4

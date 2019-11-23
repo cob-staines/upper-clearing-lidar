@@ -10,16 +10,16 @@ def las_traj(las_in, traj_in):
     import laspy
     import pandas as pd
     import numpy as np
+    import time
 
     # import las_in
     inFile = laspy.file.File(las_in, mode="r")
-    # select attributes
+    # select dimensions
     las_data = pd.DataFrame({'gps_time': inFile.gps_time,
                              'x': inFile.x,
                              'y': inFile.y,
                              'z': inFile.z,
                              'intensity': inFile.intensity})
-    laspy_header = inFile.header
     inFile.close()
     las_data = las_data.assign(las=True)
 
@@ -29,15 +29,12 @@ def las_traj(las_in, traj_in):
     traj = traj.rename(columns={'Time[s]': "gps_time",
                                 'Easting[m]': "easting_m",
                                 'Northing[m]': "northing_m",
-                                'Height[m]': "height_m",
-                                'Roll[deg]': "roll_deg"})
-
+                                'Height[m]': "height_m"})
     # throw our pitch, roll, yaw (at least until needed later...)
     traj = traj[['gps_time', 'easting_m', 'northing_m', 'height_m']]
     traj = traj.assign(las=False)
 
     # resample traj to las gps times and interpolate
-
     # outer merge las and traj on gps_time
 
     # proper merge takes too long, instead keep track of index
@@ -50,7 +47,9 @@ def las_traj(las_in, traj_in):
     # set index as gps_time for nearest neighbor interpolation
     outer = outer.set_index('gps_time')
     # interpolate by nearest neighbor
-    interpolated = outer.interpolate(method="nearest")  # issues with other columns.... can we specify?
+
+    interpolated = outer.interpolate(method="nearest")
+
     # resent index for clarity
 
     interpolated = interpolated[interpolated['las']]
@@ -72,4 +71,4 @@ def las_traj(las_in, traj_in):
     phi = np.arctan(np.sqrt(dp[0] ** 2 + dp[1] ** 2) / dp[2])*180/np.pi #in degrees
     merged = merged.assign(angle_from_nadir_deg=phi)
 
-    return [merged, laspy_header]
+    return merged

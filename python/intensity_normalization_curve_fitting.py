@@ -14,7 +14,7 @@ from las_traj import las_traj
 # note that laspy only works with las files, laz (in or out) will produce an error
 filedir = """C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\LiDAR\\19_045\\"""
 # las_ref_in points to the las-file used for curve-fitting in range normalization
-las_ref_in = """19_045_vertical_clearing_02_intensity-analysis\\OUTPUT_FILES\\19_045_vertical_clearing_02_intensity-analysis_clearing_ground-points_single-return_5deg.las """
+las_ref_in = """19_045_vertical_clearing_02_intensity-analysis\\OUTPUT_FILES\\19_045_vertical_clearing_02_intensity-analysis_clearing_ground-points_single-return_5deg.las"""
 # las_norm_in points to the las file to be range normalized
 las_norm_in = """19_045_ladder_clearing_intensity-analysis\\OUTPUT_FILES\\19_045_ladder_clearing_intensity-analysis_vegetation-points_above-15m.las"""
 #las_norm_out points to the file when the normalized output will be saved

@@ -17,11 +17,11 @@ cd ..
 lasheight -i TEMP_FILES\09_no_buffer\*.laz ^
 		-replace_z ^
 		-cores %NUM_CORES% ^
-		-o TEMP_FILES\11_vegetation_normalized\%PRODUCT_ID%_vegetation_normalized_11.laz
+		-odir  TEMP_FILES\11_vegetation_normalized -olaz -ocut 3 -odix _11
 
 :: calculate raster canopy metrics
-lascanopy -i TEMP_FILES\11_vegetation_normalized_merged\%PRODUCT_ID%_vegetation_normalized_12.laz ^
+lascanopy -i TEMP_FILES\11_vegetation_normalized\*.laz ^
 		-merged ^
 		-step %RESOLUTION_CANOPY% ^
-		-dns ^
+		-d 0.5 2 4 10 50 -dns -cov ^
 		-odir OUTPUT_FILES\CANOPY_RASTER\ -obil -ocut 3

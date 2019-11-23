@@ -38,7 +38,8 @@ lasheight -i TEMP_FILES\06_ground\*.laz ^
           -cores %NUM_CORES% ^
           -odir TEMP_FILES\07_height\ -olaz -ocut 3 -odix _07
 
-:: classify vegetation points as low vegetration, high vegetation (need to clarify distinction)
+:: classify vegetation points as low vegetration, high vegetation (2m height threshold by default). Is this needed? I think not, no buildings!
 lasclassify -i TEMP_FILES\07_height\*.laz ^
           -ignore_class %CLASS_GROUND% %CLASS_NOISE% ^
+          -cores %NUM_CORES% ^
           -odir TEMP_FILES\08_vegetation\ -olaz -ocut 3 -odix _08
