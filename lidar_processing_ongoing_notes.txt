@@ -139,3 +139,13 @@ next want to generate histogram of scanning angles for ground points in upper fo
 2019-11-20
 	successfully created output for python range normalizaition. Some bugs to fix, but generally gooks good. next step is to run it for a big file and see what it looks like!
 	could run for vegetation points of 120m gridded?
+
+2019-12-12
+	goal 1: compare ground surface points
+	goal 2: compare snow depth
+	export ppp-corrected gnss rover points from leica infinity (WSG84)
+	run 'snow_survey_gnss_merge.r' to merge snow survey with gnss (inner join only!!)
+	import merge into qgis
+	export as UTM NorthZone 11
+	export point sampling (10cm raster)
+	merge in r (to be done)

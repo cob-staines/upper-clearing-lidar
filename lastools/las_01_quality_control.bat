@@ -8,18 +8,12 @@
      :: TILE_SIZE
      :: TILE_BUFFER
 
-:: make temp folder
-mkdir .\TEMP_FILES
-
-
 :: make output folders
-cd TEMP_FILES
-mkdir .\00_quality
-mkdir .\01_precision
-mkdir .\02_clip
-mkdir .\03_tile
-mkdir .\04_duplicate
-cd ..
+mkdir .\TEMP_FILES\00_quality
+mkdir .\TEMP_FILES\01_precision
+mkdir .\TEMP_FILES\02_clip
+mkdir .\TEMP_FILES\03_tile
+mkdir .\TEMP_FILES\04_duplicate
 
 :: ----------PROTOCOL----------
 

@@ -27,7 +27,7 @@ outdata = outdriver.Create(output_fname, cols, rows, 1, gdal.GDT_UInt16)
 outdata.SetGeoTransform(gt)
 outdata.SetProjection(proj)
 # write data
-gdal.RasterizeLayer(outdata, [1], layer, burn_values=[1])
+gdal.RasterizeLayer(outdata, [1], layer, burn_values=[1]) #works, but on all features in layer. need to be addapted to accomodate single features at a time
 
 # Set a no data value if required
 outdata.GetRasterBand(1).SetNoDataValue(0)
