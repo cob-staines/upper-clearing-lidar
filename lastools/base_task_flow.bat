@@ -43,5 +43,9 @@ IF %BOOL_CHM%==1 call %DIR_BAT%\las_04_canopy.bat
     :: CLASS_VEGETATION
     :: NUM_CORES
     :: RESOLUTION_CANOPY
+IF %BOOL_COMPILE%==1 call %DIR_BAT%\las_05_compile.bat
+:: dependencies
+    :: NUM_CORES
 
 :: __________ MANUAL OUTPUTS __________
+

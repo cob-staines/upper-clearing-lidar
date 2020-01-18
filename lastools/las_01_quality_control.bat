@@ -8,7 +8,7 @@
      :: TILE_SIZE
      :: TILE_BUFFER
 
-:: make output folders
+:: make output directories
 mkdir .\TEMP_FILES\00_quality
 mkdir .\TEMP_FILES\01_precision
 mkdir .\TEMP_FILES\02_clip
@@ -39,7 +39,8 @@ lasclip -i TEMP_FILES\01_precision\%PRODUCT_ID%_01.laz ^
 
 :: tile las for memory management
 lastile -i TEMP_FILES\02_clip\%PRODUCT_ID%_02.laz ^
-          -set_classification 0 -set_user_data 0 ^
+          -set_classification 0 ^
+          -set_user_data 0 ^
           -tile_size %TILE_SIZE% -buffer %TILE_BUFFER% ^
           -odir TEMP_FILES\03_tile\ -o %PRODUCT_ID%.laz
 

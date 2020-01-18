@@ -1,20 +1,34 @@
-library(dplyr)
+library(raster)
 library(ggplot2)
+ras_in <- 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/snow_depth/19_045_all_25cm_snow_depth.tif'
+sf_in <- 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/site_library/site_plots.shp'
 
-infile = 'C:/Users/Cob/index/educational/usask/research/masters/data/LiDAR/analysis/snow_depth/grid_histogram.csv'
+ds <- raster(x = ras_in)
+hist(ds)
+plot(ds)
 
-data <- read.csv(infile)
+sf <- shapefile(sf_in)
+vals <- extract(ds,sf)
 
-try <- select(data, list(names(data)[5,7:297]))
+for (ii in 1:length(vals)){
+  #remove NAs
+  vals[[ii]] <- vals[[ii]][!is.na(vals[[ii]])]
+  #restructure as df for ggplot
+  vals[[ii]] <- data.frame(snow_depth_m = vals[[ii]])
+  #assign feature name
+  vals[[ii]]$feature <- sf$name[ii]
+}
 
-foo <- reshape(data, 
-               direction = "long",
-               varying = list(names(data)[8:313]),
-               v.names = "Value",
-               idvar = "id",
-               times = as.numeric(gsub("X", "", gsub("X.1", "-1", gsub("X.0", "-", names(data)[8:313])))))
+comp <- rbind(vals[[1]], vals[[2]], vals[[3]], vals[[4]], vals[[5]], vals[[6]], vals[[7]])
+comp$snow_depth_cm <- comp$snow_depth_m*100
 
-foo <- foo[foo$id == 20 | foo$id == 200,]
+ggplot(data=comp, aes(snow_depth_cm, fill = feature)) +
+  geom_density(alpha = 0.2) +
+  labs(title ="Snow Depth for 19_045", x = "snow depth (cm)", y = "density") +
+  xlim(0, 120)
 
-ggplot(foo, aes(time, Value)) + 
-  geom_path(aes(color = id))
+ggplot(data=comp, aes(snow_depth_cm, fill = feature)) +
+  geom_histogram(bins = 30, alpha = 0.2, position = 'identity', aes(y = ..count../sum(..count..))) +
+  labs(title ="Snow Depth for 19_045", x = "snow depth (cm)", y = "density") +
+  xlim(0, 120)
+

@@ -1,18 +1,21 @@
 :: las_02_classification.bat
 :: dependencies
      :: CLASS_GROUND
+     :: CLASS_VEGETATION
      :: CLASS_NOISE
      :: NUM_CORES
      :: NOISE_ISOLATION
      :: NOISE_STEP
      :: GROUND_STEP
-     :: HEIGHT_THRESHOLD_LOW
-     :: HEIGHT_THRESHOLD_HIGH
+     :: NOISE_HEIGHT_THRESHOLD_LOW
+     :: NOISE_HEIGHT_THRESHOLD_HIGH
+     :: VEGETATION_HEIGHT_THRESHOLD_LOW
 
-cd TEMP_FILES
-mkdir .\05_noise
-mkdir .\06_ground
-cd ..
+:: make output directories
+mkdir .\TEMP_FILES\05_noise
+mkdir .\TEMP_FILES\06_ground
+mkdir .\TEMP_FILES\07_vegetation
+mkdir .\TEMP_FILES\08_normalized
 
 :: classify isolated points as class = 7
 lasnoise -i TEMP_FILES\04_duplicate\*.laz ^
@@ -29,3 +32,20 @@ lasground -i TEMP_FILES\05_noise\*.laz ^
           -ignore_class %CLASS_NOISE% ^
           -cores %NUM_CORES% ^
           -odir TEMP_FILES\06_ground\ -olaz -ocut 3 -odix _06
+
+:: calculate point height from ground point TIN. [do we want these points available with the original z?]
+lasheight -i TEMP_FILES\06_ground\*.laz ^
+          -classify_below  %NOISE_HEIGHT_THRESHOLD_LOW% %CLASS_NOISE% ^
+          -classify_between %VEGETATION_HEIGHT_THRESHOLD_LOW% %NOISE_HEIGHT_THRESHOLD_HIGH% %CLASS_VEGETATION% ^
+          -classify_above %NOISE_HEIGHT_THRESHOLD_HIGH% %CLASS_NOISE% ^
+          -cores %NUM_CORES% ^
+          -odir TEMP_FILES\07_vegetation\ -olaz -ocut 3 -odix _07
+
+:: recalculate height and replace z to normalize by ground surface (required for CHM)
+lasheight -i TEMP_FILES\07_vegetation\*.laz ^
+          -replace_z ^
+          -cores %NUM_CORES% ^
+          -odir TEMP_FILES\08_normalized\ -olaz -ocut 3 -odix _08
+
+:: Classify vegetation points between VEGETATION_HEIGHT_THRESHOLD_LOW and NOISE_HEIGHT_THRESHOLD_HIGH
+:: below HEIGHT_THRESHOLD_LOW and above HEIGHT_THRESHOLD_HIGH as NOISE_CLASS

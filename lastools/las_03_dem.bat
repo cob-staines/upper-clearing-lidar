@@ -1,10 +1,11 @@
 :: las_03_output_dem.bat
 :: dependencies
 	:: CLASS_GROUND
+    :: DEM_THIN_RESOLUTION
+    :: DEM_RESOLUTION
+    :: DEM_MAX_TIN_EDGE
     :: NUM_CORES
-    :: RESOLUTION_DEM
-    :: RESOLUTION_THIN
-    :: MAX_TIN_EDGE
+    :: EPSG
 
 :: make output directories
 mkdir .\TEMP_FILES\10_dem\res_%DEM_RESOLUTION%
