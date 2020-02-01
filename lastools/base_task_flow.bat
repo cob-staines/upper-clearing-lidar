@@ -47,5 +47,13 @@ IF %BOOL_COMPILE%==1 call %DIR_BAT%\las_05_compile.bat
 :: dependencies
     :: NUM_CORES
 
-:: __________ MANUAL OUTPUTS __________
+IF %RM_TEMP%==NOISE (
+  rmdir /s /q .\TEMP_FILES\00_quality\
+  rmdir /s /q. \TEMP_FILES\01_precision\
+  rmdir /s /q .\TEMP_FILES\02_clip\
+  rmdir /s /q .\TEMP_FILES\03_tile\
+  rmdir /s /q .\TEMP_FILES\04_duplicate\
+  rmdir /s /q .\TEMP_FILES\05_noise\
+)
+  :: __________ MANUAL OUTPUTS __________
 

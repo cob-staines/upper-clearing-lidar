@@ -3,7 +3,6 @@
 	:: DIR_LASTOOLS
     :: DIR_WORKING
     :: PRODUCT_ID
-    
 
 :: include LAStools in PATH to allow running script from here
 set PATH=%PATH%;%DIR_LASTOOLS%

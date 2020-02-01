@@ -35,6 +35,7 @@ lasground -i TEMP_FILES\05_noise\*.laz ^
 
 :: calculate point height from ground point TIN. [do we want these points available with the original z?]
 lasheight -i TEMP_FILES\06_ground\*.laz ^
+          -ignore_class %CLASS_NOISE% ^
           -classify_below  %NOISE_HEIGHT_THRESHOLD_LOW% %CLASS_NOISE% ^
           -classify_between %VEGETATION_HEIGHT_THRESHOLD_LOW% %NOISE_HEIGHT_THRESHOLD_HIGH% %CLASS_VEGETATION% ^
           -classify_above %NOISE_HEIGHT_THRESHOLD_HIGH% %CLASS_NOISE% ^
@@ -43,6 +44,7 @@ lasheight -i TEMP_FILES\06_ground\*.laz ^
 
 :: recalculate height and replace z to normalize by ground surface (required for CHM)
 lasheight -i TEMP_FILES\07_vegetation\*.laz ^
+          -ignore_class %CLASS_NOISE% ^
           -replace_z ^
           -cores %NUM_CORES% ^
           -odir TEMP_FILES\08_normalized\ -olaz -ocut 3 -odix _08

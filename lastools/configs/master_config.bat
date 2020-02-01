@@ -22,9 +22,8 @@ SET TILE_BUFFER=5
 
 :: CLASSIFICATION [2]
 SET NOISE_ISOLATION=20
-SET NOISE_STEP=1.0
+SET NOISE_STEP=0.33
 SET GROUND_STEP=2.0
-SEt GROUND_CUTOFF_PERCENTILE=.4
 
 :: DEM [3]
 SET DEM_RESOLUTION=.25
@@ -34,27 +33,33 @@ SET DEM_MAX_TIN_EDGE=.75
 
 :: CANOPY [4]
 SET NOISE_HEIGHT_THRESHOLD_LOW=-1
-SET NOISE_HEIGHT_THRESHOLD_HIGH=30
+SET NOISE_HEIGHT_THRESHOLD_HIGH=35
 SET VEGETATION_HEIGHT_THRESHOLD_LOW=2
 SET CHM_RESOLUTION=.25
 SET CHM_MAX_TIN_EDGE=.75
 SET CHM_LAYER_LIST= 0 2 5 10 15 20 25
 
-SET DATE_LIST= 19_045 19_149
-:: 19_045 19_050 19_052 19_107 19_123 19_149
-
-SET BOOL_QC=0
-SET BOOL_CLASSIFY=0
-SET BOOL_DEM=0
-SET BOOL_CHM=0
+SET BOOL_QC=1
+SET BOOL_CLASSIFY=1
+SET BOOL_DEM=1
+SET BOOL_CHM=1
 SET BOOL_COMPILE=1
 
-for %%a in (%DATE_LIST%) do (
+:: "NOISE" <=> remove through step "NOISE"
+SET RM_TEMP=NONE
 
-	SET PRODUCT_ID=%%a_all_test
-		:: folder in which temp and output files will be saved to
-	SET DIR_WORKING=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\%%a
-	SET FILE_IN=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\%%a\%%a_all_WGS84_utm11N.las
+SET DATE_LIST=19_149
+:: 19_045 19_050 19_052 19_107 19_123 19_149
+
+:: for just one date, copy and paste below:
+:: call %DIR_BAT%\master_config_single_manual_patch.bat
+
+for %%d in (%DATE_LIST%) do (
+
+	SET PRODUCT_ID=%%d_all_test
+	:: folder in which temp and output files will be saved to
+	SET DIR_WORKING=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\%%d
+	SET FILE_IN=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\%%d\%%d_all_WGS84_utm11N.las
 
 	call %DIR_BAT%\base_task_flow.bat
 )
