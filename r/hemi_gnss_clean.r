@@ -25,7 +25,6 @@ hemi$quality_code[hemi$quality_code < 8   & hemi$Point.Rol == "GNSSCodeMeasuredR
 
 
 clean <- hemi %>%
-  filter(quality_code <= 4) %>%
   select(folder, filename, quality_code, quality_note, height_m, WGS84.Lat, WGS84.Lon, WGS84.Ell, xcoordUTM1, ycoordUTM1
          , CQ.3D)
 
