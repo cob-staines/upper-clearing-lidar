@@ -6,18 +6,22 @@ las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\li
 lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
 hemi_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\"
 
+# filter hemisphere validation data
 max_quality = 4
-las_day = ["19_149"]
+las_day = "19_149"
 
 # import hemi_lookup
 lookup = pd.read_csv(lookup_in)
-
 # filter lookup
-subset = lookup[lookup.quality_code <= 4]
-
+subset = lookup[lookup.quality_code <= max_quality]
 # for ii in lasday
-lookup_ss = subset[subset.folder == las_day[0]]
+lookup_ss = subset[subset.folder == las_day]
 
+# synthetic hemisphere parameters
+max_radius = 50  # in meters
+sample_ratio = 1 / 5
+footprint = 0.15
+figuresize = 10
 
 # HEMIGEN
 
@@ -39,14 +43,8 @@ p0 = np.array([inFile.x,
 classification = np.array(inFile.classification)
 inFile.close()
 
-max_radius = 50  # in meters
-sample_ratio = 1 / 20
-footprint = 0.15
-figuresize = 5
-
-
 # FOR ii IN LOOKUP_SS
-for ii in range(0, 5):
+for ii in range(0, 1):
     fig_out = hemi_out_dir + "las_" + las_day[0] + "_img_" + lookup_ss.filename.iloc[ii][0:-4] + ".png"
 
     # set point at ground level (x, y, z)
@@ -93,7 +91,7 @@ for ii in range(0, 5):
     test = random.sample(range(0, phi.__len__() - 1), sample_count)
     sort = np.flip(np.argsort(r[test]))
 
-    # no color
+    # no color output
     c = 2834.64  # points to meters
     fig = plt.figure(figsize=(figuresize, figuresize))
     ax = fig.add_subplot(111, projection='polar')
