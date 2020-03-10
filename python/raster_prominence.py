@@ -8,11 +8,19 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import pandas as pd
 
-# single band geo-raster file
+
+# config
 elev_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_test\\OUTPUT_FILES\\CHM\\19_149_all_test_628000_564657pit_free_chm_.25m.bil"
 prominence_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_test\\OUTPUT_FILES\\CHM\\19_149_all_test_628000_564657pit_free_chm_.25m_prominence.csv"
 
-# open raster file
+z_min = 2  # lower elevation limit in elevation units, all cells below will be masked out of search
+z_step = 0.25  # resolution of prominence calculation in elevation units
+peak_elev_min = z_min + z_step  # peaks below will be dropped, in units of elevation
+prominence_max = 10  # in units of elevation, multiple of z_step is ideal. To ignore, set above topography height
+isolated_parent_id = -1111  # parent_id used when no parent found down to z_min.
+prominence_max_parent_id = -2222  # parent_id used when no parent found within prominence_max range.
+
+# open single band geo-raster file
 ras = gdal.Open(elev_in, gdal.GA_ReadOnly)
 
 # get metadata
@@ -34,95 +42,100 @@ elev = np.array(ras.ReadAsArray())
 # close file
 ras = None
 
-# define mask of valid data
-mask = elev != no_data
-
-# add 1 pixel buffer
+# define mask of valid data above  z_min
+mask = (elev != no_data) & (elev >= z_min)
+# add 1-pixel buffer to mask
 mask[0, :] = False
 mask[rows-1, :] = False
 mask[:, 0] = False
 mask[:, cols-1] = False
 
-# if no_mask is between min and max, error!
+# find peaks within 9-neighborhood using buffer of 1
 
-# find peaks within 9-neighborhood
-# buffer of 1
 
 
 def shifter(ras, r, c):
+    #set no_data values higher than max to throw out peaks with no_data neighbors
+    high_no_data = int(np.max(ras) + 1)
+    ras[ras == no_data] = high_no_data
     return ras[1:rows-2, 1:cols-2] > ras[1+r:rows-2+r, 1+c:cols-2+c]
 
 
 peaks = np.full([rows, cols], False)
-peaks[1:rows-2, 1:cols-2] = shifter(elev, -1, 0) & shifter(elev, 1, 0) & shifter(elev, 0, -1) & shifter(elev, 0, 1) & shifter(elev, -1, -1) & shifter(elev, -1, 1) & shifter(elev, 1, -1) & shifter(elev, 1, 1)
+peaks[1:rows-2, 1:cols-2] = shifter(elev, -1, 0) & shifter(elev, 1, 0) & shifter(elev, 0, -1) &\
+                            shifter(elev, 0, 1) & shifter(elev, -1, -1) & shifter(elev, -1, 1) &\
+                            shifter(elev, 1, -1) & shifter(elev, 1, 1)
 peaks = peaks & mask
 
 # assign peaks id
 peaks_xy = np.where(peaks)
 peaklist = pd.DataFrame({'peak_x': peaks_xy[0],
-                   'peak_y': peaks_xy[1]})
+                        'peak_y': peaks_xy[1]})
 
-peak_elev_cutoff = 10  # in units of elevation
-
-# filter peaks by elevation cutoff
+# drop peaks below z_min
 peaklist.loc[:, "elev"] = elev[peaks_xy]
-peaklist = peaklist.loc[peaklist.elev > peak_elev_cutoff]
+peaklist = peaklist.loc[peaklist.elev > peak_elev_min]
 peaklist = peaklist.reset_index(drop=True)
 peaklist.loc[:, "id"] = peaklist.index
 
-z_step = 0.5  # in elevation units
-z_min = np.min(elev[mask])
+# build topo_elev list counting up from z_min (inclusive) to z_max (exclusive) by z_step, increasing order
 z_max = np.max(elev[mask])
+elev_band_count = int((z_max-z_min)/z_step)
+topo_elev_max = z_min + elev_band_count*z_step
+topo_elev = np.linspace(z_min, topo_elev_max, elev_band_count + 1)
 
-# elevation list built with elevation step counting down from z_max (exclusive) to z_min (exclusive)
-layer_count = int((z_max-z_min)/z_step)
-elevation_min = z_max - layer_count*z_step
-elevation_max = z_max - z_step
-topo_elev = np.linspace(elevation_min, elevation_max, layer_count)
-
-# build topo with heights at topo_elevs
+# build boolean topos: True if greater than topo_elevs & mask
 topo = np.full([rows, cols, topo_elev.__len__()], False)
 for ii in range(0, topo_elev.__len__()-1):
     topo[:, :, ii] = (elev > topo_elev[ii]) & mask
 
-# for each peak
-
-# begin with layer with elevation just below peak
-
-# find neighborhood
-
-# are any other peaks in neighborhood?
-    #if so, are they greater than this peak?
-        #if so, record id as parent and end loop
-    #if not move down one layer and repeat
-
-cutoff = 3  # in units of elevation, multiple of step ideal
-layer_cutoff = int(cutoff/z_step)
+# interpret prominence_max to layers
+prominence_max_steps = int(prominence_max/z_step)
 
 # find parents
-parent_list = peaklist.copy()
-parent_list.loc[:, "parent_id"] = -9999
-parent_list.loc[:, "prominence_lower_lim"] = -9999
+parentlist = peaklist.copy()
+parentlist.loc[:, "parent_id"] = -9999
+parentlist.loc[:, "prominence_expected"] = -9999
 
 # for each peak
-for peak_id in range(0, peaklist.__len__()):
+for peak_id in range(0, len(peaklist)):
+    # get peak coordinates
     peak_coords = (peaklist.peak_x[peak_id], peaklist.peak_y[peak_id])
 
-    found_parent = False
+    # begin with topo_elev band immediately below peak
     topo_band_below = np.where(topo_elev < elev[peak_coords])[0][-1]
 
+    # increment through topo elev bands beginning from topo_band below with incrementer ll
+    # until parent is found, or prominence_max_steps is reached
     ll = 0
-    # for elevation band through cutoff, or until parent is found
-    while ~found_parent & (ll < layer_cutoff):
+    found_parent = False
+    while not found_parent:
+        # set topo elevation band
         elev_band = topo_band_below - ll
 
-        # list of cells to search
-        if elev_band > 0:
-            # initialize search list with peak only
-            searchlist = [peak_coords]
-        else:
-            # do not search if elevation band is out of bounds
+        # should search be initialized?
+        if ll > prominence_max_steps:
+            # empty search to discontinue if prominence_max_steps reached
             searchlist = []
+
+            found_parent = True
+            # record parent as beyond prominence max
+            parentlist.loc[peak_id, "parent_id"] = prominence_max_parent_id
+            # write prominence_max (be careful here!)
+            parentlist.loc[peak_id, "prominence_expected"] = prominence_max
+        elif elev_band < 0:
+            # empty search to discontinue if elev_band out of range
+            searchlist = []
+
+            found_parent = True
+            # record parent as isolated (up to z_min)
+            parentlist.loc[peak_id, "parent_id"] = isolated_parent_id
+            # write expected prominence: mean of upper and lower limits
+            parentlist.loc[peak_id, "prominence_expected"] = elev[peak_coords] - (min([elev[peak_coords], topo_elev[elev_band + 2]]) + topo_elev[elev_band + 1]) / 2
+        else:
+            # initialize parent search with peak if elev_band in range
+            searchlist = [peak_coords]
+
         # report of connected cells
         connectedlist = []
         # map of searched cells
@@ -130,7 +143,7 @@ for peak_id in range(0, peaklist.__len__()):
         queued[peak_coords] = True
 
         # while items remain in searchlist
-        while searchlist.__len__() > 0:
+        while len(searchlist) > 0:
             searching = searchlist.pop(0)
 
             connected_patch = topo[(searching[0]-1):(searching[0]+2), (searching[1]-1):(searching[1]+2), elev_band]
@@ -147,37 +160,90 @@ for peak_id in range(0, peaklist.__len__()):
             connectedlist.extend(add_tuples)
             queued[add_list] = True
 
-        if connectedlist.__len__() > 0:
+        if len(connectedlist) > 0:
             # take unique elements in connectedlist
             connectedlist = list(zip(*connectedlist))
             # convert to data frame
             connected_df = pd.DataFrame({'neighbor_x': connectedlist[0],
                             'neighbor_y': connectedlist[1]})
             # merge with peaklist
-            peak_neighbors = pd.merge(peaklist, connected_df, how="inner", left_on=("peak_x", "peak_y"), right_on=("neighbor_x", "neighbor_y"))
+            peak_neighbors = pd.merge(peaklist, connected_df, how="inner",
+                                      left_on=("peak_x", "peak_y"), right_on=("neighbor_x", "neighbor_y"))
             # define parents as neighboring peaks with elevation greater than peak
             parent = peak_neighbors.loc[peak_neighbors.elev > elev[peak_coords]]
-            parent = parent.reset_index()
-            if parent.__len__() > 0:
-                if parent.__len__() > 1:
+            if len(parent) > 0:
+                if len(parent) > 1:
                     # use highest parent
                     parent = parent.iloc[np.argmax(np.array(parent.elev))]
-                # write parent_id to parent_list
-                parent_list.parent_id.loc[peak_id] = int(parent.id)
+
                 found_parent = True
+                # write parent_id to parentlist
+                parentlist.loc[peak_id, "parent_id"] = int(parent.id)
+                # write expected prominence: mean of upper and lower limits
+                parentlist.loc[peak_id, "prominence_expected"] = elev[peak_coords] - (
+                        min([elev[peak_coords], topo_elev[elev_band + 1]]) + topo_elev[elev_band])/2
 
-                # write lower limit of prominence
-                parent_list.prominence_lower_lim.loc[peak_id] = elev[peak_coords] - topo_elev[elev_band + 1]
-
-                # could also write area below?
-
+        # increment to next elevation band
         ll = ll+1
 
-output = parent_list.copy()
-output_coords = T1 * [parent_list.peak_x, parent_list.peak_y]
-output.loc[:, "UTM11N_x"] = output_coords[0]
-output.loc[:, "UTM11N_y"] = output_coords[1]
+# calculate coordinates
+UTM_coords = T1 * [parentlist.peak_y, parentlist.peak_x]
+parentlist.loc[:, "UTM11N_x"] = UTM_coords[0]
+parentlist.loc[:, "UTM11N_y"] = UTM_coords[1]
+
+# write parentlist to file
+output = parentlist.copy()
 output = output.drop(["peak_x", "peak_y"], axis=1)
 output.to_csv(prominence_out, index=False)
 
-plt.imshow(queued, interpolation='nearest')
+
+
+
+# calculate distance from tree
+prominence_cutoff = 1  # peaks with prominence less than cutoff will be dropped (cutoff in units of elevation)
+parent_filtered = parentlist.copy()
+parent_filtered = parent_filtered.loc[parent_filtered.prominence_expected >= prominence_cutoff]
+parent_filtered = parent_filtered.reset_index(drop=True)
+
+# preallocate
+parent_map = np.full([rows, cols], no_data)
+distance_map = np.full([rows, cols], np.nan)
+
+# slow but works (60s?)
+for ii in range(0, cols):
+    for jj in range(0, rows):
+        cell_coords = T1 * [ii, jj]
+        distances = np.sqrt((cell_coords[0] - np.array(parent_filtered.UTM11N_x))**2 + (cell_coords[1] - np.array(parent_filtered.UTM11N_y))**2)
+        nearest_id = np.argmin(distances)
+        parent_map[jj, ii] = parent_filtered.id[nearest_id]
+        distance_map[jj, ii] = distances[nearest_id]
+
+# output distance_map
+output_fname = prominence_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_test\\OUTPUT_FILES\\CHM\\19_149_all_test_628000_564657pit_free_chm_.25m_parent_dist.tiff"
+
+outdriver = gdal.GetDriverByName("GTiff")
+outdata = outdriver.Create(output_fname, cols, rows, 1, gdal.GDT_Float32)
+# Set metadata
+outdata.SetGeoTransform(gt)
+outdata.SetProjection(proj)
+
+# Write data
+outdata.GetRasterBand(1).WriteArray(distance_map)
+outdata.GetRasterBand(1).SetNoDataValue(no_data)
+outdata = None
+
+# output parent_map
+output_fname = prominence_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_test\\OUTPUT_FILES\\CHM\\19_149_all_test_628000_564657pit_free_chm_.25m_parent_id.tiff"
+
+outdriver = gdal.GetDriverByName("GTiff")
+outdata = outdriver.Create(output_fname, cols, rows, 1, gdal.GDT_Int16)
+# Set metadata
+outdata.SetGeoTransform(gt)
+outdata.SetProjection(proj)
+
+# Write data
+outdata.GetRasterBand(1).WriteArray(parent_map)
+outdata.GetRasterBand(1).SetNoDataValue(no_data)
+outdata = None
+
+plt.imshow(distance_map, interpolation='nearest')

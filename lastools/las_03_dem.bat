@@ -27,3 +27,14 @@ lasgrid -i TEMP_FILES\10_dem\res_%DEM_RESOLUTION%\*.bil ^
             -step %DEM_RESOLUTION% ^
             -epsg %EPSG% ^
             -odir OUTPUT_FILES\DEM\ -obil -ocut 3 -odix dem_%DEM_RESOLUTION%m
+
+lasgrid -i TEMP_FILES\06_ground\*.laz ^
+            -keep_class %CLASS_GROUND% ^
+            -keep_last ^
+            -use_tile_bb ^
+            -merged ^
+            -step %DEM_RESOLUTION% ^
+            -epsg %EPSG% ^
+            -point_density ^
+            -odir OUTPUT_FILES\DEM\ -obil -ocut 3 -odix point_density_%DEM_RESOLUTION%m
+            

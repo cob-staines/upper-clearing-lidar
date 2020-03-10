@@ -31,4 +31,3 @@ ggplot(data=comp, aes(snow_depth_cm, fill = feature)) +
   geom_histogram(bins = 30, alpha = 0.2, position = 'identity', aes(y = ..count../sum(..count..))) +
   labs(title ="Snow Depth for 19_045", x = "snow depth (cm)", y = "density") +
   xlim(0, 120)
-
