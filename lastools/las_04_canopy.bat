@@ -12,6 +12,7 @@ mkdir .\OUTPUT_FILES\CHM
 mkdir .\OUTPUT_FILES\CANOPY_RASTER
 
 
+:: pit free CHM following Khosravipour et al. 2014
 
 for %%a in (%CHM_LAYER_LIST%) do (
 
@@ -41,7 +42,6 @@ lasgrid -i TEMP_FILES\09_chm\res_%CHM_RESOLUTION%\merged\*.bil ^
         -epsg %EPSG% ^
         -odir OUTPUT_FILES\CHM\ -obil -ocut 3 -odix pit_free_chm_%CHM_RESOLUTION%m
 
- 
 
 :: calculate raster canopy metrics
 lascanopy -i TEMP_FILES\08_normalized\*.laz ^
@@ -50,5 +50,5 @@ lascanopy -i TEMP_FILES\08_normalized\*.laz ^
     -keep_class %CLASS_VEGETATION% ^
 		-step %CHM_RESOLUTION% ^
     -epsg %EPSG% ^
-		-d 0.5 2 4 10 50 -dns -cov ^
+		-dns ^
 		-odir OUTPUT_FILES\CANOPY_RASTER\ -obil -ocut 3

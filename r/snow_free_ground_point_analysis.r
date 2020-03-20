@@ -13,6 +13,7 @@ data$Date.Time <- as.POSIXct(data$Date.Time, format="%d/%m/%Y %H:%M:%OS")
 dema <- read.csv(paste0(workingdir,dem), header=TRUE, na.strings = c("NA",""), sep=",")
 
 diff <- data$WGS84.Ellip..Height - dema 
+
 output <- cbind(data, diff) %>%
   filter(Point.Role == 'GNSSPhaseMeasuredRTK')
 
@@ -36,6 +37,8 @@ analysis <- all %>%
             dh_.50_rmse_m = sqrt(mean((dem_.50m - WGS84.Ellip..Height)^2, na.rm=TRUE)/sum(!is.na(all$dem_.50m))),
             dh_.50_count = sum(!is.na(all$dem_.50m))
             )
+
+
 
 bias_plot <- analysis %>%
   select(dh_.04_bias_m, dh_.10_bias_m, dh_.25_bias_m, dh_.50_bias_m) %>%
@@ -62,3 +65,42 @@ ggplot(all, aes()) +
   geom_point(aes(WGS84.Ellip..Height, dem_.25m, color = '.25m')) +
   geom_point(aes(WGS84.Ellip..Height, dem_.50m, color = '.50m')) +
   geom_abline(slope=1, intercept=0)
+
+# new plots
+diff$gnss_mode = data$Point.Role
+diff_long <- gather(diff, resolution, difference, dem_.04m:dem_.50m, factor_key=TRUE)
+
+ggplot(diff_long, aes(x=resolution, y=difference, color=gnss_mode)) +
+  geom_point()
+
+diff$na_count = as.factor(rowSums(is.na(diff[1:4]), dims = 1))
+diff$interdiff = diff$dem_.50m - diff$dem_.04m
+
+ggplot(diff, aes(x = interdiff, y = dem_.50m, color = gnss_mode)) + 
+  geom_point() +
+  ylim(-.25, .25)
+# this shows that there is a lot of variation between the .50 and .04m resolution models, not explained by agreement with GNSS
+# increasing trend for phase measured: (.5m - .04m) increases, (.5m - GNSS) increases
+    # this could suggest better agreement of .04 with GNSS
+# no trend for phase measured (.5 - 0.4m) vs (0.4m - GNSS)
+
+ggplot(diff, aes(x = na_count, y = dem_.50m, color = gnss_mode)) + 
+  geom_point()
+# no obvious trend in agreement with GNSS with interpolation length
+
+diff_long_phase = diff_long[diff_long$gnss_mode == "GNSSPhaseMeasuredRTK",]
+ggplot(diff_long_phase, aes(x=resolution, y=difference)) +
+  geom_point() +
+  ylim(-.15, .15)
+# smaller spread with smaller resolution (quantify!)
+
+ggplot(diff_long_phase, aes(x=resolution, y=difference)) +
+  geom_boxplot() +
+  ylim(-.15, .15)
+# smaller spread with smaller res
+
+
+ggplot(diff_long_phase, aes(x=difference, color = resolution)) +
+  geom_density() +
+  xlim(-.25, .25)
+# higher peak with smaller res suggests better agreement with GNSS

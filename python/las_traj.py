@@ -10,7 +10,6 @@ def las_traj(las_in, traj_in):
     import laspy
     import pandas as pd
     import numpy as np
-    import time
 
     # import las_in
     inFile = laspy.file.File(las_in, mode="r")

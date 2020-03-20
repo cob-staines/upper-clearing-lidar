@@ -33,7 +33,9 @@ lasground -i TEMP_FILES\05_noise\*.laz ^
           -cores %NUM_CORES% ^
           -odir TEMP_FILES\06_ground\ -olaz -ocut 3 -odix _06
 
-:: calculate point height from ground point TIN. [do we want these points available with the original z?]
+:: calculate point height from ground point TIN.
+:: Classify vegetation points between VEGETATION_HEIGHT_THRESHOLD_LOW and NOISE_HEIGHT_THRESHOLD_HIGH
+:: below HEIGHT_THRESHOLD_LOW and above HEIGHT_THRESHOLD_HIGH as NOISE_CLASS
 lasheight -i TEMP_FILES\06_ground\*.laz ^
           -ignore_class %CLASS_NOISE% ^
           -classify_below  %NOISE_HEIGHT_THRESHOLD_LOW% %CLASS_NOISE% ^
@@ -49,5 +51,3 @@ lasheight -i TEMP_FILES\07_vegetation\*.laz ^
           -cores %NUM_CORES% ^
           -odir TEMP_FILES\08_normalized\ -olaz -ocut 3 -odix _08
 
-:: Classify vegetation points between VEGETATION_HEIGHT_THRESHOLD_LOW and NOISE_HEIGHT_THRESHOLD_HIGH
-:: below HEIGHT_THRESHOLD_LOW and above HEIGHT_THRESHOLD_HIGH as NOISE_CLASS

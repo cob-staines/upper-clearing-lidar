@@ -1,107 +1,37 @@
-import gdal
-import rasterio
-import geopandas as gpd
-import ogr, osr
+import pandas as pd
+import numpy as np
+from raster_load import raster_load
 
-# Read points from shapefile
-shpin = """C:\\Users\\Cob\\index\\educational\\usask\\research\\dronefest\\data\\19_133_sd_analysis\\DroneFest_surface_types_WGS84UTMzone13N.shp"""
-rasin = """C:\\Users\\Cob\\index\\educational\\usask\\research\\dronefest\\data\\19_133_sd_analysis\\sfm_minu_lidar.tif"""
-pts = gpd.read_file(filein)
-pts = pts[['id', 'surf_type', 'geometry']]
-pts.index = range(len(pts))
+# Config
+ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_200311\\OUTPUT_FILES\\DEM\\19_149_all_200311_628000_5646525dem_.04m_step_2.bil"
+pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\surveys\\all_ground_points_UTM11N.csv"
+pts_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_200311\\OUTPUT_FILES\\DEM\\19_149_all_200311_628000_5646525dem_.04m_step_2_ground_pount_samples.csv"
 
-# converts coordinates to index
-def bbox2ix(bbox,gt):
-    xo = int(round((bbox[0] - gt[0])/gt[1]))
-    yo = int(round((gt[3] - bbox[3])/gt[1]))
-    xd = int(round((bbox[1] - bbox[0])/gt[1]))
-    yd = int(round((bbox[3] - bbox[2])/gt[1]))
-    return(xo,yo,xd,yd)
-ras = rasin
-shp = shpin
-def rasclip(ras,shp):
-    ds = gdal.Open(ras)
-    gt = ds.GetGeoTransform()
+pts_xcoord_name = "xcoordUTM1"
+pts_ycoord_name = "ycoordUTM1"
+sample_col_name = "r.04s2samp"
+sample_no_data_value = ""
 
-    driver = ogr.GetDriverByName("ESRI Shapefile")
-    dataSource = driver.Open(shp, 0)
-    layer = dataSource.GetLayer()
+def point_sample_raster(ras_in, pts_in, pts_out, pts_xcoord_name, pts_ycoord_name, sample_col_name, sample_no_data_value):
+    # read points
+    pts = pd.read_csv(pts_in)
+    # read raster
+    ras = raster_load(ras_in)
 
-    for feature in layer:
+    # convert point coords to raster index
+    row_col_pts = np.rint(~ras.T1 * (pts[pts_xcoord_name], pts[pts_ycoord_name])).astype(int)
+    row_col_pts = (row_col_pts[0], row_col_pts[1])
 
-        xo,yo,xd,yd = bbox2ix(feature.GetGeometryRef().GetEnvelope(),gt)
-        arr = ds.ReadAsArray(xo,yo,xd,yd)
-        yield arr
+    # read raster values of points
+    samples = ras.data[row_col_pts]
 
-    layer.ResetReading()
-    ds = None
-    dataSource = None
+    # replace no_data values
+    samples[samples == ras.no_data] = np.nan
 
-gen = rasclip(rasin,shpin)
+    # add to pts df
+    pts.loc[:, sample_col_name] = samples
 
+    # write to file
+    pts.to_csv(pts_out, index=False, na_rep=sample_no_data_value)
 
-#########
-# Open the raster and store metadata
-src = rasterio.open('your_raster.tif')
-
-# Sample the raster at every point location and store values in DataFrame
-pts['Raster Value'] = [x for x in src.sample(coords)]
-pts['Raster Value'] = probes.apply(lambda x: x['Raster Value'][0], axis=1)
-
-
-#####
-raster = rasin
-
-
-def get_aoi_intersection(raster, aoi):
-    """
-    Returns a wkbPolygon geometry with the intersection of a raster and a shpefile containing an area of interest
-
-    Parameters
-    ----------
-    raster
-        A raster containing image data
-    aoi
-        A shapefile with a single layer and feature
-    Returns
-    -------
-    a ogr.Geometry object containing a single polygon with the area of intersection
-
-    """
-    raster_shape = get_raster_bounds(raster)
-    aoi.GetLayer(0).ResetReading()  # Just in case the aoi has been accessed by something else
-    aoi_feature = aoi.GetLayer(0).GetFeature(0)
-    aoi_geometry = aoi_feature.GetGeometryRef()
-    return aoi_geometry.Intersection(raster_shape)
-
-peace = get_aoi_intersection(rasin, shpin)
-
-# open raster file
-ras = gdal.Open(rasin)
-band = ras.GetRasterBand(1)
-
-gt = ras.GetGeoTransform()
-proj = ras.GetProjection()
-arr = ras.ReadAsArray()
-
-driver = ogr.GetDriverByName('ESRI Shapefile')
-data_source = driver.Open(shpin, 0)
-if data_source is None:
-    report_and_exit("File read failed: %s", vector_data_path)
-layer = data_source.GetLayer(0)
-
-driver = gdal.GetDriverByName('MEM')
-cols = ras.RasterXSize
-rows = ras.RasterYSize
-output_fname = """C:\\Users\\Cob\\index\\educational\\usask\\research\\dronefest\\data\\19_133_sd_analysis\\DroneFest_surface_types_mask_WGS84UTMzone13N.tif"""
-
-target_ds = driver.Create(output_fname, cols, rows, 1, gdal.GDT_Byte)
-target_ds.SetGeoTransform(gt)
-target_ds.SetProjection(proj)
-gdal.RasterizeLayer(target_ds, [1], layer, burn_values=[1])
-target_ds = None
-
-peace = target_ds.ReadAsArray()
-
-
-# outdata.GetRasterBand(1).WriteArray(somedatahere)
+point_sample_raster(ras_in, pts_in, pts_out, pts_xcoord_name, pts_ycoord_name, sample_col_name, sample_no_data_value)
