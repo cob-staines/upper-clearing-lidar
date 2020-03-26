@@ -24,18 +24,36 @@ dif_mean = rowMeans(difdata, na.rm = TRUE)
 
 summary_data = data.frame(pnts, dif_se, dif_mean)
 
+# plot standard-error with mean
 ggplot(summary_data, aes(x=dif_mean, y=dif_se, color=Point.Rol)) +
   geom_point() + 
   geom_text(aes(label=uid),hjust=0, vjust=0)
 
-ggplot(sum_data_filtered, aes(x=dif_mean, y=dif_se, color=Point.Rol)) +
-  geom_point() + 
-  geom_text(aes(label=uid),hjust=0, vjust=0)
-
+# filter points: drop phase-measured and hand-selected
 pnts_filter = (pnts$Point.Rol == "GNSSPhaseMeasuredRTK") & (pnts$uid != 164) & (pnts$uid != 154) & (pnts$uid != 98) & (pnts$uid != 158) & (pnts$uid != 100) & (pnts$uid != 95)
 
 sum_data_filtered = summary_data[pnts_filter,]
 
+# plot filtered standard-error with mean
 ggplot(sum_data_filtered, aes(x=dif_mean, y=dif_se, color=Point.Rol)) +
   geom_point() + 
   geom_text(aes(label=uid),hjust=0, vjust=0)
+
+# plot standard error of each data set using filtered points
+set_se = apply(difdata[pnts_filter,],2,sefx)
+set = colnames(difdata)
+
+step_sa = data.frame(set, set_se)
+ggplot(step_sa, aes(x=set, y=set_se)) + 
+  geom_point() + 
+  labs(title ='Standard error of ground validation points for different step sizes and resolutions', x = "r[resolution]s[step] in m", y = "standard error with QC'd ground points")
+# looks like step of 1 gives us the best results! great work Cob!
+
+step_sa_long = gather(difdata[pnts_filter,], resstep, discrepancy, 1:14, factor_key=TRUE)
+ggplot(step_sa_long, aes(x=resstep, y=discrepancy)) + 
+  geom_point()
+
+# looking at the points themselves, we see that a smaller step size tends to over-estimate ground surface elevation (likely near edges?)
+ggplot(step_sa_long, aes(x=resstep, y=discrepancy)) + 
+  geom_boxplot()
+# no significant bias noted

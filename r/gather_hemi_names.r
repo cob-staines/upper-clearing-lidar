@@ -1,5 +1,7 @@
 library(dplyr)
 
+# generates hemispheical lookup by pulling manes and folders of all hemispherical photos
+
 wkdir <- "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/"
 csvout <- "hemi_lookup.csv"
 

@@ -1,5 +1,7 @@
 library(dplyr)
 
+# assigns codes to hemispherical photo lookup to allow for quick filtering later
+
 wkdir <- "C:/Users/Cob/index/educational/usask/research/masters/data/"
 hemi_in <- "hemispheres/hemi_lookup_coded.csv"
 gps_in <- "surveys/all_ground_points_UTM11N.csv"
