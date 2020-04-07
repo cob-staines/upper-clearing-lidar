@@ -29,6 +29,7 @@ lasnoise -i TEMP_FILES\04_duplicate\*.laz ^
 :: ground classify tiles
 lasground -i TEMP_FILES\05_noise\*.laz ^
           -step %GROUND_STEP% ^
+          -offset %GROUND_OFFSET% ^
           -ignore_class %CLASS_NOISE% ^
           -cores %NUM_CORES% ^
           -odir TEMP_FILES\06_ground\ -olaz -ocut 3 -odix _06

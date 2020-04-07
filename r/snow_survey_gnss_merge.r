@@ -1,14 +1,22 @@
-workingdir <- "C:/Users/Cob/index/educational/usask/research/masters/data/surveys/"
-
 tasks <- c("19_045", "19_050", "19_052", "19_107", "19_123")
+doy <- c(45, 50, 52, 107, 123)
 
-snow_file <- "depth_swe/marmot_snow_surveys_raw_19_045.csv"
-gnss_file <- "gnss/19_045_ground_points_corrected.csv"
-output <- "19_045_snow_survey_merged.csv"
+snow_data = data.frame()
+for (ii in 1:5) {
+  snow_file <- paste0("C:/Users/Cob/index/educational/usask/research/masters/data/surveys/depth_swe/marmot_snow_surveys_raw_", tasks[ii] , ".csv")
+  temp = read.csv(snow_file, header=TRUE, na.strings = c("NA",""), skip=1, sep=",")
+  temp$doy = doy[ii]
+  snow_data = rbind(snow_data, temp)
+}
 
-snow <- read.csv(paste0(workingdir,snow_file), header=TRUE, skip=1, na.strings = c("NA",""))
-gnss <- read.csv(paste0(workingdir,gnss_file), header=TRUE, na.strings = c("NA",""), sep=";")
+depth_data <- snow_data[,c(1, 2, 3, 4, 5, 10)]
 
-data <- merge(snow, gnss, by.x="gps_point", by.y="Point.Id")
+gnss_file <- "C:/Users/Cob/index/educational/usask/research/masters/data/surveys/all_ground_points_UTM11N_uid_flagged_cover.csv"
+gnss <- read.csv(gnss_file, header=TRUE, na.strings = c("NA",""), sep=",")
+gnss$Date.Time <- as.POSIXct(gnss$Date.Time, format="%d/%m/%Y %H:%M:%OS")
+gnss$doy <- as.numeric(strftime(gnss$Date.Time, format = "%j"))
 
-write.csv(data, paste0(workingdir,output), row.names=FALSE, na="")
+gnss_depth <- merge(gnss, depth_data, by.x=c("Point.Id", "doy"), by.y=c("gps_point", "doy"), all.x = TRUE)
+
+output <- "C:/Users/Cob/index/educational/usask/research/masters/data/surveys/depth_swe/snow_survey_gnss_merged.csv"
+write.csv(gnss_depth, output, row.names=FALSE, na="")

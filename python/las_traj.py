@@ -1,11 +1,12 @@
-# las_traj takes in an las_file and a corresponding trajectory file. The function then:
-#   -> merges files on gps_time
-#   -> interpolates trajectory to las_points
-#   -> calculates angle_from_nadir
-#   -> calculates distance_to_target
-
 
 def las_traj(las_in, traj_in):
+    # las_traj takes in an las file "las_in" and a corresponding trajectory file "traj_in". The function then:
+    #   -> merges files on gps_time
+    #   -> interpolates trajectory to las_points
+    #   -> calculates angle_from_nadir
+    #   -> calculates distance_to_target
+    #   -> returns laspy object
+
     # dependencies
     import laspy
     import pandas as pd

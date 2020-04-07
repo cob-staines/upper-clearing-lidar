@@ -1,107 +1,81 @@
-import gdal
-import rasterio
-import geopandas as gpd
-import ogr, osr
+import pandas as pd
+import numpy as np
 
-# Read points from shapefile
-shpin = """C:\\Users\\Cob\\index\\educational\\usask\\research\\dronefest\\data\\19_133_sd_analysis\\DroneFest_surface_types_WGS84UTMzone13N.shp"""
-rasin = """C:\\Users\\Cob\\index\\educational\\usask\\research\\dronefest\\data\\19_133_sd_analysis\\sfm_minu_lidar.tif"""
-pts = gpd.read_file(filein)
-pts = pts[['id', 'surf_type', 'geometry']]
-pts.index = range(len(pts))
+# Config
+ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_200311\\OUTPUT_FILES\\DEM\\19_149_all_200311_628000_5646525dem_.25m.bil"
+pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\surveys\\all_ground_points_UTM11N.csv"
+pts_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_200311\\OUTPUT_FILES\\DEM\\19_149_all_200311_628000_5646525dem_.25m_s2_ground_pount_samples.csv"
 
-# converts coordinates to index
-def bbox2ix(bbox,gt):
-    xo = int(round((bbox[0] - gt[0])/gt[1]))
-    yo = int(round((gt[3] - bbox[3])/gt[1]))
-    xd = int(round((bbox[1] - bbox[0])/gt[1]))
-    yd = int(round((bbox[3] - bbox[2])/gt[1]))
-    return(xo,yo,xd,yd)
-ras = rasin
-shp = shpin
-def rasclip(ras,shp):
-    ds = gdal.Open(ras)
-    gt = ds.GetGeoTransform()
+pts_xcoord_name = "xcoordUTM11"
+pts_ycoord_name = "ycoordUTM11"
+sample_col_name = "r.04s8"
+sample_no_data_value = ""
 
-    driver = ogr.GetDriverByName("ESRI Shapefile")
-    dataSource = driver.Open(shp, 0)
-    layer = dataSource.GetLayer()
+def point_sample_raster(ras_in, pts_in, pts_out, pts_xcoord_name, pts_ycoord_name, sample_col_name, sample_no_data_value):
 
-    for feature in layer:
+    # takes in csv file of points "pts_in" with x-column "pts_xcoord_name" and y-column "pts_ycoord_name" and saves
+    # point values of raster "ras_in" to column "sample_col_name" in output csv "pts_out"
 
-        xo,yo,xd,yd = bbox2ix(feature.GetGeometryRef().GetEnvelope(),gt)
-        arr = ds.ReadAsArray(xo,yo,xd,yd)
-        yield arr
+    # Dependencies
+    import pandas as pd
+    import numpy as np
 
-    layer.ResetReading()
-    ds = None
-    dataSource = None
+    # read points
+    pts = pd.read_csv(pts_in)
+    # read raster
+    ras = raster_load(ras_in)
 
-gen = rasclip(rasin,shpin)
+    # convert point coords to raster index
+    row_col_pts = np.rint(~ras.T1 * (pts[pts_xcoord_name], pts[pts_ycoord_name])).astype(int)
+    row_col_pts = (row_col_pts[1], row_col_pts[0])
 
+    # read raster values of points
+    samples = ras.data[row_col_pts]
 
-#########
-# Open the raster and store metadata
-src = rasterio.open('your_raster.tif')
+    # replace no_data values
+    samples[samples == ras.no_data] = np.nan
 
-# Sample the raster at every point location and store values in DataFrame
-pts['Raster Value'] = [x for x in src.sample(coords)]
-pts['Raster Value'] = probes.apply(lambda x: x['Raster Value'][0], axis=1)
+    # add to pts df
+    pts.loc[:, sample_col_name] = samples
 
+    # write to file
+    pts.to_csv(pts_out, index=False, na_rep=sample_no_data_value)
 
-#####
-raster = rasin
+# manual automation
+pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\surveys\\depth_swe\\snow_survey_gnss_merged.csv"
 
+step = 2
+step_name = "2"
+offset = (.01, .03, .04, .05)
+offset_name = (".01", ".03", ".04", ".05")
 
-def get_aoi_intersection(raster, aoi):
-    """
-    Returns a wkbPolygon geometry with the intersection of a raster and a shpefile containing an area of interest
+pts_xcoord_name = "xcoordUTM11"
+pts_ycoord_name = "ycoordUTM11"
+sample_no_data_value = ""
 
-    Parameters
-    ----------
-    raster
-        A raster containing image data
-    aoi
-        A shapefile with a single layer and feature
-    Returns
-    -------
-    a ogr.Geometry object containing a single polygon with the area of intersection
+pts_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_snow_on\\OUTPUT_FILES\\DEM\\offset_opt\\19_149_all_200311_628000_5646525dem_.10_step_" + step_name + "_ground_point_samples.csv"
 
-    """
-    raster_shape = get_raster_bounds(raster)
-    aoi.GetLayer(0).ResetReading()  # Just in case the aoi has been accessed by something else
-    aoi_feature = aoi.GetLayer(0).GetFeature(0)
-    aoi_geometry = aoi_feature.GetGeometryRef()
-    return aoi_geometry.Intersection(raster_shape)
+pts = pd.read_csv(pts_in)
 
-peace = get_aoi_intersection(rasin, shpin)
+for ii in range(0, offset.__len__()):
+    ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_snow_on\\OUTPUT_FILES\\DEM\\offset_opt\\19_045_all_200311_628000_5646525dif_.10_step_" + step_name + "_offset_" + offset_name[ii] + ".tif"
+    sample_col_name = offset_name[ii]
 
-# open raster file
-ras = gdal.Open(rasin)
-band = ras.GetRasterBand(1)
+    # read raster
+    ras = raster_load(ras_in)
 
-gt = ras.GetGeoTransform()
-proj = ras.GetProjection()
-arr = ras.ReadAsArray()
+    # convert point coords to raster index
+    row_col_pts = np.rint(~ras.T1 * (pts[pts_xcoord_name], pts[pts_ycoord_name])).astype(int)
+    row_col_pts = (row_col_pts[1], row_col_pts[0])
 
-driver = ogr.GetDriverByName('ESRI Shapefile')
-data_source = driver.Open(shpin, 0)
-if data_source is None:
-    report_and_exit("File read failed: %s", vector_data_path)
-layer = data_source.GetLayer(0)
+    # read raster values of points
+    samples = ras.data[row_col_pts]
 
-driver = gdal.GetDriverByName('MEM')
-cols = ras.RasterXSize
-rows = ras.RasterYSize
-output_fname = """C:\\Users\\Cob\\index\\educational\\usask\\research\\dronefest\\data\\19_133_sd_analysis\\DroneFest_surface_types_mask_WGS84UTMzone13N.tif"""
+    # replace no_data values
+    samples[samples == ras.no_data] = np.nan
 
-target_ds = driver.Create(output_fname, cols, rows, 1, gdal.GDT_Byte)
-target_ds.SetGeoTransform(gt)
-target_ds.SetProjection(proj)
-gdal.RasterizeLayer(target_ds, [1], layer, burn_values=[1])
-target_ds = None
+    # add to pts df
+    pts.loc[:, sample_col_name] = samples
 
-peace = target_ds.ReadAsArray()
-
-
-# outdata.GetRasterBand(1).WriteArray(somedatahere)
+# write to file
+pts.to_csv(pts_out, index=False, na_rep=sample_no_data_value)
