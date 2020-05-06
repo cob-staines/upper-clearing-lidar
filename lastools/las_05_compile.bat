@@ -8,7 +8,7 @@ mkdir .\OUTPUT_FILES\LAS
 
 :: remove and merge for
 :: vegetation
-lastile -i TEMP_FILES\07_vegetation\*.laz ^
+lastile -i TEMP_FILES\08_noise_vegetation\*.laz ^
           -remove_buffer ^
           -cores %NUM_CORES% ^
           -odir TEMP_FILES\11_no_buffer\ -olaz -ocut 3 -odix _vegetation

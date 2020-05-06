@@ -12,25 +12,26 @@
      :: VEGETATION_HEIGHT_THRESHOLD_LOW
 
 :: make output directories
-mkdir .\TEMP_FILES\05_noise
+mkdir .\TEMP_FILES\05_noise_ground
 mkdir .\TEMP_FILES\06_ground
 mkdir .\TEMP_FILES\07_vegetation
-mkdir .\TEMP_FILES\08_normalized
+mkdir .\TEMP_FILES\08_noise_vegetation
+mkdir .\TEMP_FILES\09_normalized
 
-:: classify isolated points as class = 7
+:: identify noise for ground analysis
 lasnoise -i TEMP_FILES\04_duplicate\*.laz ^
-          -isolated %NOISE_ISOLATION% ^
-          -step_xy %NOISE_STEP% ^
-          -step_z %NOISE_STEP% ^
-          -classify_as %CLASS_NOISE% ^
+          -isolated %NOISE_GROUND_ISOLATION% ^
+          -step_xy %NOISE_GROUND_STEP% ^
+          -step_z %NOISE_GROUND_STEP% ^
+          -classify_as %CLASS_NOISE_GROUND% ^
           -cores %NUM_CORES% ^
-          -odir TEMP_FILES\05_noise\ -olaz -ocut 3 -odix _05
+          -odir TEMP_FILES\05_noise_ground\ -olaz -ocut 3 -odix _05
 
 :: ground classify tiles
-lasground -i TEMP_FILES\05_noise\*.laz ^
+lasground -i TEMP_FILES\05_noise_ground\*.laz ^
           -step %GROUND_STEP% ^
           -offset %GROUND_OFFSET% ^
-          -ignore_class %CLASS_NOISE% ^
+          -ignore_class %CLASS_NOISE_GROUND% ^
           -cores %NUM_CORES% ^
           -odir TEMP_FILES\06_ground\ -olaz -ocut 3 -odix _06
 
@@ -38,17 +39,25 @@ lasground -i TEMP_FILES\05_noise\*.laz ^
 :: Classify vegetation points between VEGETATION_HEIGHT_THRESHOLD_LOW and NOISE_HEIGHT_THRESHOLD_HIGH
 :: below HEIGHT_THRESHOLD_LOW and above HEIGHT_THRESHOLD_HIGH as NOISE_CLASS
 lasheight -i TEMP_FILES\06_ground\*.laz ^
-          -ignore_class %CLASS_NOISE% ^
-          -classify_below  %NOISE_HEIGHT_THRESHOLD_LOW% %CLASS_NOISE% ^
+          -ignore_class %CLASS_NOISE_GROUND% ^
+          -classify_below  %NOISE_HEIGHT_THRESHOLD_LOW% %CLASS_NOISE_GROUND% ^
           -classify_between %VEGETATION_HEIGHT_THRESHOLD_LOW% %NOISE_HEIGHT_THRESHOLD_HIGH% %CLASS_VEGETATION% ^
-          -classify_above %NOISE_HEIGHT_THRESHOLD_HIGH% %CLASS_NOISE% ^
+          -classify_above %NOISE_HEIGHT_THRESHOLD_HIGH% %CLASS_NOISE_CANOPY% ^
           -cores %NUM_CORES% ^
           -odir TEMP_FILES\07_vegetation\ -olaz -ocut 3 -odix _07
 
+:: canopy noise
+lasnoise -i TEMP_FILES\07_vegetation\*.laz ^
+          -isolated %NOISE_CANOPY_ISOLATION% ^
+          -step_xy %NOISE_CANOPY_STEP_XY% ^
+          -step_z %NOISE_CANOPY_STEP_Z% ^
+          -classify_as %CLASS_NOISE_CANOPY% ^
+          -odir TEMP_FILES\08_noise_vegetation\ -olaz -ocut 3 -odix _08
+
 :: recalculate height and replace z to normalize by ground surface (required for CHM)
-lasheight -i TEMP_FILES\07_vegetation\*.laz ^
-          -ignore_class %CLASS_NOISE% ^
+lasheight -i TEMP_FILES\08_noise_vegetation\*.laz ^
+          -ignore_class %CLASS_NOISE_GROUND% %CLASS_NOISE_CANOPY% ^
           -replace_z ^
           -cores %NUM_CORES% ^
-          -odir TEMP_FILES\08_normalized\ -olaz -ocut 3 -odix _08
+          -odir TEMP_FILES\09_normalized\ -olaz -ocut 3 -odix _09
 

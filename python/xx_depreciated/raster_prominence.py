@@ -1,6 +1,4 @@
 import gdal
-import rasterio
-import ogr
 from affine import Affine
 import numpy as np
 import matplotlib
@@ -195,9 +193,6 @@ parentlist.loc[:, "UTM11N_y"] = UTM_coords[1]
 output = parentlist.copy()
 output = output.drop(["peak_x", "peak_y"], axis=1)
 output.to_csv(prominence_out, index=False)
-
-
-
 
 # calculate distance from tree
 prominence_cutoff = 1  # peaks with prominence less than cutoff will be dropped (cutoff in units of elevation)

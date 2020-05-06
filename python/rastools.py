@@ -48,15 +48,23 @@ def raster_load(ras_in):
 
 
 # saves raster to file
-def raster_save(ras_object, file_path, file_format):
+def raster_save(ras_object, file_path, file_format="GTiff", data_format="float"):
     # saves "ras_object" to "file_path" in "file_format"
-    # format can be: "GTiff",
+    # file_format can be: "GTiff",
+    # data_format can be: "float", "int"
 
     # dependencies
     import gdal
 
+    if data_format == "float":
+        gdal_data_format = gdal.GDT_Float32
+    elif data_format == "int":
+        gdal_data_format = gdal.GDT_Int16
+    else:
+        raise Exception(data_format, 'is not a valid data_format.')
+
     outdriver = gdal.GetDriverByName(file_format)
-    outdata = outdriver.Create(file_path, ras_object.cols, ras_object.rows, 1, gdal.GDT_Float32)
+    outdata = outdriver.Create(file_path, ras_object.cols, ras_object.rows, 1, gdal_data_format)
     # Set metadata
     outdata.SetGeoTransform(ras_object.gt)
     outdata.SetProjection(ras_object.proj)
@@ -147,3 +155,33 @@ def point_sample_raster(ras_in, pts_in, pts_out, pts_xcoord_name, pts_ycoord_nam
 
     # write to file
     pts.to_csv(pts_out, index=False, na_rep=sample_no_data_value)
+
+def ras_to_hdf5(ras_in, hdf5_out):
+    import numpy as np
+    # inherits points from ras_a pixel centres, saves coords and values as hdf5 file to hdf5_out
+    ras = raster_load(ras_in)
+
+    val_count = np.size(ras.data)
+
+    # wide to long
+    data_long = np.reshape(ras.data, val_count)
+    rows = range(0, ras.rows)
+    cols = range(0, ras.cols)
+
+    from itertools import permutations
+    [list(zip(rows, p)) for p in permutations(cols)]
+
+    utm_coords = ras.T1 * [cols, rows]
+
+    data_out = np.array([data_long])
+
+
+
+# ras.GetRasterBand(1)
+# data = np.array(ras.ReadAsArray())
+
+# import matplotlib
+# matplotlib.use('TkAgg')
+# import matplotlib.pyplot as plt
+# fig = plt.imshow(data[3, :, :], interpolation='nearest')
+# plt.show(fig)

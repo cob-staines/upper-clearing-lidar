@@ -1,10 +1,9 @@
 import pandas as pd
-
 # config
 
 las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_all_200311_628000_5646525_vegetation.las"
 lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
-hemi_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\os_1\\"
+hemi_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\os_0.25\\"
 
 # filter hemisphere validation data
 max_quality = 4
@@ -18,36 +17,47 @@ subset = lookup[lookup.quality_code <= max_quality]
 lookup_ss = subset[subset.folder == las_day]
 
 # synthetic hemisphere parameters
+optimization_scalar = 0.05
 max_radius = 50  # in meters
-sample_ratio = 1/5  # ratio of lidar points to include in plot
 footprint = 0.15  # in m
-optimization_scalar = 1  # adjust when optimizing with lai outputs
+c = 2834.64  # points to meters
 figuresize = 10  # in inches
 fig_dpi = 100  # pixels/inch
 
 # HEMIGEN
 
 import laspy
-import pandas as pd
 import numpy as np
 import matplotlib
 
 matplotlib.use('Agg')
+# matplotlib.use('TkAgg')  # use for interactive plotting
 import matplotlib.pyplot as plt
 import random
 
-# import las_in
+# load_las
+
+# import las file "las_in"
 inFile = laspy.file.File(las_in, mode="r")
-# select dimensions
+####
 p0 = np.array([inFile.x,
                inFile.y,
                inFile.z]).transpose()
 classification = np.array(inFile.classification)
+
 inFile.close()
+
+class_filter = (classification != 7) & (classification != 8)
+classification = None
+
+# remove noise
+p0 = p0[class_filter]
+
+# hemigen
+# inputs: las var (filtered), origin coords, prarams, file locations)
 
 # FOR ii IN LOOKUP_SS
 for ii in range(0, lookup_ss.shape[0]):
-    fig_out = hemi_out_dir + "las_" + las_day[0] + "_img_" + lookup_ss.filename.iloc[ii][0:-4] + "_os_" + str(optimization_scalar) + ".png"
 
     # set point at ground level (x, y, z)
     ground_point = np.array([lookup_ss.xcoordUTM1.iloc[ii], lookup_ss.ycoordUTM1.iloc[ii], lookup_ss.elevation.iloc[ii]])
@@ -57,53 +67,32 @@ for ii in range(0, lookup_ss.shape[0]):
     # move to new origin
     p1 = p0 - origin
 
-    # trivial subset (100m square around point, all points below horizon)
-    subset_t = np.array([p1[:, 0] < max_radius,
-                         p1[:, 0] > -max_radius,
-                         p1[:, 1] < max_radius,
-                         p1[:, 1] > -max_radius,
-                         p1[:, 2] > 0])
-                         # , classification != 7])
-
-    p2 = p1[np.all(subset_t, 0), :]
-
-    # calculate polar coords
-    r = np.sqrt(np.sum(p2 ** 2, axis=1))
-    # fine subset
+    # less memory:
+    r = np.sqrt(np.sum(p1 ** 2, axis=1))
     subset_f = r < max_radius
 
     r = r[subset_f]
-
-    x = p2[subset_f, 0]
-    y = p2[subset_f, 1]
-    z = p2[subset_f, 2]
+    p1 = p1[subset_f]
 
     # flip over x axis for upward-looking perspective
-    x = -x
+    p1[:, 0] = -p1[:, 0]
 
-    theta = np.arccos(z / r)
-    phi = np.arctan2(y, x)
+    # calculate polar coords
+    data = pd.DataFrame({'theta': np.arccos(p1[:, 2] / r),
+                         'phi': np.arctan2(p1[:, 1], p1[:, 0]),
+                         'area': ((footprint / r) ** 2) * c * optimization_scalar})
 
-    # plotting
+    # mem management
+    p1 = None
 
-    # parameters: figure size (match to images), point size scaling factor, thinning ratio
+    # plot
 
-    # plot random subset of points
-    if sample_ratio == 1:
-        sample_count = phi.__len__()
-        test = range(0, phi.__len__())
-    else:
-        sample_count = np.floor(phi.__len__() * sample_ratio).astype('int')
-        test = random.sample(range(0, phi.__len__() - 1), sample_count)
+    fig_out = hemi_out_dir + "las_" + las_day + "_img_" + lookup_ss.filename.iloc[ii][0:-4] + "_os_" + str(
+        optimization_scalar) + ".png"
 
-    sort = np.flip(np.argsort(r[test]))
-
-    # no color output
-    c = 2834.64  # points to meters
     fig = plt.figure(figsize=(figuresize, figuresize), dpi=fig_dpi, frameon=False)
     ax = plt.axes([0., 0., 1., 1.], projection="polar", polar=True)
-    area = ((footprint / r[test][sort]) ** 2) * c * optimization_scalar
-    c = ax.scatter(phi[test][sort], theta[test][sort], s=area, c="black")
+    sp1 = ax.scatter(data.phi, data.theta, s=data.area, c="black")
     ax.set_rmax(np.pi / 2)
     ax.set_rticks([])
     ax.grid(False)

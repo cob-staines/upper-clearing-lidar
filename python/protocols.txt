@@ -31,7 +31,7 @@ new python file
 
 get into environment & launch
 	conda activate lidar_processing
-	cd C:\Users\Cob\Documents\educational\usask\research\repos\upper-clearing-lidar\python
+	cd C:\Users\Cob\index\educational\usask\research\masters\repos\upper-clearing-lidar\python
 	jupyter labextension install @lckr/jupyterlab_variableinspector
 	jupyter lab .
 

@@ -1,6 +1,4 @@
 import gdal
-import rasterio
-import ogr
 from affine import Affine
 import numpy as np
 import matplotlib

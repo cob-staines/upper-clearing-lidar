@@ -1,4 +1,4 @@
-def las_traj(las_in, lookup):
+def hemi_gen(las_in, lookup):
     import laspy
     import pandas as pd
     import numpy as np
