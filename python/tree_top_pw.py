@@ -8,9 +8,9 @@ ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\li
 # output file naming conventions
 output_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DFT\\"
 file_base = ras_in.split("\\")[-1].replace(".bil", "")
-treetops_out = output_dir + file_base + "_pw_treetops.csv"
-nearest_out = output_dir + file_base + "_pw_nearest.tif"
-distance_out = output_dir + file_base + "_pw_distance_to_tree.tif"
+treetops_out = output_dir + file_base + "_pw-uf_treetops.csv"
+nearest_out = output_dir + file_base + "_pw-uf_nearest.tif"
+distance_out = output_dir + file_base + "_pw-uf_distance_to_tree.tif"
 
 # parameters
 min_peak = 2
@@ -21,9 +21,16 @@ min_peak = 2
 # load CHM
 ras = rastools.raster_load(ras_in)
 
-def mask_size(height_m, unit_conversion=ras.T0[0]):
+def mask_size_pw(height_m, unit_conversion=ras.T0[0]):
     # calculates window size (m) from Popescu & Wynne 2004
     len_m = 3.75105 - 0.17919 * height_m + 0.01241 * (height_m ** 2)
+    # transform to pixels (round down)
+    len_p = np.int(np.floor(len_m/unit_conversion))
+    return len_p
+
+def mask_size_uf(height_m, unit_conversion=ras.T0[0]):
+    # calculates window size (m) from Popescu & Wynne 2004
+    len_m = 6 - height_m/7
     # transform to pixels (round down)
     len_p = np.int(np.floor(len_m/unit_conversion))
     return len_p
@@ -43,7 +50,7 @@ def mask_gen(size):
     return mask
 
 # set edge buffer of max mask radius
-buffer = np.ceil(mask_size(np.max(ras.data))/2)
+buffer = np.ceil(mask_size_uf(np.max(ras.data))/2).astype(int)
 
 # preallocate
 peaklist = []
@@ -53,7 +60,7 @@ for ii in range(buffer, ras.rows-buffer):
         # if at or above min_peak
         if ras.data[ii, jj] >= min_peak:
             # get mask dimensions
-            mask_len = mask_size(ras.data[ii, jj])
+            mask_len = mask_size_uf(ras.data[ii, jj])
             # get mask
             mask = mask_gen(mask_len)
             # get radius
