@@ -3,9 +3,11 @@ import pandas as pd
 import rastools
 from scipy import spatial
 from scipy.ndimage.measurements import label, maximum_position
+from skimage.feature import peak_local_max
+from skimage.segmentation import watershed
 
 # config
-elev_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_all_200311_628000_564652_chm_.25m.bil"
+elev_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_all_200311_628000_5646525_spike_free_chm_.10m.bil"
 
 # output file naming conventions
 output_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DFT\\"
@@ -25,6 +27,7 @@ ras = rastools.raster_load(elev_in)
 elev = ras.data.copy()  # rename for legible coding
 
 print("Identifying peaks")
+
 # define mask of valid data above  z_min
 mask = (elev != ras.no_data) & (elev >= z_min)
 # add 1-pixel buffer to mask
@@ -33,29 +36,28 @@ mask[ras.rows-1, :] = False
 mask[:, 0] = False
 mask[:, ras.cols-1] = False
 
+# find peaks above z_min in 9-neighborhood
+local_maxi = peak_local_max(elev, threshold_abs=z_min, indices=False, footprint=np.ones((3, 3)))
+peaks_xy = np.where(local_maxi)
+peaklist = pd.DataFrame({"peak_x": peaks_xy[0],
+                         "peak_y": peaks_xy[1]})
 
-def shifter(elev_temp, ras_temp, r, c):
-    # find peaks within 9-neighborhood
-    # only works if no_data value is less than all other possible values (ex. -9999)
-    return elev_temp[1:ras_temp.rows-2, 1:ras_temp.cols-2] >= elev_temp[1+r:ras_temp.rows-2+r, 1+c:ras_temp.cols-2+c]
+# define peak id
+markers = label(local_maxi)[0]
+peaklist.loc[:, "id"] = markers[peaks_xy]
 
-
-peaks = np.full([ras.rows, ras.cols], False)
-peaks[1:ras.rows-2, 1:ras.cols-2] = shifter(elev, ras, -1, 0) & shifter(elev, ras, 1, 0) & shifter(elev, ras, 0, -1) &\
-                            shifter(elev, ras, 0, 1) & shifter(elev, ras, -1, -1) & shifter(elev, ras, -1, 1) &\
-                            shifter(elev, ras, 1, -1) & shifter(elev, ras, 1, 1)
-
-peaks = peaks & mask
-
-# assign peaks id
-peaks_xy = np.where(peaks)
-
-peaklist = pd.DataFrame({'peak_x': peaks_xy[0],
-                        'peak_y': peaks_xy[1]})
-
-# drop peaks below z_min
+# find peak elevation
 peaklist.loc[:, "elev"] = elev[peaks_xy]
-peaklist.loc[:, "id"] = peaklist.index
+
+# find watershed area for each peak
+watershed_label = watershed(-elev, markers, mask=mask)
+area_pixels = np.bincount(watershed_label.reshape([1, ras.rows*ras.cols])[0])
+area_count = pd.DataFrame({"area_pixels": area_pixels,
+                           "area_m2": area_pixels*ras.T0[0]**2,
+                           "id": np.nonzero(area_pixels)[0]})
+peaklist = peaklist.merge(area_count, on="id", how="left")
+
+
 
 # build topo_elev list counting up from z_min (inclusive) to z_max (exclusive) by z_step, increasing order
 z_max = np.max(elev[mask])
@@ -98,8 +100,9 @@ peaklist.loc[:, "prom_expected"] = peaklist.elev - (peaklist.col_elev - z_step/2
 
 print("Calculating isolation by band")
 print("=============================")
-# estimate isolation, begin at 0 (a bit slow...)
-peaklist.loc[:, "iso_expected"] = 0
+# estimate isolation
+iso_init = np.sqrt(ras.rows ** 2 + ras.cols ** 2) * ras.T0[0]  # isolation = size of site unless found otherwise
+peaklist.loc[:, "iso_expected"] = iso_init
 # for each elevation band
 for ll in range(1, len(topo_elev)):
     # build tree of all points above current band (slow...)
@@ -108,9 +111,10 @@ for ll in range(1, len(topo_elev)):
     # build query_list of all peaks between previous (lower) and current band
     query_list = np.array(list(zip(*[peaklist.peak_x[peaklist.band_below == ll-1], peaklist.peak_y[peaklist.band_below == ll-1]])))
     # calculate isolation as min distance from each peak to a higher point (dist in pixels)
-    distance, index = tree.query(query_list)
-    # record isolation in geo units
-    peaklist.loc[peaklist.band_below == ll-1, "iso_expected"] = distance*ras.T0[0]
+    if (query_list.__len__() > 0):
+        distance, index = tree.query(query_list)
+        # record isolation in geo units
+        peaklist.loc[peaklist.band_below == ll-1, "iso_expected"] = distance*ras.T0[0]
     print(ll, " of ", len(topo_elev)-1)
 
 print("Writing peaks to file")
@@ -123,6 +127,7 @@ peaklist.loc[:, "UTM11N_y"] = UTM_coords[1]
 output = peaklist.copy()
 output = output.drop(["peak_x", "peak_y", "band_below", "col_elev"], axis=1)
 output.to_csv(treetops_out, index=False)
+
 
 # need to rewrite below using kdtrees function
 
@@ -153,10 +158,8 @@ ras_distance = ras
 ras_distance.data = distance_map
 rastools.raster_save(ras_distance, distance_out, data_format="float")
 
-end = time.time()
-print(end - start)
 
 # import matplotlib
 # matplotlib.use('TkAgg')
 # import matplotlib.pyplot as plt
-# plt.imshow(band_below_tray, interpolation='nearest')
+# plt.imshow(labels, interpolation='nearest')

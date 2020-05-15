@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 # config
-ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_all_200311_628000_564652_chm_.10m.bil"
+ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_all_200311_628000_5646525_spike_free_chm_.10m.bil"
 
 # output file naming conventions
 output_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DFT\\"
@@ -30,7 +30,7 @@ def mask_size_pw(height_m, unit_conversion=ras.T0[0]):
 
 def mask_size_uf(height_m, unit_conversion=ras.T0[0]):
     # calculates window size (m) from Popescu & Wynne 2004
-    len_m = 6 - height_m/7
+    len_m = 0.009740*height_m**2 - 0.1396*height_m + 1.403
     # transform to pixels (round down)
     len_p = np.int(np.floor(len_m/unit_conversion))
     return len_p

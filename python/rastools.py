@@ -56,10 +56,20 @@ def raster_save(ras_object, file_path, file_format="GTiff", data_format="float")
     # dependencies
     import gdal
 
-    if data_format == "float":
+    if data_format == "float32":
         gdal_data_format = gdal.GDT_Float32
-    elif data_format == "int":
+    elif data_format == "float64":
+        gdal_data_format = gdal.GDT_Float64
+    elif data_format == "byte":
+        gdal_data_format = gdal.GDT_Byte
+    elif data_format == "int16":
         gdal_data_format = gdal.GDT_Int16
+    elif data_format == "int32":
+        gdal_data_format = gdal.GDT_Int32
+    elif data_format == "uint16":
+        gdal_data_format = gdal.GDT_UInt16
+    elif data_format == "uint32":
+        gdal_data_format = gdal.GDT_UInt32
     else:
         raise Exception(data_format, 'is not a valid data_format.')
 
@@ -111,15 +121,14 @@ def ras_dif(ras_1_in, ras_2_in, inherit_from=1):
 
 def raster_burn(ras_in, shp_in, burn_val):
     # burns "burn_val" into "ras_in" where overlaps with "shp_in"
-    # !!burn_val must be string!!
 
     # Dependencies
     import subprocess
 
-    # convert any numbers to string
+    # convert burn_val to string
     burn_val = str(burn_val)
 
-    # make gdal_rasterize command - will burn value 0 to raster where polygon intersects
+    # make gdal_rasterize command - will burn value to raster where polygon intersects
     cmd = 'gdal_rasterize -burn ' + burn_val + ' ' + shp_in + ' ' + ras_in
 
     # run command
@@ -156,24 +165,100 @@ def point_sample_raster(ras_in, pts_in, pts_out, pts_xcoord_name, pts_ycoord_nam
     # write to file
     pts.to_csv(pts_out, index=False, na_rep=sample_no_data_value)
 
-def ras_to_hdf5(ras_in, hdf5_out):
+# issues with writing multiple columns... can we do multiple in the same function call?
+
+
+def raster_to_hdf5(ras_in, hdf5_out, data_col_name="data"):
     import numpy as np
-    # inherits points from ras_a pixel centres, saves coords and values as hdf5 file to hdf5_out
+    import vaex
+
     ras = raster_load(ras_in)
 
-    val_count = np.size(ras.data)
+    row_map = np.full_like(ras.data, 0).astype(int)
+    for ii in range(0, ras.rows):
+        row_map[ii, :] = ii
+    col_map = np.full_like(ras.data, 0).astype(int)
+    for ii in range(0, ras.cols):
+        col_map[:, ii] = ii
 
-    # wide to long
-    data_long = np.reshape(ras.data, val_count)
-    rows = range(0, ras.rows)
-    cols = range(0, ras.cols)
+    index_x = np.reshape(row_map, [ras.rows * ras.cols])
+    index_y = np.reshape(col_map, [ras.rows * ras.cols])
+    coords = ras.T1 * (index_x, index_y)
 
-    from itertools import permutations
-    [list(zip(rows, p)) for p in permutations(cols)]
+    # add to vaex_df
+    df = vaex.from_arrays(index_x=index_x, index_y=index_y, UTM11N_x=coords[0], UTM11N_y=coords[1])
+    df.add_column(data_col_name, np.reshape(ras.data, [ras.rows * ras.cols]), dtype=None)
 
-    utm_coords = ras.T1 * [cols, rows]
+    # does not seem to work...
+    df.add_variable("no_data", ras.no_data, overwrite=True, unique=True)
 
-    data_out = np.array([data_long])
+    # export to file
+    df.export_hdf5(hdf5_out)
+    df.close()
+
+def hdf5_sample_raster(hdf5_in, hdf5_out, ras_in, sample_col_name="sample"):
+    # can be single ras_in/sample_col_name or list of both
+    import numpy as np
+    import vaex
+
+    if (type(ras_in) == str) & (type(sample_col_name) == str):
+        # convert to list of length 1
+        ras_in = [ras_in]
+        sample_col_name = [sample_col_name]
+    elif (type(ras_in) == list) & (type(sample_col_name) == list):
+        if len(ras_in) != len(sample_col_name):
+            raise Exception('Lists of "ras_in" and "sample_col_name" are not the same length.')
+    else:
+        raise Exception('"ras_in" and "sample_col_name" are not consistent in length or format.')
+
+    # load hdf5_in
+    df = vaex.open(hdf5_in, 'a')
+
+    for ii in range(0, len(ras_in)):
+        # load raster
+        ras = raster_load(ras_in[ii])
+
+        # convert sample points to index refference
+        row_col_pts = np.floor(~ras.T0 * (df.UTM11N_x.values, df.UTM11N_y.values)).astype(int)
+        row_col_pts = (row_col_pts[1], row_col_pts[0])
+
+        # flag samples out of raster bounds
+        outbound_x = (row_col_pts[0] < 0) | (row_col_pts[0] > (ras.rows - 1))
+        outbound_y = (row_col_pts[1] < 0) | (row_col_pts[1] > (ras.cols - 1))
+        outbound = outbound_x | outbound_y
+
+        # list of points in bounds
+        sample_pts = (row_col_pts[0][~outbound], row_col_pts[1][~outbound])
+
+        # read raster values of sample_points
+        samples = np.full(outbound.shape, ras.no_data)
+        samples[~outbound] = ras.data[sample_pts]
+
+        # add column to df
+        df.add_column(sample_col_name[ii], samples, dtype=None)
+
+        ras = None
+
+    # save to hdf5_out
+    df.export_hdf5(hdf5_out)
+    df.close()
+
+# could clean up for time using KDTrees if desired. Currently takes +/- 100s for .25 res
+def raster_nearest_neighbor(points, ras):
+    import numpy as np
+
+    # calculate min distance to tree and nearest tree index
+    index_map = np.full_like(ras.data, ras.no_data)
+    distance_map = np.full_like(ras.data, ras.no_data)
+    # slow but works (60s?)
+    for ii in range(0, ras.cols):
+        for jj in range(0, ras.rows):
+            cell_coords = ras.T1 * [ii, jj]
+            distances = np.sqrt((cell_coords[0] - np.array(points.UTM11N_x))**2 + (cell_coords[1] - np.array(points.UTM11N_y))**2)
+            nearest_id = np.argmin(distances)
+            index_map[jj, ii] = points.index[nearest_id]
+            distance_map[jj, ii] = distances[nearest_id]
+    return index_map, distance_map
 
 
 

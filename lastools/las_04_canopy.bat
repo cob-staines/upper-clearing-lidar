@@ -7,39 +7,25 @@
     :: EPSG
 
 :: make output directories
-mkdir .\TEMP_FILES\12_chm\res_%CHM_RESOLUTION%\merged
+mkdir .\TEMP_FILES\12_chm\res_%CHM_RESOLUTION%\
 mkdir .\OUTPUT_FILES\CHM
 
 
-:: pit free CHM following Khosravipour et al. 2014
+:: pit free CHM following Khosravipour et al. 2016, 2015, 2014
 
-for %%a in (%CHM_LAYER_LIST%) do (
+las2dem -i TEMP_FILES\09_normalized\*.laz ^
+      -use_tile_bb ^
+      -drop_class %CLASS_NOISE_GROUND% %CLASS_NOISE_CANOPY% ^
+      -spike_free %CHM_MAX_TIN_EDGE% ^
+      -step %CHM_RESOLUTION% ^
+      -kill %CHM_MAX_TIN_EDGE% ^
+      -ll %GRID_ORIGIN% ^
+      -cores %NUM_CORES% ^
+      -odir TEMP_FILES\12_chm\res_%CHM_RESOLUTION%\ -ocut 3 -odix _spike_free_chm_%CHM_RESOLUTION%m -obil
 
-    mkdir .\TEMP_FILES\12_chm\res_%CHM_RESOLUTION%\h_%%a
-
-    blast2dem -i TEMP_FILES\09_normalized\*.laz ^
-          -drop_class %CLASS_NOISE_GROUND% %CLASS_NOISE_CANOPY% ^
-          -keep_first ^
-          -drop_z_below %%a ^
-          -use_tile_bb ^
-          -step %CHM_RESOLUTION% ^
-          -kill %CHM_MAX_TIN_EDGE% ^
-          -ll %GRID_ORIGIN% ^
-          -cores %NUM_CORES% ^
-          -odir TEMP_FILES\12_chm\res_%CHM_RESOLUTION%\h_%%a\ -ocut 3 -odix _%%a -obil
-
-    lasgrid -i TEMP_FILES\12_chm\res_%CHM_RESOLUTION%\h_%%a\*.bil ^
-          -merged ^
-          -step %CHM_RESOLUTION% ^
-          -epsg %EPSG% ^
-          -ll %GRID_ORIGIN% ^
-          -odir TEMP_FILES\12_chm\res_%CHM_RESOLUTION%\merged\ -obil
-  )
-
-lasgrid -i TEMP_FILES\12_chm\res_%CHM_RESOLUTION%\merged\*.bil ^
-        -merged ^
-        -highest ^
-        -step %CHM_RESOLUTION% ^
-        -epsg %EPSG% ^
-        -ll %GRID_ORIGIN% ^
-        -odir OUTPUT_FILES\CHM\ -obil -ocut 3 -odix _chm_%CHM_RESOLUTION%m
+lasgrid -i TEMP_FILES\12_chm\res_%CHM_RESOLUTION%\*.bil ^
+      -merged ^
+      -step %CHM_RESOLUTION% ^
+      -epsg %EPSG% ^
+      -ll %GRID_ORIGIN% ^
+      -odir OUTPUT_FILES\CHM\ -obil
