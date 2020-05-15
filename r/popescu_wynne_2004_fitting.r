@@ -129,4 +129,8 @@ ggplot(data=merged, aes(x=elev, y=iso_expected)) +
   scale_color_manual(values=c("#777777", "red")) +
   labs(title="Height vs. isolation for CHM local maxima", x="height above ground (m)", y="isolation -- min distance to higher object (m)", color="True peak", size="Popescu & Wynne 2004")
 
+ggplot(data=kho, aes(kho$area_m2)) +
+  geom_histogram(binwidth = 0.1) +
+  scale_y_log10() +
+  labs(title="Histogram of Khosravipour 2015 peak neighborhood area", x="Peak neighborhood area (m^2)", y="count")
 

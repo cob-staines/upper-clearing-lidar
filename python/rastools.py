@@ -165,9 +165,6 @@ def point_sample_raster(ras_in, pts_in, pts_out, pts_xcoord_name, pts_ycoord_nam
     # write to file
     pts.to_csv(pts_out, index=False, na_rep=sample_no_data_value)
 
-# issues with writing multiple columns... can we do multiple in the same function call?
-
-
 def raster_to_hdf5(ras_in, hdf5_out, data_col_name="data"):
     import numpy as np
     import vaex
@@ -190,12 +187,13 @@ def raster_to_hdf5(ras_in, hdf5_out, data_col_name="data"):
     df.add_column(data_col_name, np.reshape(ras.data, [ras.rows * ras.cols]), dtype=None)
 
     # does not seem to work...
-    df.add_variable("no_data", ras.no_data, overwrite=True, unique=True)
+    # df.add_variable("no_data", ras.no_data, overwrite=True, unique=True)
+    # df.set_variable("no_data", ras.no_data)
 
     # export to file
     df.export_hdf5(hdf5_out)
-    df.close()
 
+# something fishy here... it seems that the values are coming out in flipped coordinates
 def hdf5_sample_raster(hdf5_in, hdf5_out, ras_in, sample_col_name="sample"):
     # can be single ras_in/sample_col_name or list of both
     import numpy as np
@@ -212,7 +210,8 @@ def hdf5_sample_raster(hdf5_in, hdf5_out, ras_in, sample_col_name="sample"):
         raise Exception('"ras_in" and "sample_col_name" are not consistent in length or format.')
 
     # load hdf5_in
-    df = vaex.open(hdf5_in, 'a')
+    #df = vaex.open(hdf5_in, 'r+')
+    df = vaex.open(hdf5_in)
 
     for ii in range(0, len(ras_in)):
         # load raster
@@ -220,7 +219,6 @@ def hdf5_sample_raster(hdf5_in, hdf5_out, ras_in, sample_col_name="sample"):
 
         # convert sample points to index refference
         row_col_pts = np.floor(~ras.T0 * (df.UTM11N_x.values, df.UTM11N_y.values)).astype(int)
-        row_col_pts = (row_col_pts[1], row_col_pts[0])
 
         # flag samples out of raster bounds
         outbound_x = (row_col_pts[0] < 0) | (row_col_pts[0] > (ras.rows - 1))
