@@ -1,21 +1,16 @@
-:: _____PROJECT CONFIG_____
-SET DATE=19_149
-SET PRODUCT_ID=%DATE%_snow_off
-
 
 :: _____DIRECTORY CONFIG_____
-:: parent dir of project folder
-SET DIR_WORKING=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\%DATE%
-:: initial las file
-SET FILE_IN=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\%DATE%\%DATE%_all_WGS84_utm11N.las
+
 :: folder containing batch files
 SET DIR_BAT=C:\Users\Cob\index\educational\usask\research\masters\repos\upper-clearing-lidar\lastools
 :: folder containing lastools and license
 SET DIR_LASTOOLS=C:\Users\Cob\index\educational\usask\research\masters\code_lib\lastools\LAStools\bin;
+:: parent dir of project folder
+SET DIR_WORKING=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\%DATE%
+:: initial las file
+SET FILE_IN=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\%DATE%\%DATE%_all_WGS84_utm11N.las
 :: site polygon
 SET SITE_MASK=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\site_library\50_site_poly.shp
-:: snow-free poly
-SET SNOW_MASK=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\site_library\50_site_poly_snow_free.shp
 
 
 :: _____PARAMETER CONFIG_____
@@ -37,7 +32,7 @@ call %DIR_BAT%\las_00_dir_setup.bat
 :: _____QUALIT CONTROL [1]_____
 SET ORIGINAL_SCALE_FACTOR=0.00025
 SET NUM_CORES=4
-SET TILE_SIZE=50
+SET TILE_SIZE=75
 SET TILE_BUFFER=5
 
 call %DIR_BAT%\las_01_quality_control.bat
