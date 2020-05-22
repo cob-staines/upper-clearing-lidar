@@ -48,10 +48,10 @@ def raster_load(ras_in):
 
 
 # saves raster to file
-def raster_save(ras_object, file_path, file_format="GTiff", data_format="float"):
+def raster_save(ras_object, file_path, file_format="GTiff", data_format="float32"):
     # saves "ras_object" to "file_path" in "file_format"
     # file_format can be: "GTiff",
-    # data_format can be: "float", "int"
+    # data_format can be: "float32", "float64", "byte", "int16", "int32", "uint16", "uint32"
 
     # dependencies
     import gdal
@@ -134,6 +134,24 @@ def raster_burn(ras_in, shp_in, burn_val):
     # run command
     subprocess.call(cmd, shell=True)
 
+def raster_merge(ras_in_dir, ras_in_ext, ras_out, no_data="-9999"):
+    # merges all raster files in directory "ras_in_dir" with extention "ras_in_ext" and saves them as a merged output "ras_out"
+
+    # Dependencies
+    import subprocess
+    from os import listdir, chdir
+
+    dir_list = listdir(ras_in_dir)
+    file_list = [k for k in dir_list if k.endswith(ras_in_ext)]
+    file_str = ' '.join(file_list)
+
+    # make gdal_rasterize command - will burn value to raster where polygon intersects
+    cd_cmd = "Set-Location -Path " + ras_in_dir
+    cmd = 'gdal_merge.py -init ' + no_data + ' -n ' + no_data + ' -a_nodata ' + no_data + ' -o ' + ras_out + ' ' + file_str
+
+    chdir(ras_in_dir)
+    # run command
+    subprocess.call(cmd, shell=True)
 
 def point_sample_raster(ras_in, pts_in, pts_out, pts_xcoord_name, pts_ycoord_name, sample_col_name, sample_no_data_value):
 

@@ -5,6 +5,11 @@ snow_off = "19_149"
 
 resolutions = (".04", ".10", ".25", ".50", "1.00")
 
+ras_in_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_snow_on\\TEMP_FILES\\10_dem\\res_.10\\"
+ras_in_ext = ".bil"
+ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_snow_on\\OUTPUT_FILES\\DEM\\19_045_dem_res_.10m.bil"
+rastools.raster_merge(ras_in_dir, ras_in_ext, ras_out)
+
 # snow depth products (HS)
 
 # for each snow_on date
@@ -19,12 +24,15 @@ for date in snow_on:
                    snow_off + "_snow_off\\OUTPUT_FILES\\DEM\\" + snow_off + "_all_200311_628000_5646525dem_" + \
                    res + "m.bil"
 
+        ras_1_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_snow_on\\OUTPUT_FILES\\DEM\\19_045_dem_res_.10m.bil"
+        ras_2_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\19_149_dem_res_.10m.bil"
+
         # take difference (snow_off - snow_on)
         hs = rastools.ras_dif(ras_1_in, ras_2_in, inherit_from=2)
         # save output
         outfile = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\hs\\" + \
                   date + "\\hs_" + date + "_res_" + res + "m.tif"
-        rastools.raster_save(hs, outfile, "GTiff")
+        rastools.raster_save(hs, outfile, "GTiff", data_format="float32")
         # burn snow mask
         snow_mask = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\snow_depth_mask.shp"
 

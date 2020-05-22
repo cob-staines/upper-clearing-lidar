@@ -15,7 +15,7 @@
 mkdir .\TEMP_FILES\05_noise_ground
 mkdir .\TEMP_FILES\06_ground
 mkdir .\TEMP_FILES\07_vegetation
-mkdir .\TEMP_FILES\08_noise_vegetation
+mkdir .\TEMP_FILES\08_classified
 mkdir .\TEMP_FILES\09_normalized
 
 :: identify noise for ground analysis
@@ -48,14 +48,15 @@ lasheight -i TEMP_FILES\06_ground\*.laz ^
 
 :: canopy noise
 lasnoise -i TEMP_FILES\07_vegetation\*.laz ^
+          -ignore_class %CLASS_GROUND% ^
           -isolated %NOISE_CANOPY_ISOLATION% ^
           -step_xy %NOISE_CANOPY_STEP_XY% ^
           -step_z %NOISE_CANOPY_STEP_Z% ^
           -classify_as %CLASS_NOISE_CANOPY% ^
-          -odir TEMP_FILES\08_noise_vegetation\ -olaz -ocut 3 -odix _08
+          -odir TEMP_FILES\08_classified\ -olaz -ocut 3 -odix _08
 
 :: recalculate height and replace z to normalize by ground surface (required for CHM)
-lasheight -i TEMP_FILES\08_noise_vegetation\*.laz ^
+lasheight -i TEMP_FILES\08_classified\*.laz ^
           -ignore_class %CLASS_NOISE_GROUND% %CLASS_NOISE_CANOPY% ^
           -replace_z ^
           -cores %NUM_CORES% ^

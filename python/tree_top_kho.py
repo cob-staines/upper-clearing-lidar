@@ -7,19 +7,20 @@ from sklearn.cluster import KMeans
 
 # config
 ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_all_200311_628000_5646525_spike_free_chm_.10m.bil"
-ras_map_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_all_200311_628000_5646525_spike_free_chm_.25m.bil"
+ras_map_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_all_200311_628000_5646525_spike_free_chm_.10m.bil"
 # output file naming conventions
 output_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DFT\\"
 file_base = ras_in.split("\\")[-1].replace(".bil", "")
 treetops_out = output_dir + file_base + "_kho_treetops.csv"
 
 file_base = treetops_out.split("\\")[-1].replace("treetops.csv", "")
-index_out = output_dir + file_base + "index_.25m.tif"
-distance_out = output_dir + file_base + "distance_.25m.tif"
+index_out = output_dir + file_base + "index_.10m.tif"
+distance_out = output_dir + file_base + "distance_.10m.tif"
 
 # parameters
 z_min = 2
 min_obj_rad_m = 1  # in meters
+subpix_noise = True  # when true, peaks are randomly shifted at the subpixel scale (relative to CHM) to eliminate lattice effects in subsequent raster products
 
 # load CHM
 ras = rastools.raster_load(ras_in)
@@ -81,7 +82,12 @@ kmeans = KMeans(n_clusters=2, random_state=0, n_init=10).fit(np.array(peaklist.a
 
 peaklist.loc[:, "true_peak"] = kmeans.labels_
 
-cluster_break = np.mean(kmeans.cluster_centers_)
+cluster_break = np.mean(kmeans.cluster_centers_)  # currently unused, could be recorded if useful
+
+# add subpix noise
+if subpix_noise:
+    peaklist.peak_x = peaklist.peak_x + np.random.uniform(-0.5, 0.5, peaklist.__len__())
+    peaklist.peak_y = peaklist.peak_y + np.random.uniform(-0.5, 0.5, peaklist.__len__())
 
 print("Writing peaks to file")
 # calculate geo-coords
@@ -96,12 +102,13 @@ output = output.drop(["peak_x", "peak_y"], axis=1)
 output.to_csv(treetops_out, index=False)
 
 # reload peaklist if wishing to skip above calculations
-# peaklist = pd.read_csv(treetops_out)
+peaklist = pd.read_csv(treetops_out)
 
 # filter to true peaks
 peaks_filtered = peaklist.loc[peaklist.true_peak == 1, ['UTM11N_x', 'UTM11N_y']]
 # load raster template for outputs
 ras_map = rastools.raster_load(ras_map_in)
+
 # calculate distance and index maps
 index_map, distance_map = rastools.raster_nearest_neighbor(peaks_filtered, ras_map)
 

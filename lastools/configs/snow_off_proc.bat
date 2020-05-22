@@ -37,7 +37,7 @@ call %DIR_BAT%\las_00_dir_setup.bat
 :: _____QUALIT CONTROL [1]_____
 SET ORIGINAL_SCALE_FACTOR=0.00025
 SET NUM_CORES=4
-SET TILE_SIZE=25
+SET TILE_SIZE=50
 SET TILE_BUFFER=5
 
 call %DIR_BAT%\las_01_quality_control.bat
@@ -90,10 +90,6 @@ SET DEM_MAX_TIN_EDGE=3.00
 call %DIR_BAT%\las_03_dem.bat
 
 :: _____CANOPY [4]_____
-
-
-SET CHM_LAYER_LIST= 0 2 5 10 15 20 25
-
 SET CHM_RESOLUTION=.10
 SET CHM_MAX_TIN_EDGE=.30
 call %DIR_BAT%\las_04_canopy.bat
@@ -102,5 +98,10 @@ SET CHM_RESOLUTION=.25
 SET CHM_MAX_TIN_EDGE=.75
 call %DIR_BAT%\las_04_canopy.bat
 
+
 :: _____COMPILE [5]_____
 call %DIR_BAT%\las_05_compile.bat
+
+:: _____RASTER PRODUCTS [6]_____
+SET RAS_RESOLUTION=1
+call %DIR_BAT%\las_06_raster_products.bat

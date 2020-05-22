@@ -1,6 +1,9 @@
+:: _____PROJECT CONFIG_____
+SET DATE=19_149
+SET PRODUCT_ID=%DATE%_snow_off
+
 
 :: _____DIRECTORY CONFIG_____
-
 :: folder containing batch files
 SET DIR_BAT=C:\Users\Cob\index\educational\usask\research\masters\repos\upper-clearing-lidar\lastools
 :: folder containing lastools and license
