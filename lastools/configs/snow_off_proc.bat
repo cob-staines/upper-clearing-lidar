@@ -98,5 +98,5 @@ call %DIR_BAT%\las_04_canopy.bat
 call %DIR_BAT%\las_05_compile.bat
 
 :: _____RASTER PRODUCTS [6]_____
-SET RAS_RESOLUTION=1
-call %DIR_BAT%\las_06_raster_products.bat
+::SET RAS_RESOLUTION=1
+::call %DIR_BAT%\las_06_raster_products.bat

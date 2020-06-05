@@ -1,43 +1,26 @@
 import gdal
-import rasterio
-import ogr
 import numpy as np
 from scipy.ndimage import convolve
 import matplotlib
+import rastools
 matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
 
 # config
-elev_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_test\\OUTPUT_FILES\\CHM\\19_149_all_test_628000_564657pit_free_chm_.25m.bil"
+ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_snow_off_627975_5646450_spike_free_chm_.10m.bil"
 canopy_min_elev = 2
 kernel_dim = 3  # step size = (kernel_dim - 1)/2
 max_scan = 30  # max number of steps
-output_fname = prominence_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_test\\OUTPUT_FILES\\CHM\\19_149_all_test_628000_564657pit_free_chm_.25m_DCE.tiff"
+output_fname = prominence_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DCE\\19_149_snow_off_627975_5646450_spike_free_chm_.10m_DCE.tiff"
 
-
-# open single band geo-raster file
-ras = gdal.Open(elev_in, gdal.GA_ReadOnly)
-
-# get metadata
-gt = ras.GetGeoTransform()
-proj = ras.GetProjection()
-cols = ras.RasterXSize
-rows = ras.RasterYSize
-band = ras.GetRasterBand(1)
-no_data = band.GetNoDataValue()
-
-# values as array
-elev = np.array(ras.ReadAsArray())
-
-# close file
-ras = None
+# load raster
+ras = rastools.raster_load(ras_in)
 
 # define canopy binary
-canopy = np.full([rows, cols], 0)
-canopy[elev > canopy_min_elev] = 1
+canopy = np.full([ras.rows, ras.cols], 0)
+canopy[ras.data > canopy_min_elev] = 1
 
 # preallocate distance to canopy edge (DCE) record
-record = np.full([rows, cols], no_data)
+record = np.full([ras.rows, ras.cols], ras.no_data)
 
 kernel = np.full([kernel_dim, kernel_dim], 1)
 
@@ -59,15 +42,6 @@ for jj in range(1, max_scan):
     binary[edges] = 1
     record[edges] = ii
 
-
-# output distance_to_canopy_map
-outdriver = gdal.GetDriverByName("GTiff")
-outdata = outdriver.Create(output_fname, cols, rows, 1, gdal.GDT_Int16)
-# Set metadata
-outdata.SetGeoTransform(gt)
-outdata.SetProjection(proj)
-
-# Write data
-outdata.GetRasterBand(1).WriteArray(record)
-outdata.GetRasterBand(1).SetNoDataValue(no_data)
-outdata = None
+ras_dce = ras
+ras_dce.data = record
+rastools.raster_save(ras_dce, output_fname, data_format="int16")

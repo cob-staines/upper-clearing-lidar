@@ -6,10 +6,12 @@ from scipy.ndimage.measurements import label, maximum_position
 from sklearn.cluster import KMeans
 
 # config
-ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_all_200311_628000_5646525_spike_free_chm_.10m.bil"
-ras_map_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_all_200311_628000_5646525_spike_free_chm_.10m.bil"
+# raster chm for identifying treetops
+ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_snow_off_627975_5646450_spike_free_chm_.10m.bil"
+# raster template for output nearest and distance maps
+ras_map_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_snow_off_627975_5646450_spike_free_chm_.10m.bil"
 # output file naming conventions
-output_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DFT\\"
+output_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DNT\\"
 file_base = ras_in.split("\\")[-1].replace(".bil", "")
 treetops_out = output_dir + file_base + "_kho_treetops.csv"
 
@@ -44,7 +46,6 @@ def mask_gen(size):
     y, x = np.ogrid[-mid:n - mid, -mid:n - mid]
     mask = np.array(x * x + y * y <= r * r)
     return mask
-
 
 struct = mask_gen(min_obj_rad_pix)
 chm = ras.data.copy()
@@ -102,7 +103,7 @@ output = output.drop(["peak_x", "peak_y"], axis=1)
 output.to_csv(treetops_out, index=False)
 
 # reload peaklist if wishing to skip above calculations
-peaklist = pd.read_csv(treetops_out)
+# peaklist = pd.read_csv(treetops_out)
 
 # filter to true peaks
 peaks_filtered = peaklist.loc[peaklist.true_peak == 1, ['UTM11N_x', 'UTM11N_y']]

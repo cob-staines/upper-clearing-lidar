@@ -83,7 +83,6 @@ def raster_save(ras_object, file_path, file_format="GTiff", data_format="float32
     outdata.GetRasterBand(1).WriteArray(ras_object.data)
     outdata.GetRasterBand(1).SetNoDataValue(ras_object.no_data)
 
-
 def ras_dif(ras_1_in, ras_2_in, inherit_from=1):
     # Returns raster object as follows:
         # ras_dif.data = ras_1. data - ras_2.data
@@ -153,7 +152,7 @@ def raster_merge(ras_in_dir, ras_in_ext, ras_out, no_data="-9999"):
     # run command
     subprocess.call(cmd, shell=True)
 
-def point_sample_raster(ras_in, pts_in, pts_out, pts_xcoord_name, pts_ycoord_name, sample_col_name, sample_no_data_value):
+def point_sample_raster(ras_in, pts_in, pts_out, pts_xcoord_name, pts_ycoord_name, sample_col_name, sample_no_data_value=-9999):
 
     # takes in csv file of points "pts_in" with x-column "pts_xcoord_name" and y-column "pts_ycoord_name" and saves
     # point values of raster "ras_in" to column "sample_col_name" in output csv "pts_out"

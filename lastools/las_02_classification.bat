@@ -16,7 +16,8 @@ mkdir .\TEMP_FILES\05_noise_ground
 mkdir .\TEMP_FILES\06_ground
 mkdir .\TEMP_FILES\07_vegetation
 mkdir .\TEMP_FILES\08_classified
-mkdir .\TEMP_FILES\09_normalized
+mkdir .\TEMP_FILES\09_sorted
+mkdir .\TEMP_FILES\10_normalized
 
 :: identify noise for ground analysis
 lasnoise -i TEMP_FILES\04_duplicate\*.laz ^
@@ -55,10 +56,18 @@ lasnoise -i TEMP_FILES\07_vegetation\*.laz ^
           -classify_as %CLASS_NOISE_CANOPY% ^
           -odir TEMP_FILES\08_classified\ -olaz -ocut 3 -odix _08
 
+
+:: sort to speed up spike-free chm
+lassort -i TEMP_FILES\08_classified\*.laz ^
+          -bucket 2 ^
+          -just_reorder ^
+          -cores %NUM_CORES% ^
+          -odir TEMP_FILES\09_sorted\ -olaz -ocut 3 -odix _09
+
+
 :: recalculate height and replace z to normalize by ground surface (required for CHM)
-lasheight -i TEMP_FILES\08_classified\*.laz ^
+lasheight -i TEMP_FILES\09_sorted\*.laz ^
           -ignore_class %CLASS_NOISE_GROUND% %CLASS_NOISE_CANOPY% ^
           -replace_z ^
           -cores %NUM_CORES% ^
-          -odir TEMP_FILES\09_normalized\ -olaz -ocut 3 -odix _09
-
+          -odir TEMP_FILES\10_normalized\ -olaz -ocut 3 -odix _10

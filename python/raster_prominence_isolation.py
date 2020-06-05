@@ -162,4 +162,4 @@ rastools.raster_save(ras_distance, distance_out, data_format="float")
 # import matplotlib
 # matplotlib.use('TkAgg')
 # import matplotlib.pyplot as plt
-# plt.imshow(labels, interpolation='nearest')
+# plt.imshow(record, interpolation='nearest')
