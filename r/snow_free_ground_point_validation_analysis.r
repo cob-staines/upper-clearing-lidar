@@ -1,3 +1,5 @@
+# validation for elevation  (snow free only)
+
 library('dplyr')
 library('tidyr')
 library('ggplot2')

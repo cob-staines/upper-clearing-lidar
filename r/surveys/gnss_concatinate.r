@@ -1,3 +1,5 @@
+# compiles all gnss data from all survey days
+
 workingdir <- "C:/Users/Cob/index/educational/usask/research/masters/data/surveys/"
 output <- "all_ground_points.csv"
 
