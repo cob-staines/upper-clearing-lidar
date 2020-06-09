@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import hemigen
+import laslib
 import rastools
 import os
 
@@ -14,8 +14,8 @@ pts_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\l
 rastools.point_sample_raster(ras_in, pts_in, pts_out, "x_utm11n", "y_utm11n", "elev_m", "NA")
 
 # generate synthetic hemispheres
-las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_all_200311_628000_5646525_vegetation.las"
-las_hdf5 = las_in[0:-3] + 'hdf5'
+las_path = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_snow_off_clean.las"
+hdf5_path = las_path[0:-3] + 'hdf5'
 hemi_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\autocorrelation\\uf\\"
 
 # import lookup
@@ -35,7 +35,7 @@ fig_size = 10  # in inches
 fig_dpi = 100  # pixels/inch
 
 # export las to hdf5
-hemigen.las_to_hdf5(las_in, las_hdf5)
+laslib.las_xyz_to_hdf5(las_in, las_hdf5)
 
 for ii in range(39, lookup.shape[0]):
     # set point at ground level (x, y, z)
@@ -44,7 +44,7 @@ for ii in range(39, lookup.shape[0]):
     fig_out = hemi_out_dir + "las_19_149_pnt_" + lookup.id[ii].astype(str) + ".png"
 
     start = time.time()
-    hemigen.hemigen(las_hdf5, origin, fig_out, max_radius, point_size_scalar, fig_size, fig_dpi)
+    laslib.hemigen(las_hdf5, origin, fig_out, max_radius, point_size_scalar, fig_size, fig_dpi)
     end = time.time()
     print(end - start)
 

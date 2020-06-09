@@ -11,8 +11,8 @@ mkdir .\OUTPUT_FILES\LAS
 lastile -i TEMP_FILES\08_classified\*.laz ^
           -remove_buffer ^
           -cores %NUM_CORES% ^
-          -odir TEMP_FILES\11_no_buffer\ -olaz -ocut 3 -odix _no_buffer
+          -odir TEMP_FILES\11_no_buffer\ -olaz -ocut 3 -odix _11
 
 las2las -i TEMP_FILES\11_no_buffer\*.laz ^
           -merged ^
-          -odir OUTPUT_FILES\LAS\ -olas
+          -odir OUTPUT_FILES\LAS\ -olas -ocut 18 -odix _clean

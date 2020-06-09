@@ -1,4 +1,4 @@
-def las_load(las_in):
+def las_load(las_in, drop_class=None):
     import laspy
     import numpy as np
 
