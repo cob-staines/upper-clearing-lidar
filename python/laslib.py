@@ -1,3 +1,42 @@
+drop_columns = None
+
+def las_to_hdf5(las_in, hdf5_out, drop_columns=None):
+    """
+    Loads xyz data from .las (point cloud) file "las_in" dropping classes in "drop_class"
+    :param las_in: file path to .las file
+    :param hdf5_out: file path to output hdf5 file
+    :param drop_columns: None, string, or list of strings declaring column names to be dropped before output to file
+    :return: None
+    """
+    import laspy
+    import pandas as pd
+
+    # load las_in
+    inFile = laspy.file.File(las_in, mode="r")
+    # pull in xyz and classification
+    p0 = pd.DataFrame({"gps_time": inFile.gps_time,
+                       "x": inFile.x,
+                       "y": inFile.y,
+                       "z": inFile.z,
+                       "classification": inFile.classification,
+                       "intensity": inFile.intensity,
+                       "num_returns": inFile.num_returns,
+                       "return_num": inFile.return_num,
+                       "scan_angle_rank": inFile.scan_angle_rank})
+    # close las_in
+    inFile.close()
+
+    # create class_filter for drop_class in classification
+    if type(drop_columns) == str:
+        p0 = p0.drop(columns = [drop_columns])
+    elif type(drop_columns) == list:
+        p0 = p0.drop(columns = drop_columns)
+    elif type(drop_columns) != type(None):
+        raise Exception('"drop_columns" instance of unexpected class: ' + str(type(drop_columns)))
+
+    # save to file
+    p0.to_hdf(hdf5_out, key='data', mode='w', format='table')
+
 def las_xyz_load(las_path, drop_class=None):
     """
     Loads xyz data from .las (point cloud) file "las_in" dropping classes in "drop_class"
@@ -122,3 +161,78 @@ def hemigen(hdf5_xyz_path, origin_coords, img_out_path, max_radius=None, point_s
     print("done with " + img_out_path)
 
     data = None
+
+
+def las_traj(las_in, traj_in):
+    # las_traj takes in an las file "las_in" and a corresponding trajectory file "traj_in". The function then:
+    #   -> merges files on gps_time
+    #   -> interpolates trajectory to las_points
+    #   -> calculates angle_from_nadir
+    #   -> calculates distance_to_target
+    #   -> returns laspy object
+
+    # dependencies
+    import laspy
+    import pandas as pd
+    import numpy as np
+
+    # import las_in
+    inFile = laspy.file.File(las_in, mode="r")
+    # select dimensions
+    las_data = pd.DataFrame({'gps_time': inFile.gps_time,
+                             'x': inFile.x,
+                             'y': inFile.y,
+                             'z': inFile.z,
+                             'intensity': inFile.intensity})
+    inFile.close()
+    las_data = las_data.assign(las=True)
+
+    # import trajectory
+    traj = pd.read_csv(traj_in)
+    # rename columns for consistency
+    traj = traj.rename(columns={'Time[s]': "gps_time",
+                                'Easting[m]': "easting_m",
+                                'Northing[m]': "northing_m",
+                                'Height[m]': "height_m"})
+    # throw our pitch, roll, yaw (at least until needed later...)
+    traj = traj[['gps_time', 'easting_m', 'northing_m', 'height_m']]
+    traj = traj.assign(las=False)
+
+    # resample traj to las gps times and interpolate
+    # outer merge las and traj on gps_time
+
+    # proper merge takes too long, instead keep track of index
+    outer = las_data[['gps_time', 'las']].append(traj, sort=False)
+    outer = outer.reset_index()
+    outer = outer.rename(columns={"index": "index_las"})
+
+    # order by gps time
+    outer = outer.sort_values(by="gps_time")
+    # set index as gps_time for nearest neighbor interpolation
+    outer = outer.set_index('gps_time')
+    # interpolate by nearest neighbor
+
+    interpolated = outer.interpolate(method="nearest")
+
+    # resent index for clarity
+
+    interpolated = interpolated[interpolated['las']]
+    interpolated = interpolated.sort_values(by="index_las")
+    interpolated = interpolated.reset_index()
+    interpolated = interpolated[['easting_m', 'northing_m', 'height_m']]
+
+    merged = pd.concat([las_data, interpolated], axis=1)
+    merged = merged.drop('las', axis=1)
+
+    # calculate point distance from track
+    p1 = np.array([merged.easting_m, merged.northing_m, merged.height_m])
+    p2 = np.array([merged.x, merged.y, merged.z])
+    squared_dist = np.sum((p1 - p2) ** 2, axis=0)
+    merged = merged.assign(distance_to_track=np.sqrt(squared_dist))
+
+    # calculate angle from nadir
+    dp = p1 - p2
+    phi = np.arctan(np.sqrt(dp[0] ** 2 + dp[1] ** 2) / dp[2])*180/np.pi #in degrees
+    merged = merged.assign(angle_from_nadir_deg=phi)
+
+    return merged
