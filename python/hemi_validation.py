@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import hemigen
+import laslib
 
 las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_all_200311_628000_5646525_vegetation.las"
 hemi_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\os_0.25\\"
@@ -29,7 +29,7 @@ fig_dpi = 100  # pixels/inch
 
 
 # load_las
-las_xyz = hemigen.las_load(las_in)
+las_xyz = laslib.las_xyz_load(las_in)
 
 for ii in range(0, lookup_ss.shape[0]):
     # set point at ground level (x, y, z)
@@ -41,4 +41,4 @@ for ii in range(0, lookup_ss.shape[0]):
     fig_out = hemi_out_dir + "las_" + las_day + "_img_" + lookup_ss.filename.iloc[ii][0:-4] + "_os_" + str(
         optimization_scalar) + ".png"
 
-    hemigen.hemigen(las_xyz, origin, fig_out, max_radius, point_size_scalar, fig_size, fig_dpi)
+    laslib.hemigen(las_xyz, origin, fig_out, max_radius, point_size_scalar, fig_size, fig_dpi)

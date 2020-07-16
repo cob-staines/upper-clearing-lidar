@@ -1,9 +1,10 @@
 import pandas as pd
+import laslib
 # config
 
-las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_all_200311_628000_5646525_vegetation.las"
+las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_snow_off_classified_merged.las"
 lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
-hemi_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\os_0.25\\"
+hemi_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\poisson\\"
 
 # filter hemisphere validation data
 max_quality = 4
@@ -17,12 +18,18 @@ subset = lookup[lookup.quality_code <= max_quality]
 lookup_ss = subset[subset.folder == las_day]
 
 # synthetic hemisphere parameters
+min_radius = 0.15  # in meters
 optimization_scalar = 0.05
 max_radius = 50  # in meters
 footprint = 0.15  # in m
 c = 2834.64  # points to meters
 figuresize = 10  # in inches
 fig_dpi = 100  # pixels/inch
+
+# poisson sampling
+las_poisson_path = las_in.replace('.las', '_poisson_' + str(min_radius) + '.las')
+laslib.las_poisson_sample(las_in, min_radius, las_poisson_path)
+
 
 # HEMIGEN
 
@@ -33,7 +40,6 @@ import matplotlib
 matplotlib.use('Agg')
 # matplotlib.use('TkAgg')  # use for interactive plotting
 import matplotlib.pyplot as plt
-import random
 
 # load_las
 

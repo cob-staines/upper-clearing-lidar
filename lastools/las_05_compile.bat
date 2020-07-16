@@ -15,4 +15,4 @@ lastile -i TEMP_FILES\08_classified\*.laz ^
 
 las2las -i TEMP_FILES\11_no_buffer\*.laz ^
           -merged ^
-          -odir OUTPUT_FILES\LAS\ -olas -ocut 18 -odix _clean
+          -odir OUTPUT_FILES\LAS\ -olas -ocut 18 -odix _classified_merged

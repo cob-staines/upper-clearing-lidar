@@ -1,5 +1,3 @@
-drop_columns = None
-
 def las_to_hdf5(las_in, hdf5_out, drop_columns=None):
     """
     Loads xyz data from .las (point cloud) file "las_in" dropping classes in "drop_class"
@@ -35,7 +33,7 @@ def las_to_hdf5(las_in, hdf5_out, drop_columns=None):
         raise Exception('"drop_columns" instance of unexpected class: ' + str(type(drop_columns)))
 
     # save to file
-    p0.to_hdf(hdf5_out, key='data', mode='w', format='table')
+    p0.to_hdf(hdf5_out, key='las_data', mode='w', format='table')
 
 def las_xyz_load(las_path, drop_class=None):
     """
@@ -163,76 +161,128 @@ def hemigen(hdf5_xyz_path, origin_coords, img_out_path, max_radius=None, point_s
     data = None
 
 
-def las_traj(las_in, traj_in):
-    # las_traj takes in an las file "las_in" and a corresponding trajectory file "traj_in". The function then:
-    #   -> merges files on gps_time
-    #   -> interpolates trajectory to las_points
-    #   -> calculates angle_from_nadir
-    #   -> calculates distance_to_target
-    #   -> returns laspy object
+def las_traj(hdf5_path, traj_in):
+    """
 
-    # dependencies
-    import laspy
-    import pandas as pd
+    :param hdf5_path: path to existing hdf5 file created using las_to hdf5
+    :param traj_in: path to trajectory file corresponding to original las file
+    :return:
+    """
+
     import numpy as np
+    import pandas as pd
 
-    # import las_in
-    inFile = laspy.file.File(las_in, mode="r")
-    # select dimensions
-    las_data = pd.DataFrame({'gps_time': inFile.gps_time,
-                             'x': inFile.x,
-                             'y': inFile.y,
-                             'z': inFile.z,
-                             'intensity': inFile.intensity})
-    inFile.close()
-    las_data = las_data.assign(las=True)
+    # load data from hdf5 file
+    point_data = pd.read_hdf(hdf5_path, key='las_data', columns=['gps_time', 'x', 'y', 'z'])
+    # add las key (True)
+    las_data = point_data.assign(las=True)
 
-    # import trajectory
+    # load trajectory from csv
     traj = pd.read_csv(traj_in)
     # rename columns for consistency
     traj = traj.rename(columns={'Time[s]': "gps_time",
                                 'Easting[m]': "easting_m",
                                 'Northing[m]': "northing_m",
                                 'Height[m]': "height_m"})
-    # throw our pitch, roll, yaw (at least until needed later...)
+    # drop pitch, roll, yaw
     traj = traj[['gps_time', 'easting_m', 'northing_m', 'height_m']]
+    # add las key (False)
     traj = traj.assign(las=False)
 
-    # resample traj to las gps times and interpolate
-    # outer merge las and traj on gps_time
-
-    # proper merge takes too long, instead keep track of index
+    # append traj to las, keeping track of las index
     outer = las_data[['gps_time', 'las']].append(traj, sort=False)
     outer = outer.reset_index()
     outer = outer.rename(columns={"index": "index_las"})
 
     # order by gps time
     outer = outer.sort_values(by="gps_time")
-    # set index as gps_time for nearest neighbor interpolation
+
+    # QC: check first and last entries are traj
+    if (outer.las.iloc[0] | outer.las.iloc[-1]):
+        raise Exception('LAS data exists outside trajectory time frame -- Suspect LAS/trajectory file mismatch')
+
+    # set index as gps_time
     outer = outer.set_index('gps_time')
-    # interpolate by nearest neighbor
 
-    interpolated = outer.interpolate(method="nearest")
+    # forward fill nan values
+    interpolated = outer.fillna(method='ffill')
 
-    # resent index for clarity
-
+    # drop traj entries
     interpolated = interpolated[interpolated['las']]
-    interpolated = interpolated.sort_values(by="index_las")
-    interpolated = interpolated.reset_index()
+    # reset to las index
+    interpolated = interpolated.set_index("index_las")
+    # drop las key column
     interpolated = interpolated[['easting_m', 'northing_m', 'height_m']]
 
-    merged = pd.concat([las_data, interpolated], axis=1)
-    merged = merged.drop('las', axis=1)
+    # concatenate with las_data horizontally by index
+    merged = pd.concat([point_data, interpolated], axis=1, ignore_index=False)
 
-    # calculate point distance from track
+    # distance from sensor
     p1 = np.array([merged.easting_m, merged.northing_m, merged.height_m])
     p2 = np.array([merged.x, merged.y, merged.z])
     squared_dist = np.sum((p1 - p2) ** 2, axis=0)
-    merged = merged.assign(distance_to_track=np.sqrt(squared_dist))
+    merged = merged.assign(distance_from_sensor_m=np.sqrt(squared_dist))
 
-    # calculate angle from nadir
+    # angle from nadir
     dp = p1 - p2
-    phi = np.arctan(np.sqrt(dp[0] ** 2 + dp[1] ** 2) / dp[2])*180/np.pi #in degrees
+    phi = np.arctan(np.sqrt(dp[0] ** 2 + dp[1] ** 2) / dp[2]) * 180 / np.pi  # in degrees
     merged = merged.assign(angle_from_nadir_deg=phi)
 
-    return merged
+    # angle cw from north
+    theta = np.arctan2(dp[0], (dp[1])) * 180/np.pi
+    merged = merged.assign(angle_cw_from_north_deg=theta)
+
+    # select columns for output
+    output = merged[["gps_time", "distance_from_sensor_m", "angle_from_nadir_deg", "angle_cw_from_north_deg"]]
+
+    # save to hdf5 file
+    output.to_hdf(hdf5_path, key='las_traj', mode='r+', format='table')
+
+las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las"
+las_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF_test.las"
+las_out = None
+min_radius = 15
+def las_poisson_sample(las_in, min_radius, las_out=None):
+    import pdal
+
+    # format las_in
+    las_in = las_in.replace('\\', '/')
+
+    if las_out == None:
+        # do not svae to file
+        json = """
+            [
+                "{inFile}",
+                {{
+                    "type": "filters.sample",
+                    "radius": "{radius}"
+                }}
+            ]
+            """
+        json = json.format(inFile=las_in, radius=min_radius)
+    else:
+        # prepare to save to file
+        # format las_out
+        las_out = las_out.replace('\\', '/')
+        json = """
+            [
+                "{inFile}",
+                {{
+                    "type": "filters.sample",
+                    "radius": "{radius}"
+                }},
+                {{
+                    "type": "writers.las",
+                    "filename": "{outFile}"
+                }}
+            ]
+            """
+        json = json.format(inFile=las_in, outFile=las_out, radius=min_radius)
+
+    # execute json
+    pipeline = pdal.Pipeline(json)
+    count = pipeline.execute()
+    arrays = pipeline.arrays
+
+    return arrays
+
