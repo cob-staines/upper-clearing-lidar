@@ -35,11 +35,12 @@ def las_to_hdf5(las_in, hdf5_out, drop_columns=None):
     # save to file
     p0.to_hdf(hdf5_out, key='las_data', mode='w', format='table')
 
-def las_xyz_load(las_path, drop_class=None):
+def las_xyz_load(las_path, drop_class=None, keep_class=None):
     """
     Loads xyz data from .las (point cloud) file "las_in" dropping classes in "drop_class"
     :param las_path: file path to .las file
     :param drop_class: None, integer, or list of integers declaring point class(es) to be dropped
+    :param keep_class: None, integer, or list of integers declaring point class(es) to be dropped
     :return: las_xyz: numpy array of x, y, and z coordinates for
     """
     import laspy
@@ -56,41 +57,55 @@ def las_xyz_load(las_path, drop_class=None):
     inFile.close()
 
     # create class_filter for drop_class in classification
-    if drop_class == None:
-        class_filter = np.full_like(classification, True)
+    if drop_class is None:
+        drop_class_filter = np.full(classification.shape, True)
     elif type(drop_class) == int:
-        class_filter = (classification != drop_class)
+        drop_class_filter = (classification != drop_class)
     elif type(drop_class) == list:
-        class_filter = ~np.any(list(cc == classification for cc in drop_class), axis=0)
+        drop_class_filter = ~np.any(list(cc == classification for cc in drop_class), axis=0)
     else:
         raise Exception('"drop_class" instance of unexpected class: ' + str(type(drop_class)))
+
+    if keep_class is None:
+        keep_class_filter = np.full(classification.shape, True)
+    elif type(keep_class) == int:
+        keep_class_filter = (classification == keep_class)
+    elif type(keep_class) == list:
+        keep_class_filter = np.any(list(cc == classification for cc in keep_class), axis=0)
+    else:
+        raise Exception('"keep_class" instance of unexpected class: ' + str(type(keep_class)))
+
 
     # unload classification
     classification = None
 
     # filter xyz with class_filter
-    las_xyz = p0[class_filter]
+    las_xyz = p0[drop_class_filter & keep_class_filter]
 
     return las_xyz
 
-def las_xyz_to_hdf5(las_path, hdf5_path, drop_class=None):
+def las_xyz_to_hdf5(las_in, hdf5_out, drop_class=None, keep_class=None):
     """
     Saves xyz points from las_path as hdf5 file to hdf5_path, dropping points of class(s) drop_class
-    :param las_path: file path to .las file
-    :param hdf5_path: file path to output .hdf5 file
+    :param las_in: file path to .las file
+    :param hdf5_out: file path to output .hdf5 file
     :param drop_class: None, integer, or list of integers declaring point class(es) to be dropped
     :return: None
     """
-    import h5py
+    import pandas as pd
 
     # load xyz from las_in
-    las_data = las_xyz_load(las_path, drop_class=drop_class)
+    las_data = las_xyz_load(las_in, drop_class=drop_class, keep_class=keep_class)
 
-    h5f = h5py.File(hdf5_path, 'w')
-    h5f.create_dataset('dataset', data=las_data)
-    h5f.close()
+    p0 = pd.DataFrame({
+        'x': las_data[:, 0],
+        'y': las_data[:, 1],
+        'z': las_data[:, 2]
+    })
 
-def hemigen(hdf5_xyz_path, origin_coords, img_out_path, max_radius=None, point_size_scalar=1, img_size=10, img_res=100):
+    p0.to_hdf(hdf5_out, key='las_data', mode='w', format='table')
+
+def hemigen(hdf5_path, origin_coords, img_out_path, max_radius=None, point_size_scalar=1, img_size=10, img_res=100):
     """
     Generates synthetic hemispherical image from xyz point cloud in hdf5 format.
     :param hdf5_xyz_path: file path to hdf5 file containing point xyz coordinates
@@ -104,61 +119,69 @@ def hemigen(hdf5_xyz_path, origin_coords, img_out_path, max_radius=None, point_s
     """
     import pandas as pd
     import numpy as np
-    import h5py
     import matplotlib
+    import h5py
     matplotlib.use('Agg')
     # matplotlib.use('TkAgg')  # use for interactive plotting
     import matplotlib.pyplot as plt
+    import time
 
-    # open hdf5
-    h5f = h5py.File(hdf5_xyz_path, 'r')
-    # load xyz data
-    las_xyz = h5f['dataset']
+    # convert to list of 1 if only one photo
+    if origin_coords.shape.__len__() == 1:
+        origin_coords = np.array([origin_coords])
+    if type(img_out_path) == str:
+        img_out_path = [img_out_path]
 
-    # move to new origin
-    p1 = las_xyz - origin_coords
+    # QC
+    if origin_coords.shape[0] != img_out_path.__len__():
+        raise Exception('origin_coords and img_out_path have different lengths, execution halted.')
 
-    # close file
-    h5f.close()
+    # load data
+    p0 = pd.read_hdf(hdf5_path, key='las_data', columns=["x", "y", "z"])
 
-    # if no max_radius, set to +inf
-    if max_radius == None:
-        max_radius = float("inf")
-
-    # calculate r
-    r = np.sqrt(np.sum(p1 ** 2, axis=1))
-    # subset to within max_radius
-    subset_f = r < max_radius
-    r = r[subset_f]
-    p1 = p1[subset_f]
-
-    # flip over x axis for upward-looking perspective
-    p1[:, 0] = -p1[:, 0]
-
-    # calculate plot vars
-    data = pd.DataFrame({'theta': np.arccos(p1[:, 2] / r),
-                         'phi': np.arctan2(p1[:, 1], p1[:, 0]),
-                         'area': ((1 / r) ** 2) * point_size_scalar})
-
-    # drop arrays for mem management
-    p1 = None
-    r = None
-    subset_f = None
-
-    # plot
+    # pre-plot
     fig = plt.figure(figsize=(img_size, img_size), dpi=img_res, frameon=False)
-    ax = plt.axes([0., 0., 1., 1.], projection="polar", polar=True)
-    sp1 = ax.scatter(data.phi, data.theta, s=data.area, c="black")
+    # ax = plt.axes([0., 0., 1., 1.], projection="polar", polar=False)
+    ax = plt.axes([0., 0., 1., 1.], projection="polar")
+    # sp1 = ax.scatter(data.phi, data.theta, s=data.area, c="black")
+    sp1 = ax.scatter([], [], s=[], c="black")
     ax.set_rmax(np.pi / 2)
-    ax.set_rticks([])
+    # ax.set_rticks([])
     ax.grid(False)
     ax.set_axis_off()
     fig.add_axes(ax)
 
-    fig.savefig(img_out_path)
-    print("done with " + img_out_path)
+    for ii in range(0, origin_coords.shape[0]):
+        start = time.time()
 
-    data = None
+        p1 = p0.values - origin_coords[ii]
+
+        # if no max_radius, set to +inf
+        if max_radius is None:
+            max_radius = float("inf")
+
+        # calculate r
+        r = np.sqrt(np.sum(p1 ** 2, axis=1))
+        # subset to within max_radius
+        subset_f = r < max_radius
+        r = r[subset_f]
+        p1 = p1[subset_f]
+
+        # flip over x axis for upward-looking perspective
+        p1[:, 0] = -p1[:, 0]
+
+        # calculate plot vars
+        data = pd.DataFrame({'theta': np.arccos(p1[:, 2] / r),
+                             'phi': np.arctan2(p1[:, 1], p1[:, 0]),
+                             'area': ((1 / r) ** 2) * point_size_scalar})
+
+        # plot
+        sp1.set_offsets(np.c_[np.flip(data.phi), np.flip(data.theta)])
+        sp1.set_sizes(data.area)
+
+        fig.savefig(img_out_path[ii])
+        print("done with " + img_out_path[ii])
+        print(time.time() - start)
 
 
 def las_traj(hdf5_path, traj_in):
