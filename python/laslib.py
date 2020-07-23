@@ -26,14 +26,15 @@ def las_to_hdf5(las_in, hdf5_out, drop_columns=None):
 
     # create class_filter for drop_class in classification
     if type(drop_columns) == str:
-        p0 = p0.drop(columns = [drop_columns])
+        p0 = p0.drop(columns=[drop_columns])
     elif type(drop_columns) == list:
-        p0 = p0.drop(columns = drop_columns)
+        p0 = p0.drop(columns=drop_columns)
     elif type(drop_columns) != type(None):
         raise Exception('"drop_columns" instance of unexpected class: ' + str(type(drop_columns)))
 
     # save to file
     p0.to_hdf(hdf5_out, key='las_data', mode='w', format='table')
+
 
 def las_xyz_load(las_path, drop_class=None, keep_class=None):
     """
@@ -75,7 +76,6 @@ def las_xyz_load(las_path, drop_class=None, keep_class=None):
     else:
         raise Exception('"keep_class" instance of unexpected class: ' + str(type(keep_class)))
 
-
     # unload classification
     classification = None
 
@@ -83,6 +83,7 @@ def las_xyz_load(las_path, drop_class=None, keep_class=None):
     las_xyz = p0[drop_class_filter & keep_class_filter]
 
     return las_xyz
+
 
 def las_xyz_to_hdf5(las_in, hdf5_out, drop_class=None, keep_class=None):
     """
@@ -105,18 +106,19 @@ def las_xyz_to_hdf5(las_in, hdf5_out, drop_class=None, keep_class=None):
 
     p0.to_hdf(hdf5_out, key='las_data', mode='w', format='table')
 
-def hemigen(hdf5_path, origin_coords, img_out_path, max_radius=None, point_size_scalar=1, img_size=10, img_res=100):
+
+def hemigen(hdf5_path, hemimeta):
     """
     Generates synthetic hemispherical image from xyz point cloud in hdf5 format.
-    :param hdf5_xyz_path: file path to hdf5 file containing point xyz coordinates
-    :param origin_coords: numpy.array([x0, y0, z0]) of coordinates where hemispherical image will be centered
-    :param img_out_path: file path of output image (should include file extension of desired image format)
-    :param max_radius: distance from origin (numeric, in units of xyz coordinates) beyond which points will be dropped
-    :param point_size_scalar: numeric for scaling the apparent size of points in hemispherical images
-    :param img_size: dimension (in inches) of height and width of output image
-    :param img_res: resolution (in pixels per inch) of output image
-    :return: None
+    :param hdf5_path: file path to hdf5 file containing point cloud
+    :param hemimeta: hemispherical metadata object containing required and optional metadata
+        required metadata:
+            hemimeta.origin: 3-tuple or list of 3-tuples corresponding to xyz coordinates of hemisphere center
+            hemimeta.file_name
+    :return: hm -- hemimeta in a pd.DataFrame, each row corresponding to each image
     """
+    print("-------- Running Hemigen --------")
+
     import pandas as pd
     import numpy as np
     import matplotlib
@@ -125,22 +127,25 @@ def hemigen(hdf5_path, origin_coords, img_out_path, max_radius=None, point_size_
     # matplotlib.use('TkAgg')  # use for interactive plotting
     import matplotlib.pyplot as plt
     import time
+    import os
 
-    # convert to list of 1 if only one photo
-    if origin_coords.shape.__len__() == 1:
-        origin_coords = np.array([origin_coords])
-    if type(img_out_path) == str:
-        img_out_path = [img_out_path]
+    tot_time = time.time()
 
-    # QC
-    if origin_coords.shape[0] != img_out_path.__len__():
+    # convert to list of 1 if only one entry
+    if hemimeta.origin.shape.__len__() == 1:
+        hemimeta.origin = np.array([hemimeta.origin])
+    if type(hemimeta.file_name) == str:
+        hemimeta.file_dir = [hemimeta.file_dir]
+
+    # QC: ensure origins and file_names have same length
+    if hemimeta.origin.shape[0] != hemimeta.file_name.__len__():
         raise Exception('origin_coords and img_out_path have different lengths, execution halted.')
 
     # load data
     p0 = pd.read_hdf(hdf5_path, key='las_data', columns=["x", "y", "z"])
 
     # pre-plot
-    fig = plt.figure(figsize=(img_size, img_size), dpi=img_res, frameon=False)
+    fig = plt.figure(figsize=(hemimeta.img_size, hemimeta.img_size), dpi=hemimeta.img_resolution, frameon=False)
     # ax = plt.axes([0., 0., 1., 1.], projection="polar", polar=False)
     ax = plt.axes([0., 0., 1., 1.], projection="polar")
     # sp1 = ax.scatter(data.phi, data.theta, s=data.area, c="black")
@@ -151,19 +156,45 @@ def hemigen(hdf5_path, origin_coords, img_out_path, max_radius=None, point_size_
     ax.set_axis_off()
     fig.add_axes(ax)
 
-    for ii in range(0, origin_coords.shape[0]):
-        start = time.time()
+    hm = pd.DataFrame({"id": hemimeta.id,
+                       "file_name": hemimeta.file_name,
+                       "file_dir": hemimeta.file_dir,
+                       "x_utm11n": hemimeta.origin[:, 0],
+                       "y_utm11n": hemimeta.origin[:, 1],
+                       "elevation_m": hemimeta.origin[:, 2],
+                       "src_las_file": hemimeta.src_las_file,
+                       "las_class": hemimeta.src_keep_class,
+                       "poisson_radius_m": hemimeta.poisson_sampling_radius,
+                       "optimization_scalar": hemimeta.optimization_scalar,
+                       "point_size_scalar": hemimeta.point_size_scalar,
+                       "max_distance_m": hemimeta.max_distance,
+                       "img_size_in": hemimeta.img_size,
+                       "img_res_dpi": hemimeta.img_resolution,
+                       "created_datetime": None,
+                       "point_count": None,
+                       "computation_time_s": None})
 
-        p1 = p0.values - origin_coords[ii]
+    # preallocate log file
+    log_path = hemimeta.file_dir + "hemimetalog.csv"
+    if not os.path.exists(log_path):
+        with open(log_path, mode='w', encoding='utf-8') as log:
+            log.write(", ".join(hm.columns) + '\n')
+        log.close()
+
+    for ii in range(0, hemimeta.origin.shape[0]):
+        start = time.time()
+        print("Generating " + hemimeta.file_name[ii] + " ...")
+
+        p1 = p0.values - hemimeta.origin[ii]
 
         # if no max_radius, set to +inf
-        if max_radius is None:
-            max_radius = float("inf")
+        if hemimeta.max_distance is None:
+            hemimeta.max_distance = float("inf")
 
         # calculate r
         r = np.sqrt(np.sum(p1 ** 2, axis=1))
         # subset to within max_radius
-        subset_f = r < max_radius
+        subset_f = r < hemimeta.max_distance
         r = r[subset_f]
         p1 = p1[subset_f]
 
@@ -173,15 +204,46 @@ def hemigen(hdf5_path, origin_coords, img_out_path, max_radius=None, point_size_
         # calculate plot vars
         data = pd.DataFrame({'theta': np.arccos(p1[:, 2] / r),
                              'phi': np.arctan2(p1[:, 1], p1[:, 0]),
-                             'area': ((1 / r) ** 2) * point_size_scalar})
+                             'area': ((1 / r) ** 2) * hemimeta.point_size_scalar})
 
         # plot
         sp1.set_offsets(np.c_[np.flip(data.phi), np.flip(data.theta)])
         sp1.set_sizes(data.area)
 
-        fig.savefig(img_out_path[ii])
-        print("done with " + img_out_path[ii])
-        print(time.time() - start)
+        # save figure to file
+        fig.savefig(hemimeta.file_dir + hemimeta.file_name[ii])
+
+        # log meta
+        hm.loc[ii, "created_datetime"] = time.strftime('%Y-%m-%d %H:%M:%S')
+        hm.loc[ii, "point_count"] = data.shape[0]
+        hm.loc[ii, "computation_time_s"] = int(time.time() - start)
+
+        # write to log file
+        hm.iloc[ii:ii + 1].to_csv(log_path, encoding='utf-8', mode='a', header=False, index=False)
+
+        print(str(ii + 1) + " of " + str(hemimeta.origin.shape[0]) + " complete: " + str(hm.computation_time_s[ii]) + " seconds")
+
+    print("-------- Hemigen completed--------")
+    print(str(hemimeta.origin.shape[0]) + " images generated in " + str(int(time.time() - tot_time)) + " seconds")
+
+    return hm
+
+
+class HemiMetaObj(object):
+    def __init__(self):
+        # preload metadata
+        self.id = None
+        self.file_name = None
+        self.file_dir = None
+        self.origin = None
+        self.src_las_file = None
+        self.src_keep_class = None
+        self.optimization_scalar = None
+        self.poisson_sampling_radius = None
+        self.max_distance = None
+        self.img_size = None
+        self.img_resolution = None
+        self.point_size_scalar = None
 
 
 def las_traj(hdf5_path, traj_in):
@@ -252,7 +314,7 @@ def las_traj(hdf5_path, traj_in):
     merged = merged.assign(angle_from_nadir_deg=phi)
 
     # angle cw from north
-    theta = np.arctan2(dp[0], (dp[1])) * 180/np.pi
+    theta = np.arctan2(dp[0], (dp[1])) * 180 / np.pi
     merged = merged.assign(angle_cw_from_north_deg=theta)
 
     # select columns for output
@@ -261,51 +323,68 @@ def las_traj(hdf5_path, traj_in):
     # save to hdf5 file
     output.to_hdf(hdf5_path, key='las_traj', mode='r+', format='table')
 
-las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las"
-las_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF_test.las"
-las_out = None
-min_radius = 15
-def las_poisson_sample(las_in, min_radius, las_out=None):
+
+def las_poisson_sample(las_in, poisson_radius, classification=None, las_out=None):
     import pdal
+    import time
+    print("-------- Poisson Sampling --------")
+    ps_start = time.time()
 
-    # format las_in
+    # format file paths
     las_in = las_in.replace('\\', '/')
-
-    if las_out == None:
-        # do not svae to file
-        json = """
-            [
-                "{inFile}",
-                {{
-                    "type": "filters.sample",
-                    "radius": "{radius}"
-                }}
-            ]
-            """
-        json = json.format(inFile=las_in, radius=min_radius)
-    else:
-        # prepare to save to file
-        # format las_out
+    if las_out is not None:
         las_out = las_out.replace('\\', '/')
-        json = """
+
+    # do we filter?
+    class_filter_bool = classification is not None
+    if class_filter_bool & ~isinstance(classification, int):
+        raise Exception('Only single classes are accepted in class filter currently.'
+                        'Program additional handling if filtering with multiple classes is needed.')
+
+    # do we save to file?
+    save_bool = las_out is not None
+
+    # json snippets
+    json_open = """
             [
-                "{inFile}",
+                "{inFile}","""
+    json_class_filter = """
+                {{
+                "type":"filters.range",
+                "limits":"Classification[{point_class}:{point_class}]"
+                }},"""
+    json_poisson = """
                 {{
                     "type": "filters.sample",
                     "radius": "{radius}"
-                }},
+                }}"""
+    json_save = """
                 {{
                     "type": "writers.las",
                     "filename": "{outFile}"
-                }}
+                }}"""
+    json_close = """
             ]
-            """
-        json = json.format(inFile=las_in, outFile=las_out, radius=min_radius)
+    """
+    # compile json snippets
+    json = json_open
+    if class_filter_bool:
+        json = json + json_class_filter
+    json = json + json_poisson
+    if save_bool:
+        json = json + "," + json_save
+    json = json + json_close
+
+    json = json.format(inFile=las_in, outFile=las_out, radius=poisson_radius, point_class=classification)
 
     # execute json
     pipeline = pdal.Pipeline(json)
     count = pipeline.execute()
     arrays = pipeline.arrays
 
-    return arrays
+    ps_time = time.time() - ps_start
+    print("Poisson sampling at radius of " + str(poisson_radius) + " meters completed in " +
+          str(int(ps_time)) + " seconds")
 
+    # return results as array
+    return arrays
