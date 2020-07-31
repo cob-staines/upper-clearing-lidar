@@ -257,7 +257,7 @@ def las_traj(hdf5_path, traj_in):
     import numpy as np
     import pandas as pd
 
-    # load data from hdf5 file
+    # load data from hdf5 file (written using
     point_data = pd.read_hdf(hdf5_path, key='las_data', columns=['gps_time', 'x', 'y', 'z'])
     # add las key (True)
     las_data = point_data.assign(las=True)
@@ -266,11 +266,11 @@ def las_traj(hdf5_path, traj_in):
     traj = pd.read_csv(traj_in)
     # rename columns for consistency
     traj = traj.rename(columns={'Time[s]': "gps_time",
-                                'Easting[m]': "easting_m",
-                                'Northing[m]': "northing_m",
-                                'Height[m]': "height_m"})
+                                'Easting[m]': "traj_x",
+                                'Northing[m]': "traj_y",
+                                'Height[m]': "traj_z"})
     # drop pitch, roll, yaw
-    traj = traj[['gps_time', 'easting_m', 'northing_m', 'height_m']]
+    traj = traj[['gps_time', 'traj_x', 'traj_y', 'traj_z']]
     # add las key (False)
     traj = traj.assign(las=False)
 
@@ -297,13 +297,13 @@ def las_traj(hdf5_path, traj_in):
     # reset to las index
     interpolated = interpolated.set_index("index_las")
     # drop las key column
-    interpolated = interpolated[['easting_m', 'northing_m', 'height_m']]
+    interpolated = interpolated[['traj_x', 'traj_y', 'traj_z']]
 
     # concatenate with las_data horizontally by index
     merged = pd.concat([point_data, interpolated], axis=1, ignore_index=False)
 
     # distance from sensor
-    p1 = np.array([merged.easting_m, merged.northing_m, merged.height_m])
+    p1 = np.array([merged.traj_x, merged.traj_y, merged.traj_z])
     p2 = np.array([merged.x, merged.y, merged.z])
     squared_dist = np.sum((p1 - p2) ** 2, axis=0)
     merged = merged.assign(distance_from_sensor_m=np.sqrt(squared_dist))
@@ -318,7 +318,7 @@ def las_traj(hdf5_path, traj_in):
     merged = merged.assign(angle_cw_from_north_deg=theta)
 
     # select columns for output
-    output = merged[["gps_time", "distance_from_sensor_m", "angle_from_nadir_deg", "angle_cw_from_north_deg"]]
+    output = merged[["gps_time", "traj_x", "traj_y", "traj_z", "distance_from_sensor_m", "angle_from_nadir_deg", "angle_cw_from_north_deg"]]
 
     # save to hdf5 file
     output.to_hdf(hdf5_path, key='las_traj', mode='r+', format='table')
