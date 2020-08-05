@@ -5,38 +5,39 @@ import time
 import cProfile
 
 class VoxelObj(object):
-    def __init__(self, name):
-        # preload metadata
-        self.name = name
+    def __init__(self):
+        # voxel object metadata
+        self.desc = None
         self.origin = None
         self.step = None
-        self.count = None
+        self.ncells = None
+        self.data = None
         self.sample_step = None
 
-def add_points_to_voxels(voxel_space, vox_origin, vox_step, vox_count, points):
+    def copy(self):
+        from copy import deepcopy
+        return deepcopy(self)
+
+def add_points_to_voxels(voxel_object, points):
     # convert to voxel coordinate system
-    vox_coords = ((points - vox_origin) / vox_step).astype(int)
+    vox_coords = ((points - voxel_object.origin) / voxel_object.step).astype(int)
 
-    # find counts of unique voxels
-    vox_unique, sample_count = np.unique(vox_coords, axis=0, return_counts=True)
-
-    # select voxels within range
-    x_filter = (vox_unique[:, 0] >= 0) & (vox_unique[:, 0] < vox_count[0])
-    y_filter = (vox_unique[:, 1] >= 0) & (vox_unique[:, 1] < vox_count[1])
-    z_filter = (vox_unique[:, 2] >= 0) & (vox_unique[:, 2] < vox_count[2])
+    # select voxels within range (not needed if successfully interpolated to walls.
+    x_filter = (vox_coords[:, 0] >= 0) & (vox_coords[:, 0] < voxel_object.ncells[0])
+    y_filter = (vox_coords[:, 1] >= 0) & (vox_coords[:, 1] < voxel_object.ncells[1])
+    z_filter = (vox_coords[:, 2] >= 0) & (vox_coords[:, 2] < voxel_object.ncells[2])
     in_range = x_filter & y_filter & z_filter
-    vox_in_range = vox_unique[in_range]
+    vox_in_range = vox_coords[in_range]
 
     # format
     vox_address = (vox_in_range[:, 0], vox_in_range[:, 1], vox_in_range[:, 2])
 
-    # add counts to voxel_samples
-    voxel_space[vox_address] = voxel_space[vox_address] + sample_count[in_range]
+    np.add.at(voxel_object.data, vox_address, 1)
 
-    return voxel_space
+    return voxel_object
 
 
-def las_ray_sample(hdf5_path, sample_step, voxel_length):
+def las_ray_sample(hdf5_path, sample_step, voxel_length, return_set='all'):
     start = time.time()
     print('Loading data...')
     # load returns
@@ -44,47 +45,50 @@ def las_ray_sample(hdf5_path, sample_step, voxel_length):
     # load trajectory
     traj = pd.read_hdf(hdf5_path, key='las_traj', columns=['traj_x', 'traj_y', 'traj_z', 'distance_from_sensor_m'])
 
-    # concatinate rays
+    # concatenate rays
     rays = pd.concat([returns, traj], axis=1)
     # filter by class
     rays = rays[(rays.classification == 2) | (rays.classification == 5)]
-    # filter to last returns
-    rays = rays[rays.return_num == rays.num_returns]
+
+    if return_set == "all":
+        # filter to last returns for sampling
+        p_all = np.array(rays.loc[:, ['x', 'y', 'z']])
+        rays = rays[rays.return_num == rays.num_returns]
+    elif return_set == "first":
+        # filter to first returns for sampling
+        rays = rays[rays.return_num == 1]
+    else:
+        raise Exception("Expected 'first' or 'all' for return_set, encountered:" + str(return_set))
+
+    # drop unnecessary columns
     rays = rays[['gps_time', 'x', 'y', 'z', 'traj_x', 'traj_y', 'traj_z', 'distance_from_sensor_m']]
 
-    # interpolate rays to ceiling
+    # interpolate rays to z-max ceiling (could do same thing for x-y bounds...
     z_ceiling = np.max(rays.z).astype(int) + 1
     rays = rays.assign(x_c=(z_ceiling - rays.traj_z) * (rays.traj_x - rays.x) / (rays.traj_z - rays.z) + rays.traj_x)
     rays = rays.assign(y_c=(z_ceiling - rays.traj_z) * (rays.traj_y - rays.y) / (rays.traj_z - rays.z) + rays.traj_y)
     rays = rays.assign(z_c=z_ceiling)
 
-    # p0 = source, p1 = last return
+    # p0 -> trajectory/sensor,
     p0 = np.array(rays.loc[:, ['x_c', 'y_c', 'z_c']])
+    # p1 -> returns
     p1 = np.array(rays.loc[:, ['x', 'y', 'z']])
 
     # calculate distance between source and last return
     dist = np.sqrt(np.sum((p1 - p0) ** 2, axis=1))
 
-    # define voxel dimensions
-    vox_x_step = voxel_length
-    vox_y_step = voxel_length
-    vox_z_step = -voxel_length
-    vox_step = np.array([vox_x_step, vox_y_step, vox_z_step])
+    # define voxel object
+    voxS = VoxelObj()
+    voxS.desc = "ray sampling of " + hdf5_path
+    voxS.step = np.array([voxel_length, voxel_length, -voxel_length])
+    voxS.origin = np.array([np.min(rays.x), np.min(rays.y), z_ceiling])
+    voxS.ncells = np.array([int((np.max(rays.x) - voxS.origin[0]) / voxS.step[0]) + 1,
+                           int((np.max(rays.y) - voxS.origin[1]) / voxS.step[1]) + 1,
+                           int((np.min(rays.z) - voxS.origin[2]) / voxS.step[2]) + 1])
+    voxS.data = np.zeros(voxS.ncells)
+    voxS.sample_step = sample_step
 
-    vox_x0 = np.min(rays.x)
-    vox_y0 = np.min(rays.y)
-    vox_z0 = z_ceiling
-    vox_origin = np.array([vox_x0, vox_y0, vox_z0])
-
-    vox_x_count = int((np.max(rays.x) - vox_x0) / vox_x_step) + 1
-    vox_y_count = int((np.max(rays.y) - vox_y0) / vox_y_step) + 1
-    vox_z_count = int((np.min(rays.z) - vox_z0) / vox_z_step) + 1
-    vox_count = np.array([vox_x_count, vox_y_count, vox_z_count])
-
-    # preallocate voxels
-    voxel_samples = np.zeros(vox_count)
-
-    # calc unit-wise xyz step
+    # calc sample step in x, y, z dims
     xyz_step = (p1 - p0)/dist[:, np.newaxis]
 
     # random offset seed for each ray sample series
@@ -103,30 +107,40 @@ def las_ray_sample(hdf5_path, sample_step, voxel_length):
     start = time.time()
 
     while (ii * sample_step) < max_dist:
-        print(str(ii) + ' of ' + str(int(max_dist/sample_step) + 1))
+        print(str(ii + 1) + ' of ' + str(int(max_dist/sample_step) + 1))
         # distance from p0 along ray
-        t_dist = (ii + offset) * sample_step
+        sample_dist = (ii + offset) * sample_step
 
         # select rays where t_dist is in range
-        in_range = (dist > t_dist)
+        in_range = (dist > sample_dist)
 
         # calculate tracer point coords for step
-        sample_points = xyz_step[in_range, :] * t_dist[in_range, np.newaxis] + p0[in_range]
+        sample_points = xyz_step[in_range, :] * sample_dist[in_range, np.newaxis] + p0[in_range]
 
         if np.size(sample_points) != 0:
             # add counts to voxel_samples
-            voxel_samples = add_points_to_voxels(voxel_samples, vox_origin, vox_step, vox_count, sample_points)
+            voxS = add_points_to_voxels(voxS, sample_points)
 
         # advance step
         ii = ii + 1
 
-    # convert voxel counts to path length units [m]
-    voxel_samples = voxel_samples * sample_step
-
     end = time.time()
     print('done in ' + str(end - start) + ' seconds.')
 
-    return voxel_samples
+    # voxel sample returns
+    # ONLY 1st or last returns used here... needs more thorough consideration
+    print('sampling returns...')
+    start = time.time()
+    voxR = voxS.copy()
+    voxR.data = np.zeros(voxR.ncells)
+    if return_set == 'all':
+        voxR = add_points_to_voxels(voxR, p_all)
+    elif return_set == 'first':
+        voxR = add_points_to_voxels(voxR, p1)
+    end = time.time()
+    print('done in ' + str(end - start) + ' seconds.')
+
+    return voxR, voxS
 
 
 # las file
@@ -141,32 +155,33 @@ hdf5_path = las_in.replace('.las', '_ray_sampling.hdf5')
 # # interpolate trajectory
 # laslib.las_traj(hdf5_path, traj_in)
 
-sample_length = 10
-voxel_length = 20
-voxel_samples = las_ray_sample(hdf5_path, sample_length, voxel_length)
-
-voxel_samples[voxel_samples == 0] = np.nan
-
-# voxel_returns
-voxel_returns = np.zeros(vox_count)
-voxel_returns = add_points_to_voxels(voxel_returns, vox_origin, vox_step, vox_count, p1)
-
-transmission = voxel_returns / voxel_samples
+sample_step = 1
+voxel_length = 1
+voxR, voxS = las_ray_sample(hdf5_path, sample_step, voxel_length, return_set='all')
 
 
-las_ray_sample(las_in, traj_in, hdf5_path)
+# want to sample vox_trans along an arbitrary path
 
-# voxel grid summarizing of point cloud
+# convert voxel counts to path length units [m]
+voxS.data = voxS.data * voxS.sample_step
+# turn 0 samples to nans
+voxS.data[voxS.data == 0] = np.nan
+# calculate transmission
+transmission = voxR.data / voxS.data
 
-grid_l = 1
+# input points
+# pull in raster DEM, use cell center and elevation
 
-ray_samples = pd.read_hdf(hdf5_path, key='ray_samples', columns=['x', 'y', 'z'])
-x_min = ray_samples
+# integration vectors
+# theta = blah
+# phi = blah
+# calculate end point at z_ceiling
 
-# scrap
-# # subsample for preliminary testing
-# print("dataset is being subsampled, review code if not desired")
-# window = 5  # square window in meters x and y
-# x_filter = (rays.x > (np.mean(rays.x) - window/2)) & (rays.x < (np.mean(rays.x) + window/2))
-# y_filter = (rays.y > (np.mean(rays.y) - window/2)) & (rays.y < (np.mean(rays.y) + window/2))
-# rays = rays[x_filter & y_filter]
+# sample_step = sample step
+# same algorithm as for ray sampling above to generate points
+# in this case, sum(?) voxel transmission values (normalized to sample path length)
+
+# return likely number of returns
+
+
+
