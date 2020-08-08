@@ -35,6 +35,10 @@ def raster_load(ras_in):
             # load data
             self.data = np.array(raster.ReadAsArray())
 
+        def copy(self):
+            from copy import deepcopy
+            return deepcopy(self)
+
     # open single band geo-raster file
     ras = gdal.Open(ras_in, gdal.GA_ReadOnly)
 

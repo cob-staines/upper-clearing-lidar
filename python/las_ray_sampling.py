@@ -4,6 +4,7 @@ import laslib
 import rastools
 import time
 import cProfile
+import h5py
 
 class VoxelObj(object):
     def __init__(self):
@@ -13,7 +14,7 @@ class VoxelObj(object):
         self.max = None
         self.step = None
         self.ncells = None
-        self.sample_step = None
+        self.sample_length = None
         self.sample_set = None
         self.sample_data = None
         self.return_set = None
@@ -23,6 +24,36 @@ class VoxelObj(object):
         from copy import deepcopy
         return deepcopy(self)
 
+    def save(self, hdf5_path):
+        vox_save(self, hdf5_path)
+
+def vox_save(vox, hdf5_path):
+    h5f = h5py.File(hdf5_path, 'r+')
+    h5f.create_dataset('vox_desc', data=vox.desc)
+    h5f.create_dataset('vox_origin', data=vox.origin)
+    h5f.create_dataset('vox_max', data=vox.max)
+    h5f.create_dataset('vox_step', data=vox.step)
+    h5f.create_dataset('vox_ncells', data=vox.ncells)
+    h5f.create_dataset('vox_sample_length', data=vox.sample_length)
+    h5f.create_dataset('vox_sample_set', data=vox.sample_set)
+    h5f.create_dataset('vox_sample_data', data=vox.sample_data)
+    h5f.create_dataset('vox_return_set', data=vox.return_set)
+    h5f.create_dataset('vox_return_data', data=vox.return_data)
+
+def vox_load(hdf5_path):
+    vox = VoxelObj()
+    h5f = h5py.File(hdf5_path, 'r')
+    vox.desc = h5f.get('vox_desc')[()]
+    vox.origin = h5f.get('vox_origin')[()]
+    vox.max = h5f.get('vox_max')[()]
+    vox.step = h5f.get('vox_step')[()]
+    vox.ncells = h5f.get('vox_ncells')[()]
+    vox.sample_length = h5f.get('vox_sample_length')[()]
+    vox.sample_set = h5f.get('vox_sample_set')[()]
+    vox.sample_data = h5f.get('vox_sample_data')[()]
+    vox.return_set = h5f.get('vox_return_set')[()]
+    vox.return_data = h5f.get('vox_return_data')[()]
+    return vox
 
 def utm_to_vox(voxel_object, utm_points):
     return (utm_points - voxel_object.origin) / voxel_object.step
@@ -55,28 +86,32 @@ def add_points_to_voxels(voxel_object, dataset, points):
     return voxel_object
 
 
-def interpolate_to_bounding_box(returns, traj):
-    if returns.shape != traj.shape:
-        raise Exception('returns and traj have different shapes!')
+def interpolate_to_bounding_box(fixed_points, flex_points, bb=None):
+    if fixed_points.shape != flex_points.shape:
+        raise Exception('fixed_points and flex_points have different shapes!')
 
-    traj_bb = traj.copy()
+    bb_points = flex_points.copy()
 
-    # define bounding box (lower bounds and upper bounds)
-    lb = np.min(returns, axis=0)
-    ub = np.max(returns, axis=0)
+    if bb:
+        lb = bb[0]
+        ub = bb[1]
+    else:
+        # define bounding box (lower bounds and upper bounds)
+        lb = np.min(fixed_points, axis=0)
+        ub = np.max(fixed_points, axis=0)
 
     # for each dimension
     for ii in range(0, 3):
-        # for traj points outside bounding box of returns
-        lows = (traj_bb[:, ii] < lb[ii])
-        highs = (traj_bb[:, ii] > ub[ii])
+        # for flex_points points outside bounding box of fixed_points
+        lows = (bb_points[:, ii] < lb[ii])
+        highs = (bb_points[:, ii] > ub[ii])
         for jj in range(0, 3):
-            # interpolate traj to bounding box
-            traj_bb[lows, jj] = (lb[ii] - traj[lows, ii]) * (traj[lows, jj] - returns[lows, jj]) / (
-                    traj[lows, ii] - returns[lows, ii]) + traj[lows, jj]
-            traj_bb[highs, jj] = (ub[ii] - traj[highs, ii]) * (traj[highs, jj] - returns[highs, jj]) / (
-                        traj[highs, ii] - returns[highs, ii]) + traj[highs, jj]
-    return traj_bb
+            # interpolate flex_points to bounding box of fixed_points
+            bb_points[lows, jj] = (lb[ii] - flex_points[lows, ii]) * (flex_points[lows, jj] - fixed_points[lows, jj]) / (
+                    flex_points[lows, ii] - fixed_points[lows, ii]) + flex_points[lows, jj]
+            bb_points[highs, jj] = (ub[ii] - flex_points[highs, ii]) * (flex_points[highs, jj] - fixed_points[highs, jj]) / (
+                        flex_points[highs, ii] - fixed_points[highs, ii]) + flex_points[highs, jj]
+    return bb_points
 
 
 def las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all'):
@@ -137,13 +172,12 @@ def las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all'):
     ray_bb = interpolate_to_bounding_box(ray_1, ray_0)
 
     print('Voxel sampling of ' + vox.sample_set + ' return rays ...')
-
-    # calculate distance between ray start and end
+    # calculate distance between ray start (p0) and end (p1)
     dist = np.sqrt(np.sum((ray_1 - ray_bb) ** 2, axis=1))
 
     # calc unit step along ray in x, y, z dims (avoid edge cases where dist == 0)
     xyz_step = np.full([len(dist), 3], np.nan)
-    xyz_step[dist > 0, :] = (ray_1[dist > 0] - ray_bb[dist > 0])/dist[dist > 0, np.newaxis]
+    xyz_step[dist > 0, :] = (ray_1[dist > 0] - ray_bb[dist > 0]) / dist[dist > 0, np.newaxis]
 
     # random offset for each ray sample series
     offset = np.random.random(len(ray_1))
@@ -154,7 +188,7 @@ def las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all'):
 
     # iterate until longest ray length is surpassed
     while (ii * vox.sample_length) < max_dist:
-        print(str(ii + 1) + ' of ' + str(int(max_dist/vox.sample_length) + 1))
+        print(str(ii + 1) + ' of ' + str(int(max_dist / vox.sample_length) + 1))
         # distance from p0 along ray
         sample_dist = (ii + offset) * vox.sample_length
 
@@ -167,10 +201,11 @@ def las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all'):
         if np.size(sample_points) != 0:
             # add counts to voxel_samples
             vox = add_points_to_voxels(vox, "samples", sample_points)
-
         # advance step
         ii = ii + 1
 
+    # correct sample_data to unit length
+    vox.sample_data = vox.sample_data * vox.sample_length
 
     # voxel sample returns
     print('sampling ' + vox.return_set + ' returns...')
@@ -180,6 +215,91 @@ def las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all'):
     print('done in ' + str(end - start) + ' seconds.')
 
     return vox
+
+
+def aggregate_voxels_over_dem(vox, dem_in, vec, agg_sample_length):
+
+    # load raster dem
+    dem = rastools.raster_load(dem_in)
+
+    # use cell center and elevation as ray source (where data exists)
+    xy = np.swapaxes(np.array(dem.T1 * np.where(dem.data != dem.no_data)), 0, 1)
+    z = dem.data[np.where(dem.data != dem.no_data)]
+    ground_all = np.concatenate([xy, z[:, np.newaxis]], axis=1)
+
+
+    # specify integration rays
+    phi = vec[0]  # angle from nadir in degrees
+    theta = vec[1]  # angle cw from N in degrees
+
+    # calculate sink at z_max
+    dz = vox.max[2] - ground_all[:, 2]
+    dx = dz * np.sin(theta * np.pi / 180) * np.tan(phi * np.pi / 180)
+    dy = dz * np.cos(theta * np.pi / 180) * np.tan(phi * np.pi / 180)
+    sky_all = ground_all + np.swapaxes(np.array([dx, dy, dz]), 0, 1)
+
+    # select rays with both points within voxel bounding box
+    ground_in_range = np.all((vox.origin <= ground_all) & (ground_all <= vox.max), axis=1)
+    sky_in_range = np.all((vox.origin <= sky_all) & (sky_all <= vox.max), axis=1)
+    ground = ground_all[ground_in_range & sky_in_range]
+    sky = sky_all[ground_in_range & sky_in_range]
+
+    # calculate distance between ray start (ground) and end (sky)
+    dist = np.sqrt(np.sum((sky - ground) ** 2, axis=1))
+
+    # calc unit step along ray in x, y, z dims
+    xyz_step = (sky - ground) / dist[:, np.newaxis]
+
+    # random offset for each ray sample series
+    offset = np.random.random(len(ground))
+
+    # calculate number of samples
+    n_samples = ((dist - offset) / agg_sample_length).astype(int)
+    max_steps = np.max(n_samples)
+
+    # preallocate aggregate lists
+    sample_agg = np.full([len(ground), max_steps], np.nan)
+    return_agg = np.full([len(ground), max_steps], np.nan)
+
+    # for each sample step
+    for ii in range(0, max_steps):
+        # distance from p0 along ray
+        sample_dist = (ii + offset) * agg_sample_length
+
+        # select rays where t_dist is in range
+        in_range = (dist > sample_dist)
+
+        # calculate tracer point coords for step
+        sample_points = xyz_step[in_range, :] * sample_dist[in_range, np.newaxis] + ground[in_range]
+
+        if np.size(sample_points) != 0:
+            # add voxel value to list
+            sample_vox = utm_to_vox(vox, sample_points).astype(int)
+            sample_address = (sample_vox[:, 0], sample_vox[:, 1], sample_vox[:, 2])
+
+            sample_agg[in_range, ii] = vox.sample_data[sample_address]
+            return_agg[in_range, ii] = vox.return_data[sample_address]
+
+    sample_agg_nan = sample_agg.copy()
+    sample_agg_nan[sample_agg_nan == 0] = np.nan
+    transmission_mode = return_agg / sample_agg_nan
+
+    expected_returns = np.full(len(ground), np.nan)
+    for ii in range(0, len(ground)):
+        expected_returns[ii] = np.nanmean(transmission_mode[ii, 0:n_samples[ii]]) * agg_sample_length * n_samples[ii]
+
+    er = dem
+    er.data = np.full_like(er.data, np.nan)
+    ground_dem = ~dem.T1 * (ground[:, 0], ground[:, 1])
+    ground_dem = (ground_dem[0].astype(int), ground_dem[1].astype(int))
+
+    er.data[ground_dem] = expected_returns
+    er.data[np.isnan(er.data)] = er.no_data
+
+    #rastools.raster_save(er, er_out)
+    # still need to account for the step size in my transmission calculations.
+
+    return er
 
 
 # las file
@@ -194,50 +314,29 @@ hdf5_path = las_in.replace('.las', '_ray_sampling.hdf5')
 # # interpolate trajectory
 # laslib.las_traj(hdf5_path, traj_in)
 
-sample_length = 1
-voxel_length = 1
-vox = las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all')
+voxel_length = 0.5
+vox_sample_length = voxel_length/np.pi
+vox = las_ray_sample(hdf5_path, vox_sample_length, voxel_length, return_set='all')
+vox_save(vox, hdf5_path)
 
 
-# input points
-# pull in raster DEM, use cell center and elevation
-dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_1.00m.bil"
-dem = rastools.raster_load(dem_in)
-
-# specify starting points
-xy = np.swapaxes(np.array(dem.T1 * np.where(dem.data != dem.no_data)), 0, 1)
-z = dem.data[np.where(dem.data != dem.no_data)]
-source_utm = np.concatenate([xy, z[:, np.newaxis]], axis=1)
+vox = vox_load(hdf5_path)
 
 
-source_vox = utm_to_vox(vox, source_utm)
-# select voxels within range (not needed if successfully interpolated to walls.
-in_range = np.all(([0, 0, 0] <= source_vox) & (source_vox <= vox.ncells), axis=1)
-source_utm = source_utm[in_range]
-# want to sample vox_trans along an arbitrary path
 
-# specify integration vectors (phi from nadir, theta from North)
-phi = 0  # angle from nadir in degrees
-theta = 0  # angle cw from N in degrees
-
-# signs need to be checked to make sure this all adds up to reference frame definition
-dz = vox.max[2] - source_utm[in_range, 2]
-dx = dz * np.sin(theta * np.pi / 180) * np.tan(phi * np.pi / 180)
-dy = dz * np.cos(theta * np.pi / 180) * np.tan(phi * np.pi / 180)
-
-# calculate end point at z_ceiling
-sink_utm = source_utm[in_range] + np.swapaxes(np.array([dx, dy, dz]), 0, 1)
-
-# sample_step = sample step
-# same algorithm as for ray sampling above to generate points
-# in this case, sum(?) voxel transmission values (normalized to sample path length)
-
-# return likely number of returns
+# sample voxel space
+dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.50m.bil"
+er_out = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_expected_returns_res_.50m.tif"
+phi = 0
+theta = 0
+agg_sample_length = vox.sample_length
+er = aggregate_voxels_over_dem(vox, dem_in, [phi, theta], agg_sample_length)
+# create aggregate object
 
 
 
 # convert voxel counts to path length units [m]
-voxS.data = voxS.data * voxS.sample_step
+voxS.data = voxS.data * voxS.sample_length
 # turn 0 samples to nans
 voxS.data[voxS.data == 0] = np.nan
 # calculate transmission
@@ -246,7 +345,7 @@ transmission = voxR.data / voxS.data
 # play
 
 vox.step = np.array([2, 2, 2])
-vox.sample_step = 1
+vox.sample_length = 1
 ii = 1
 
 # original points
@@ -256,7 +355,7 @@ p1 = p0 + np.array([1, 1, 1])
 # calculate a sample
 norm = np.sqrt(np.sum((p0 - p1) ** 2, axis=1))
 xyz_step = (p0 - p1)/norm[:, np.newaxis]
-ps = p0 + xyz_step * ii * vox.sample_step
+ps = p0 + xyz_step * ii * vox.sample_length
 # convert to voxel coordinates
 vs_1 = utm_to_vox(vox, ps)
 
@@ -268,8 +367,16 @@ v1 = utm_to_vox(vox, p1)
 norm = np.sqrt(np.sum(((v0 - v1) * us) ** 2, axis=1))
 xyz_step = (v0 - v1)/norm[:, np.newaxis]
 
-vs_2 = v0 + xyz_step * ii * vox.sample_step
+vs_2 = v0 + xyz_step * ii * vox.sample_length
 
 np.max(np.abs(vs_1 - vs_2))
 
 # i don't understand why these do not equal one another. might need to be worked out in mathematica...
+
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+
+peace = er.data
+peace[peace == er.no_data] = -1
+plt.imshow(er.data, interpolation='nearest')
