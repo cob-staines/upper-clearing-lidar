@@ -26,14 +26,22 @@ def raster_load(ras_in):
             self.proj = raster.GetProjection()
             self.cols = raster.RasterXSize
             self.rows = raster.RasterYSize
-            self.band = raster.GetRasterBand(1)
-            self.no_data = self.band.GetNoDataValue()
+            self.band_count = raster.RasterCount
+            if self.band_count == 1:
+                self.band = raster.GetRasterBand(1)
+                self.data = self.band.ReadAsArray()
+                self.no_data = self.band.GetNoDataValue()
+            elif self.band_count > 1:
+                self.band = []
+                self.data = []
+                for ii in range(1, self.band_count + 1):
+                    self.band.append(raster.GetRasterBand(ii))
+                    self.data.append(self.band.ReadAsArray(ii - 1))
+                self.no_data = self.band[0].GetNoDataValue()
             # get affine transformation
             self.T0 = Affine.from_gdal(*raster.GetGeoTransform())
             # cell-centered affine transformation
             self.T1 = self.T0 * Affine.translation(0.5, 0.5)
-            # load data
-            self.data = np.array(raster.ReadAsArray())
 
         def copy(self):
             from copy import deepcopy
@@ -59,6 +67,7 @@ def raster_save(ras_object, file_path, file_format="GTiff", data_format="float32
 
     # dependencies
     import gdal
+    import numpy as np
 
     if data_format == "float32":
         gdal_data_format = gdal.GDT_Float32
@@ -77,15 +86,30 @@ def raster_save(ras_object, file_path, file_format="GTiff", data_format="float32
     else:
         raise Exception(data_format, 'is not a valid data_format.')
 
+    # confirm band count matches data length
+    if isinstance(ras_object.data, list):
+        if ras_object.data.__len__() != ras_object.band_count:
+            raise Exception("ras_object.band_count and length of ras_object.data do not agree.")
+    elif isinstance(ras_object.data, np.ndarray):
+        if ras_object.band_count == 1:
+            if ras_object.shape.__len__() == 2:
+                # nest data in list for single band output
+                ras_object.data = [ras_object.data]
+            else:
+                raise Exception("2D array expected for ras_object.data and ras_object.band_count == 1")
+        else:
+            raise Exception("multi-band output as 3D array not yet supported. Consider passing as list of 2D arrays.")
+
     outdriver = gdal.GetDriverByName(file_format)
-    outdata = outdriver.Create(file_path, ras_object.cols, ras_object.rows, 1, gdal_data_format)
+    outdata = outdriver.Create(file_path, ras_object.cols, ras_object.rows, ras_object.band_count, gdal_data_format)
     # Set metadata
     outdata.SetGeoTransform(ras_object.gt)
     outdata.SetProjection(ras_object.proj)
 
-    # Write data
-    outdata.GetRasterBand(1).WriteArray(ras_object.data)
-    outdata.GetRasterBand(1).SetNoDataValue(ras_object.no_data)
+    # Write data for each band
+    for ii in range(0, ras_object.band_count):
+        outdata.GetRasterBand(ii + 1).WriteArray(ras_object.data[ii])
+        outdata.GetRasterBand(ii + 1).SetNoDataValue(ras_object.no_data)
 
 def ras_dif(ras_1_in, ras_2_in, inherit_from=1):
     # Returns raster object as follows:

@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import laslib
 import rastools
 import time
 import cProfile
@@ -258,8 +257,8 @@ def aggregate_voxels_over_dem(vox, dem_in, vec, agg_sample_length):
     max_steps = np.max(n_samples)
 
     # preallocate aggregate lists
-    sample_agg = np.full([len(ground), max_steps], np.nan)
-    return_agg = np.full([len(ground), max_steps], np.nan)
+    path_samples = np.full([len(ground), max_steps], np.nan)
+    path_returns = np.full([len(ground), max_steps], np.nan)
 
     # for each sample step
     for ii in range(0, max_steps):
@@ -277,27 +276,37 @@ def aggregate_voxels_over_dem(vox, dem_in, vec, agg_sample_length):
             sample_vox = utm_to_vox(vox, sample_points).astype(int)
             sample_address = (sample_vox[:, 0], sample_vox[:, 1], sample_vox[:, 2])
 
-            sample_agg[in_range, ii] = vox.sample_data[sample_address]
-            return_agg[in_range, ii] = vox.return_data[sample_address]
+            path_samples[in_range, ii] = vox.sample_data[sample_address]
+            path_returns[in_range, ii] = vox.return_data[sample_address]
 
-    sample_agg_nan = sample_agg.copy()
-    sample_agg_nan[sample_agg_nan == 0] = np.nan
-    transmission_mode = return_agg / sample_agg_nan
+    path_samples_nan = path_samples.copy()
+    path_samples_nan[path_samples_nan == 0] = np.nan
+    returns_mode = np.full(len(path_samples), np.nan)
+    returns_uncertainty = np.full(len(path_samples), np.nan)
+    for ii in range(0, len(path_samples)):
+        mle = path_returns[ii, 0:n_samples[ii]] / path_samples_nan[ii, 0:n_samples[ii]]
+        mle[np.isnan(mle)] = 1/2
+        returns_mode[ii] = np.sum(mle) * agg_sample_length
 
-    expected_returns = np.full(len(ground), np.nan)
-    for ii in range(0, len(ground)):
-        expected_returns[ii] = np.nanmean(transmission_mode[ii, 0:n_samples[ii]]) * agg_sample_length * n_samples[ii]
+        ue = 1 / (1 + path_samples[ii, 0:n_samples[ii]])
+        returns_uncertainty[ii] = np.mean(ue)
 
-    er = dem
-    er.data = np.full_like(er.data, np.nan)
     ground_dem = ~dem.T1 * (ground[:, 0], ground[:, 1])
     ground_dem = (ground_dem[0].astype(int), ground_dem[1].astype(int))
 
-    er.data[ground_dem] = expected_returns
-    er.data[np.isnan(er.data)] = er.no_data
+    er = dem
+    shape = er.data.shape
+    er.data = []
+    er.data.append(np.full(shape, np.nan))
+    er.data.append(np.full(shape, np.nan))
 
-    #rastools.raster_save(er, er_out)
-    # still need to account for the step size in my transmission calculations.
+    er.data[0][ground_dem] = returns_mode
+    er.data[0][np.isnan(er.data[0])] = er.no_data
+
+    er.data[1][ground_dem] = returns_uncertainty
+    er.data[1][np.isnan(er.data[1])] = er.no_data
+
+    er.band_count = 2
 
     return er
 
@@ -323,15 +332,18 @@ vox_save(vox, hdf5_path)
 vox = vox_load(hdf5_path)
 
 
-
 # sample voxel space
 dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.50m.bil"
 er_out = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_expected_returns_res_.50m.tif"
 phi = 0
 theta = 0
 agg_sample_length = vox.sample_length
+vec = [phi, theta]
 er = aggregate_voxels_over_dem(vox, dem_in, [phi, theta], agg_sample_length)
+rastools.raster_save(er, er_out)
 # create aggregate object
+
+peace = rastools.raster_load(er_out)  # problems with load of multi-band image
 
 
 
@@ -377,6 +389,10 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
-peace = er.data
+peace = er.data[0]
 peace[peace == er.no_data] = -1
-plt.imshow(er.data, interpolation='nearest')
+plt.imshow(peace, interpolation='nearest')
+
+peace = er.data[1]
+peace[peace == er.no_data] = -1
+plt.imshow(peace, interpolation='nearest')
