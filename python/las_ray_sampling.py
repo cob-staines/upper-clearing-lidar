@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import laslib
 import rastools
 import time
 import cProfile
@@ -319,13 +320,13 @@ traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
 hdf5_path = las_in.replace('.las', '_ray_sampling.hdf5')
 
 # # write las to hdf5
-# laslib.las_to_hdf5(las_in, hdf5_path)
+laslib.las_to_hdf5(las_in, hdf5_path)
 # # interpolate trajectory
-# laslib.las_traj(hdf5_path, traj_in)
+laslib.las_traj(hdf5_path, traj_in)
 
 voxel_length = 0.5
 vox_sample_length = voxel_length/np.pi
-vox = las_ray_sample(hdf5_path, vox_sample_length, voxel_length, return_set='all')
+vox = las_ray_sample(hdf5_path, vox_sample_length, voxel_length, return_set='first')
 vox_save(vox, hdf5_path)
 
 
@@ -343,8 +344,7 @@ er = aggregate_voxels_over_dem(vox, dem_in, [phi, theta], agg_sample_length)
 rastools.raster_save(er, er_out)
 # create aggregate object
 
-peace = rastools.raster_load(er_out)  # problems with load of multi-band image
-
+peace = rastools.raster_load(er_out)
 
 
 # convert voxel counts to path length units [m]
@@ -389,10 +389,11 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
-peace = er.data[0]
-peace[peace == er.no_data] = -1
-plt.imshow(peace, interpolation='nearest')
 
-peace = er.data[1]
-peace[peace == er.no_data] = -1
-plt.imshow(peace, interpolation='nearest')
+peace_1 = peace.data[0]
+peace_1[peace_1 == peace.no_data] = -1
+plt.imshow(peace_1, interpolation='nearest')
+
+peace_2 = peace.data[1]
+peace_2[peace_2 == peace.no_data] = 1
+plt.imshow(peace_2, interpolation='nearest')

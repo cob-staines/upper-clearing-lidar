@@ -36,16 +36,12 @@ def raster_load(ras_in):
                 self.data = []
                 for ii in range(1, self.band_count + 1):
                     self.band.append(raster.GetRasterBand(ii))
-                    self.data.append(self.band.ReadAsArray(ii - 1))
+                    self.data.append(self.band[ii - 1].ReadAsArray())
                 self.no_data = self.band[0].GetNoDataValue()
             # get affine transformation
             self.T0 = Affine.from_gdal(*raster.GetGeoTransform())
             # cell-centered affine transformation
             self.T1 = self.T0 * Affine.translation(0.5, 0.5)
-
-        def copy(self):
-            from copy import deepcopy
-            return deepcopy(self)
 
     # open single band geo-raster file
     ras = gdal.Open(ras_in, gdal.GA_ReadOnly)
