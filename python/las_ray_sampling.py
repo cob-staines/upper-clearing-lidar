@@ -216,49 +216,101 @@ def las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all'):
 
     return vox
 
-def nb_sum(r, p, k_max):
-    def k_dist(alpha, p, k_max):
-        q = 1 - p
-        p_max = np.max(p)
-        q_max = 1 - p_max
+
+def aggregate_voxels_over_dem(vox, rays, agg_sample_length):
+    # pull points
+    p0 = rays.values[:, 0:3]
+    p1 = rays.values[:, 3:6]
 
 
-        dd = np.zeros(k_max)
-        dd[0] = 1
-        ii = np.zeros(k_max)
-        ii[0] = 1
-        xi = np.zeros(k_max)
-        xi[0] = np.sum(alpha * (1 - q_max * p / (p_max * q)))
-        #dd = [1]
-        #ii = []
-        #xi_2 = []
-        for kk in range(1, k_max):
-            dd[kk] = np.sum(ii[0:kk] * xi[0:kk] * np.flip(dd[0:kk])) / (kk + 1)
-            # ii = np.arange(1, kk + 2)
-            ii[kk] = kk + 1
-            # xi = np.sum(alpha * (1 - q_max * p / (p_max * q)) ** ii[:, np.newaxis] / ii[:, np.newaxis], axis=1)
-            xi[kk] = np.sum(alpha * (1 - q_max * p / (p_max * q)) ** (kk + 1) / (kk + 1))
+    # calculate distance between ray start (ground) and end (sky)
+    dist = np.sqrt(np.sum((p1 - p0) ** 2, axis=1))  # DO WE WANT TO ADD THIS VALUE TO THE DF?
 
-        Rr = np.prod((q_max * p / (p_max * q)) ** alpha)
-        prk = Rr * dd
+    # calc unit step along ray in x, y, z dims
+    xyz_step = (p1 - p0) / dist[:, np.newaxis]
 
-        # CURRENTLY prk DOES NOT SUM TO 1!... NEEDS TROUBLESHOOTING< BUT CONTINUING WITH THIS ANSWER FOR NOW.
-        return prk / np.sum(prk)
+    # random offset for each ray sample series
+    offset = np.random.random(len(p0))
 
-    # output sum mixture hyperparameters
-    Kk = k_dist(r, p, k_max)
-    k_mode = np.argmax(Kk)
-    Rr = np.sum(r) + k_mode
-    Pp = np.max(p)
+    # calculate number of samples
+    n_samples = ((dist - offset) / agg_sample_length).astype(int)
+    max_steps = np.max(n_samples)
 
-    # estimators for output mixture
-    mu = Pp * Rr / (1 - Pp)
-    sig2 = Pp * Rr / (1 - Pp) ** 2
+    # preallocate aggregate lists
+    path_samples = np.full([len(p0), max_steps], np.nan)
+    path_returns = np.full([len(p0), max_steps], np.nan)
 
-    return [mu, sig2]
+    # for each sample step
+    for ii in range(0, max_steps):
+        # distance from p0 along ray
+        sample_dist = (ii + offset) * agg_sample_length
 
+        # select rays where t_dist is in range
+        in_range = (dist > sample_dist)
 
-def aggregate_voxels_over_dem(vox, dem_in, vec, agg_sample_length):
+        # calculate tracer point coords for step
+        sample_points = xyz_step[in_range, :] * sample_dist[in_range, np.newaxis] + p0[in_range]
+
+        if np.size(sample_points) != 0:
+            # add voxel value to list
+            sample_vox = utm_to_vox(vox, sample_points).astype(int)
+            sample_address = (sample_vox[:, 0], sample_vox[:, 1], sample_vox[:, 2])
+
+            path_samples[in_range, ii] = vox.sample_data[sample_address]
+            path_returns[in_range, ii] = vox.return_data[sample_address]
+
+    # calculate expected points and varience
+    # MOVE PARAMETERS TO PASSED VARIABLE
+    ratio = .1  # ratio of voxel area weight of prior
+    F = .16 * 0.05  # expected footprint area
+    V = np.prod(vox.step)  # volume of each voxel
+    K = np.sum(vox.return_data)  # total number of returns in set
+    N = np.sum(vox.sample_data)  # total number of meters sampled in set
+
+    # gamma prior hyperparameters
+    prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
+    prior_a = prior_b * K / N
+
+    iterations = 100
+
+    returns_mean = np.full(len(path_samples), np.nan)
+    returns_med = np.full(len(path_samples), np.nan)
+    returns_std = np.full(len(path_samples), np.nan)
+    for ii in range(0, len(path_samples)):
+        kk = path_returns[ii, 0:n_samples[ii]]
+        nn = path_samples[ii, 0:n_samples[ii]]
+
+        # posterior hyperparameters
+        post_a = kk + prior_a
+        post_b = 1 / (1 + prior_b + nn)
+
+        nb_samples = np.full([iterations, n_samples[ii]], 0)
+        for jj in range(0, n_samples[ii] - 1):
+            nb_samples[:, jj] = np.random.negative_binomial(post_a[jj], post_b[jj], iterations)
+
+        # correct for agg sample length
+        nb_samples = nb_samples * agg_sample_length
+
+        # permutate sums for resultant distribution
+        permutations = int(iterations * 0.1)
+        return_sums = np.full([iterations, permutations], np.nan)
+        for jj in range(0, permutations):
+            return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)
+        return_sums = np.reshape(return_sums, return_sums.size)
+
+        returns_mean[ii] = np.mean(return_sums)
+        returns_med[ii] = np.median(return_sums)
+        returns_std[ii] = np.std(return_sums)
+
+    rays = rays.assign(path_length=dist)
+    rays = rays.assign(returns_mean=returns_mean)
+    rays = rays.assign(returns_median=returns_med)
+    rays = rays.assign(returns_std=returns_std)
+
+    return rays
+
+def dem_to_vox_rays(dem_in, vec, vox):
+    # why pass vox here? consider workaround/more general approach for ray bounding
 
     # load raster dem
     dem = rastools.raster_load(dem_in)
@@ -267,7 +319,6 @@ def aggregate_voxels_over_dem(vox, dem_in, vec, agg_sample_length):
     xy = np.swapaxes(np.array(dem.T1 * np.where(dem.data != dem.no_data)), 0, 1)
     z = dem.data[np.where(dem.data != dem.no_data)]
     ground_all = np.concatenate([xy, z[:, np.newaxis]], axis=1)
-
 
     # specify integration rays
     phi = vec[0]  # angle from nadir in degrees
@@ -285,92 +336,44 @@ def aggregate_voxels_over_dem(vox, dem_in, vec, agg_sample_length):
     ground = ground_all[ground_in_range & sky_in_range]
     sky = sky_all[ground_in_range & sky_in_range]
 
-    # calculate distance between ray start (ground) and end (sky)
-    dist = np.sqrt(np.sum((sky - ground) ** 2, axis=1))
+    df = pd.DataFrame({'x0': ground[:, 0],
+                       'y0': ground[:, 1],
+                       'z0': ground[:, 2],
+                       'x1': sky[:, 0],
+                       'y1': sky[:, 1],
+                       'z1': sky[:, 2]})
+    return df
 
-    # calc unit step along ray in x, y, z dims
-    xyz_step = (sky - ground) / dist[:, np.newaxis]
+def ray_stats_to_dem(rays, dem_in):
+    # load raster dem
+    dem = rastools.raster_load(dem_in)
 
-    # random offset for each ray sample series
-    offset = np.random.random(len(ground))
+    # pull points
+    p0 = rays.values[:, 0:3]
+    p1 = rays.values[:, 3:6]
 
-    # calculate number of samples
-    n_samples = ((dist - offset) / agg_sample_length).astype(int)
-    max_steps = np.max(n_samples)
-
-    # preallocate aggregate lists
-    path_samples = np.full([len(ground), max_steps], np.nan)
-    path_returns = np.full([len(ground), max_steps], np.nan)
-
-    # for each sample step
-    for ii in range(0, max_steps):
-        # distance from p0 along ray
-        sample_dist = (ii + offset) * agg_sample_length
-
-        # select rays where t_dist is in range
-        in_range = (dist > sample_dist)
-
-        # calculate tracer point coords for step
-        sample_points = xyz_step[in_range, :] * sample_dist[in_range, np.newaxis] + ground[in_range]
-
-        if np.size(sample_points) != 0:
-            # add voxel value to list
-            sample_vox = utm_to_vox(vox, sample_points).astype(int)
-            sample_address = (sample_vox[:, 0], sample_vox[:, 1], sample_vox[:, 2])
-
-            path_samples[in_range, ii] = vox.sample_data[sample_address]
-            path_returns[in_range, ii] = vox.return_data[sample_address]
-
-    # calculate expected points and varience
-    ratio = .1  # ratio of voxel area weight of prior
-    F = .16 * 0.05  # expected footprint area
-    V = np.prod(vox.step)  # volume of each voxel
-    K = np.sum(vox.return_data)  # total number of returns in set
-    N = np.sum(vox.sample_data)  # total number of meters sampled in set
-
-    # gamma prior hyperparameters
-    prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
-    prior_a = prior_b * K / N
-
-    returns_mode = np.full(len(path_samples), np.nan)
-    returns_uncertainty = np.full(len(path_samples), np.nan)
-    for ii in range(0, len(path_samples)):
-        kk = path_returns[ii, 0:n_samples[ii]]
-        nn = path_samples[ii, 0:n_samples[ii]] * agg_sample_length
-        post_a = kk + prior_a
-        post_b = 1 / (1 + prior_b + nn)
-
-        mu, sig2 = nb_sum(post_a, post_b, 100)
-        # BOOKMARK -- return to this point later
-        returns_mode[ii] = np.sum(mle)
-
-        ue = 1 / (1 + path_samples[ii, 0:n_samples[ii]])
-        returns_uncertainty[ii] = np.mean(ue)
-
-    ground_dem = ~dem.T1 * (ground[:, 0], ground[:, 1])
+    ground_dem = ~dem.T1 * (p0[:, 0], p0[:, 1])
     ground_dem = (ground_dem[0].astype(int), ground_dem[1].astype(int))
 
-    er = dem
-    shape = er.data.shape
-    er.data = []
-    er.data.append(np.full(shape, np.nan))
-    er.data.append(np.full(shape, np.nan))
+    ras = dem
+    shape = ras.data.shape
+    ras.data = []
+    ras.data.append(np.full(shape, np.nan))
+    ras.data.append(np.full(shape, np.nan))
+    ras.data.append(np.full(shape, np.nan))
 
-    er.data[0][ground_dem] = returns_mode
-    er.data[0][np.isnan(er.data[0])] = er.no_data
+    ras.data[0][ground_dem] = rays.returns_mean
+    ras.data[0][np.isnan(ras.data[0])] = ras.no_data
 
-    er.data[1][ground_dem] = returns_uncertainty
-    er.data[1][np.isnan(er.data[1])] = er.no_data
+    ras.data[1][ground_dem] = rays.returns_median
+    ras.data[1][np.isnan(ras.data[1])] = ras.no_data
 
-    er.band_count = 2
+    ras.data[2][ground_dem] = rays.returns_std
+    ras.data[2][np.isnan(ras.data[1])] = ras.no_data
 
-    return er
+    ras.band_count = 3
 
-alpha = np.array([2, 3, 4])
-p = np.array([.1, .4, .5])
-
-
-
+    return ras
 
 
 
@@ -396,17 +399,21 @@ vox = vox_load(hdf5_path)
 
 
 # sample voxel space
-dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_dem_res_.50m.bil"
-er_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_returns_res_.50m.tif"
+dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_dem_res_.10m.bil"
+ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_returns_res_.10m.tif"
 phi = 0
 theta = 0
 agg_sample_length = vox.sample_length
 vec = [phi, theta]
-er = aggregate_voxels_over_dem(vox, dem_in, [phi, theta], agg_sample_length)
-rastools.raster_save(er, er_out)
+rays_in = dem_to_vox_rays(dem_in, vec, vox)
+rays_out = aggregate_voxels_over_dem(vox, rays_in, agg_sample_length)
+ras = ray_stats_to_dem(rays_out, dem_in)
+rastools.raster_save(ras, ras_out)
 # create aggregate object
 
-peace = rastools.raster_load(er_out)
+### SANDBOX
+
+peace = rastools.raster_load(ras_out)
 
 
 # convert voxel counts to path length units [m]
