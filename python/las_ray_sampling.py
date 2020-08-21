@@ -204,7 +204,7 @@ def las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all'):
         # advance step
         ii = ii + 1
 
-    # correct sample_data to unit length
+    # correct sample_data to unit length (ex. meters)
     vox.sample_data = vox.sample_data * vox.sample_length
 
     # voxel sample returns
@@ -215,6 +215,47 @@ def las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all'):
     print('done in ' + str(end - start) + ' seconds.')
 
     return vox
+
+def nb_sum(r, p, k_max):
+    def k_dist(alpha, p, k_max):
+        q = 1 - p
+        p_max = np.max(p)
+        q_max = 1 - p_max
+
+
+        dd = np.zeros(k_max)
+        dd[0] = 1
+        ii = np.zeros(k_max)
+        ii[0] = 1
+        xi = np.zeros(k_max)
+        xi[0] = np.sum(alpha * (1 - q_max * p / (p_max * q)))
+        #dd = [1]
+        #ii = []
+        #xi_2 = []
+        for kk in range(1, k_max):
+            dd[kk] = np.sum(ii[0:kk] * xi[0:kk] * np.flip(dd[0:kk])) / (kk + 1)
+            # ii = np.arange(1, kk + 2)
+            ii[kk] = kk + 1
+            # xi = np.sum(alpha * (1 - q_max * p / (p_max * q)) ** ii[:, np.newaxis] / ii[:, np.newaxis], axis=1)
+            xi[kk] = np.sum(alpha * (1 - q_max * p / (p_max * q)) ** (kk + 1) / (kk + 1))
+
+        Rr = np.prod((q_max * p / (p_max * q)) ** alpha)
+        prk = Rr * dd
+
+        # CURRENTLY prk DOES NOT SUM TO 1!... NEEDS TROUBLESHOOTING< BUT CONTINUING WITH THIS ANSWER FOR NOW.
+        return prk / np.sum(prk)
+
+    # output sum mixture hyperparameters
+    Kk = k_dist(r, p, k_max)
+    k_mode = np.argmax(Kk)
+    Rr = np.sum(r) + k_mode
+    Pp = np.max(p)
+
+    # estimators for output mixture
+    mu = Pp * Rr / (1 - Pp)
+    sig2 = Pp * Rr / (1 - Pp) ** 2
+
+    return [mu, sig2]
 
 
 def aggregate_voxels_over_dem(vox, dem_in, vec, agg_sample_length):
@@ -280,14 +321,28 @@ def aggregate_voxels_over_dem(vox, dem_in, vec, agg_sample_length):
             path_samples[in_range, ii] = vox.sample_data[sample_address]
             path_returns[in_range, ii] = vox.return_data[sample_address]
 
-    path_samples_nan = path_samples.copy()
-    path_samples_nan[path_samples_nan == 0] = np.nan
+    # calculate expected points and varience
+    ratio = .1  # ratio of voxel area weight of prior
+    F = .16 * 0.05  # expected footprint area
+    V = np.prod(vox.step)  # volume of each voxel
+    K = np.sum(vox.return_data)  # total number of returns in set
+    N = np.sum(vox.sample_data)  # total number of meters sampled in set
+
+    # gamma prior hyperparameters
+    prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
+    prior_a = prior_b * K / N
+
     returns_mode = np.full(len(path_samples), np.nan)
     returns_uncertainty = np.full(len(path_samples), np.nan)
     for ii in range(0, len(path_samples)):
-        mle = path_returns[ii, 0:n_samples[ii]] / path_samples_nan[ii, 0:n_samples[ii]]
-        mle[np.isnan(mle)] = 1/2
-        returns_mode[ii] = np.sum(mle) * agg_sample_length
+        kk = path_returns[ii, 0:n_samples[ii]]
+        nn = path_samples[ii, 0:n_samples[ii]] * agg_sample_length
+        post_a = kk + prior_a
+        post_b = 1 / (1 + prior_b + nn)
+
+        mu, sig2 = nb_sum(post_a, post_b, 100)
+        # BOOKMARK -- return to this point later
+        returns_mode[ii] = np.sum(mle)
 
         ue = 1 / (1 + path_samples[ii, 0:n_samples[ii]])
         returns_uncertainty[ii] = np.mean(ue)
@@ -311,11 +366,18 @@ def aggregate_voxels_over_dem(vox, dem_in, vec, agg_sample_length):
 
     return er
 
+alpha = np.array([2, 3, 4])
+p = np.array([.1, .4, .5])
+
+
+
+
+
 
 # las file
-las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_UF.las'
+las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las'
 # trajectory file
-traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
+traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
 # working hdf5 file
 hdf5_path = las_in.replace('.las', '_ray_sampling.hdf5')
 
@@ -334,8 +396,8 @@ vox = vox_load(hdf5_path)
 
 
 # sample voxel space
-dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.50m.bil"
-er_out = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_expected_returns_res_.50m.tif"
+dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_dem_res_.50m.bil"
+er_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_returns_res_.50m.tif"
 phi = 0
 theta = 0
 agg_sample_length = vox.sample_length

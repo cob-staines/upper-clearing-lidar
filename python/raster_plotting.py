@@ -86,6 +86,8 @@ import holoviews as hv
 import datashader as ds
 import datashader.transfer_functions as tf
 import holoviews.operation.datashader as hd
+import matplotlib
+matplotlib.use('TkAgg')
 import numpy as np
 import pandas as pd
 
@@ -127,6 +129,7 @@ plot_data = pd.DataFrame({"hs": parent.data.reshape(parent.rows*parent.cols),
                           "lpmf": child_reshaped.reshape(parent.rows*parent.cols)})
 
 plot_data[plot_data == parent.no_data] = np.nan
+plot_data = plot_data[~np.any(np.isnan(plot_data), axis=1)]
 
 cvs = ds.Canvas(plot_width=400, plot_height=400)
 agg = cvs.points(plot_data, "hs", "lpmf", ds.count())
@@ -161,7 +164,76 @@ import bokeh
 from bokeh.plotting import show
 
 data = np.random.normal(size=[50, 2])
-df = pd.DataFrame(data = data, columns=['col1', 'col2'])
+df = pd.DataFrame(data=data, columns=['col1', 'col2'])
 
 plot = df.hvplot(kind="scatter", x="col1", y="col2")
 show(hv.render(plot))
+
+
+# basic datashader
+import datashader as ds
+import pandas as pd
+import datashader.transfer_functions as tf
+from datashader.utils import export_image
+
+traj_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt"
+img_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\lpmf_vs_hs.png"
+
+df = pd.read_csv(traj_in)
+
+cvs = ds.Canvas(plot_width=400, plot_height=400)
+agg = cvs.points(df, 'Easting[m]', 'Northing[m]', agg=ds.mean('Height[m]'))
+img = tf.shade(agg, cmap=['lightblue', 'darkblue'], how='log')
+export_image(img, img_out)
+
+### simple scatter plot
+
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+
+hs_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\hs\\19_045\\hs_19_045_res_.25m.tif"
+lpm_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LPM\\19_149_snow_off_LPM-canopy_30degsa_0.25m.tif"
+
+# load images
+hs = rastools.raster_load(hs_in)
+lpmc = rastools.raster_load(lpm_in)
+
+# check projections
+hs.T0
+lpmc.T0
+
+# define inputs
+parent = hs
+child = lpmc
+# create template of sample points
+samples = parent.data.copy()
+
+# create affine transform
+x, y = np.ogrid[0:parent.rows, 0:parent.cols]
+parentindex = np.where(np.full_like(parent.data, True))
+geocoords = parent.T1 * (parentindex[0], parentindex[1])
+childindex = np.rint(~child.T1 * (geocoords[0], geocoords[1])).astype(int)
+in_bounds = (childindex[0] >= 0) & (childindex[0] < child.rows) & (childindex[1] >= 0) & (childindex[1] < child.cols)
+child_in_bounds = (childindex[0][in_bounds], childindex[1][in_bounds])
+sample_values = child.data[child_in_bounds]
+
+reshape_values = np.full_like(parentindex[0], np.nan)
+reshape_values[in_bounds] = sample_values
+child_reshaped = np.reshape(reshape_values, parent.data.shape)
+
+plot_data = pd.DataFrame({"hs": parent.data.reshape(parent.rows*parent.cols),
+                          "lpmc": child_reshaped.reshape(parent.rows*parent.cols)})
+
+plot_data[plot_data == parent.no_data] = np.nan
+plot_data = plot_data[~np.any(np.isnan(plot_data), axis=1)]
+
+
+fig = plt.figure(figsize=(10, 10), dpi=100)
+ax = plt.axes([0., 0., 1., 1.])
+sp1 = ax.scatter(plot_data.hs, plot_data.lpmc, s=1, c="black")
+fig.add_axes(ax)
+# fig.savefig(hemimeta.file_dir + hemimeta.file_name[ii])
