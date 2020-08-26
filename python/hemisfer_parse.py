@@ -1,16 +1,13 @@
 import re
 import pandas as pd
 
-filepath = "D:\\lenovo_2020-07-23\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_149\\clean\\sized\\LAI.dat"
-
-with open(file_in) as file:
-    file_contents = file.read()
-    print(file_contents)
-
 rx_dict = {
-    'picture': re.compile(r'picture\\s*(?P<picture>.*)\\n')
-    'threshold': re.compile(r'threshold\s*(?P<threshold>\d+)\n')
-    'ringcount_ringwidth': re.compile(r'rings\s*(?P<ringcount>\d+)\s*(?P<ringwidth>\d+,\d+).\n')
+    'picture': re.compile(r'picture\s*(?P<picture>.*)\n'),
+    'threshold': re.compile(r'threshold\s*(?P<threshold>\d+)\n'),
+    'ringcount_ringwidth': re.compile(r'rings\s*(?P<ringcount>\d+)\s*(?P<ringwidth>\d+,\d+).*\n'),
+    'transmission': re.compile(r'transmission\s*(?P<transmission>.*)%\n'),
+    'openness': re.compile(r'openness\s*(?P<openness>.*)%\n'),
+    'licor_lai': re.compile(r'LiCor LAI2000\s*(?P<lai_no_cor>\d+,\d+)\s*(?P<laa_no_cor>\d+)\s*(?P<lai_s>\d+,\d+)\s*(?P<laa_s>\d+)\s*(?P<lai_cc>\d+,\d+)\s*(?P<laa_cc>\d+)\s*(?P<lai_s_cc>\d+,\d+)\s*(?P<laa_s_cc>\d+)\n')
 }
 
 def _parse_line(line):
@@ -27,7 +24,7 @@ def _parse_line(line):
     # if there are no matches
     return None, None
 
-def parse_file(filepath):
+def parse_file(file_in, file_out):
     """
     Parse text at given filepath
 
@@ -45,70 +42,53 @@ def parse_file(filepath):
 
     data = []  # create an empty list to collect the data
     # open the file and read through it line by line
-    with open(filepath, 'r') as file_object:
+    # file_object = open(filepath, 'r')
+    with open(file_in, 'r') as file_object:
+        # preallocate empty entry
+        entry = {}
+
+        # read first line
         line = file_object.readline()
+
+        # for each line in file_object
         while line:
-            # at each line check for a match with a regex
+            # check for a match with regex
             key, match = _parse_line(line)
 
-            if key == 'picture':
-                picture = match.group('picture')
+            # if match found
+            if key:
+                # for each match group
+                for ii in range(0, match.re.groups):
+                    # add group and value to entry
+                    entry.update({list(match.re.groupindex.keys())[ii]: match.group(list(match.re.groupindex.keys())[ii])})
 
-            if key == 'threshold':
-                threshold = match.group('threshold')
+                # at the last trigger key
+                if key == 'licor_lai':
+                    # append entry to data
+                    data.append(entry)
+                    # clear entry for next round
+                    entry = {}
 
-            if key == 'ringcount_ringwidth':
-                ringcount = match.group('ringcount')
-                ringwidth = match.group('ringwidth')
+            # read next line
+            line = file_object.readline()
 
-                row = {
-                    'picture': picture,
-                    'threshold': threshold,
-                    'ringcount': ringcount,
-                    'ringwidth': ringwidth
-                }
-                # append the dictionary to the data list
-                data.append(row)
-        #
-        #     # extract school name
-        #     if key == 'school':
-        #         school = match.group('school')
-        #
-        #     # extract grade
-        #     if key == 'grade':
-        #         grade = match.group('grade')
-        #         grade = int(grade)
-        #
-        #     # identify a table header
-        #     if key == 'name_score':
-        #         # extract type of table, i.e., Name or Score
-        #         value_type = match.group('name_score')
-        #         line = file_object.readline()
-        #         # read each line of the table until a blank line
-        #         while line.strip():
-        #             # extract number and value
-        #             number, value = line.strip().split(',')
-        #             value = value.strip()
-        #             # create a dictionary containing this row of data
-        #             row = {
-        #                 'School': school,
-        #                 'Grade': grade,
-        #                 'Student number': number,
-        #                 value_type: value
-        #             }
-        #             # append the dictionary to the data list
-        #             data.append(row)
-        #             line = file_object.readline()
-        #
-        #     line = file_object.readline()
-        #
-        # # create a pandas DataFrame from the list of dicts
-        # data = pd.DataFrame(data)
-        # # set the School, Grade, and Student number as the index
-        # data.set_index(['School', 'Grade', 'Student number'], inplace=True)
-        # # consolidate df to remove nans
-        # data = data.groupby(level=data.index.names).first()
-        # # upgrade Score from float to integer
-        # data = data.apply(pd.to_numeric, errors='ignore')
+    # convert to df
+    data = pd.DataFrame(data)
+    # replace commas with decimals
+    data = data.replace(',', '.', regex=True)
+    # convert all columns except for first to numeric
+    data.iloc[:, 1:] = data.iloc[:, 1:].apply(pd.to_numeric, errors='coerce')
+
+    # write output to file
+    data.to_csv(file_out, index=False)
+
     return data
 
+file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\poisson\\LAI.dat"
+file_out = file_in.replace('LAI.dat', 'LAI_parsed.csv')
+
+# with open(file_in) as file:
+#     file_contents = file.read()
+#     print(file_contents)
+
+lai_parsed = parse_file(file_in, file_out)
