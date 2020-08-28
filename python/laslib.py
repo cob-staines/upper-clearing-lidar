@@ -107,7 +107,7 @@ def las_xyz_to_hdf5(las_in, hdf5_out, drop_class=None, keep_class=None):
     p0.to_hdf(hdf5_out, key='las_data', mode='w', format='table')
 
 
-def hemigen(hdf5_path, hemimeta):
+def hemigen(hdf5_path, hemimeta, initial_index=0):
     """
     Generates synthetic hemispherical image from xyz point cloud in hdf5 format.
     :param hdf5_path: file path to hdf5 file containing point cloud
@@ -145,14 +145,14 @@ def hemigen(hdf5_path, hemimeta):
     p0 = pd.read_hdf(hdf5_path, key='las_data', columns=["x", "y", "z"])
 
     # pre-plot
-    fig = plt.figure(figsize=(hemimeta.img_size, hemimeta.img_size), dpi=hemimeta.img_resolution, frameon=False)
+    fig = plt.figure(figsize=(hemimeta.img_size, hemimeta.img_size), dpi=hemimeta.img_resolution, frameon=True)
     # ax = plt.axes([0., 0., 1., 1.], projection="polar", polar=False)
     ax = plt.axes([0., 0., 1., 1.], projection="polar")
     # sp1 = ax.scatter(data.phi, data.theta, s=data.area, c="black")
     sp1 = ax.scatter([], [], s=[], c="black")
     ax.set_rmax(np.pi / 2)
     # ax.set_rticks([])
-    ax.grid(False)
+    # ax.grid(False)
     ax.set_axis_off()
     fig.add_axes(ax)
 
@@ -181,7 +181,7 @@ def hemigen(hdf5_path, hemimeta):
             log.write(", ".join(hm.columns) + '\n')
         log.close()
 
-    for ii in range(0, hemimeta.origin.shape[0]):
+    for ii in range(initial_index, hemimeta.origin.shape[0]):
         start = time.time()
         print("Generating " + hemimeta.file_name[ii] + " ...")
 
@@ -211,7 +211,7 @@ def hemigen(hdf5_path, hemimeta):
         sp1.set_sizes(data.area)
 
         # save figure to file
-        fig.savefig(hemimeta.file_dir + hemimeta.file_name[ii])
+        fig.savefig(hemimeta.file_dir + hemimeta.file_name[ii], facecolor='white')
 
         # log meta
         hm.loc[ii, "created_datetime"] = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -224,7 +224,7 @@ def hemigen(hdf5_path, hemimeta):
         print(str(ii + 1) + " of " + str(hemimeta.origin.shape[0]) + " complete: " + str(hm.computation_time_s[ii]) + " seconds")
 
     print("-------- Hemigen completed--------")
-    print(str(hemimeta.origin.shape[0]) + " images generated in " + str(int(time.time() - tot_time)) + " seconds")
+    print(str(hemimeta.origin.shape[0] - initial_index) + " images generated in " + str(int(time.time() - tot_time)) + " seconds")
 
     return hm
 

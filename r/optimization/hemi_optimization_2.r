@@ -22,7 +22,8 @@ all = merge(synth, photos, by='id', all.x=TRUE, suffixes=c("_synth", "_photo"))
 
 # calculate errors
 all = all %>%
-  mutate(lai_no_cor_error = lai_no_cor_synth - lai_no_cor_photo)
+  mutate(lai_no_cor_error = lai_no_cor_synth - lai_no_cor_photo) %>%
+  mutate(lai_s_cc_error = lai_s_cc_synth - lai_s_cc_photo)
 
 rmse = function(difdata){
   sqrt(sum(difdata^2, na.rm = TRUE))/sqrt(length(na.omit(difdata)))
@@ -34,7 +35,35 @@ mae = function(difdata){
 
 all_agg = all %>%
   group_by(poisson_radius_m, optimization_scalar) %>%
-  summarise(rmse_lai = rmse(lai_no_cor_error), mae_lai = mae(lai_no_cor_error), mean_bias_lai = mean(lai_no_cor_error, na.rm = TRUE) , n = length(na.omit(lai_no_cor_error)))
+  summarise(rmse_lai = rmse(lai_s_cc_error), mae_lai = mae(lai_s_cc_error), mean_bias_lai = mean(lai_s_cc_error, na.rm = TRUE) , n = length(na.omit(lai_s_cc_error)))
+
+all_agg$poisson_radius_m = as.factor(all_agg$poisson_radius_m)
+
+# plot
+
+# rmse
+ggplot(all_agg, aes(x=optimization_scalar, y=rmse_lai, color=poisson_radius_m)) +
+  geom_point()
+
+# mean bias
+ggplot(all_agg, aes(x=optimization_scalar, y=mean_bias_lai, color=poisson_radius_m)) +
+  geom_point() +
+  geom_line() +
+  xlim(0, 7) + ylim(-1, 1)
+
+# subset to look at spread
+selection_1 <- all %>%
+  filter(poisson_radius_m==0.15, optimization_scalar==1)
+selection_2 <- all %>%
+  filter(poisson_radius_m==0, optimization_scalar==.06)
+selection = rbind(selection_1, selection_2)
+
+selection = all
+selection$poisson_radius_m = as.factor(selection$poisson_radius_m)
+
+ggplot(selection, aes(x=lai_no_cor_photo, y=lai_no_cor_synth, color=poisson_radius_m)) + 
+  geom_point() +
+  geom_abline(slope=1, intercept=0)
 
 ### BOOKMARK -- everything below is old hat, needs addaptation.
 
@@ -51,6 +80,9 @@ ggplot(synth_photos_da, aes(x=th_hold_las, y=mean_bias_lai, color=os, shape=grou
   geom_line() +
   labs(title="Mean Bias of LAI across point size, threshold, and methods", x="Synthetic threshold (1-255)", y="Mean Bias of LAI (LiDAR - Photo)", color="Synthetic point size", shape="LAI method")
   
+
+
+
 
 synth_photos_da$th_hold_las = as.factor(synth_photos_da$th_hold_las)
 synth_photos_da$os = as.numeric(as.character(synth_photos_da$os))
