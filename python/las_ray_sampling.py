@@ -282,7 +282,7 @@ def aggregate_voxels_over_dem(vox, rays, agg_sample_length):
 
         # posterior hyperparameters
         post_a = kk + prior_a
-        post_b = 1 / (1 + prior_b + nn)
+        post_b = 1 - 1 / (1 + prior_b + nn)
 
         nb_samples = np.full([iterations, n_samples[ii]], 0)
         for jj in range(0, n_samples[ii] - 1):
@@ -353,7 +353,7 @@ def ray_stats_to_dem(rays, dem_in):
     p1 = rays.values[:, 3:6]
 
     ground_dem = ~dem.T1 * (p0[:, 0], p0[:, 1])
-    ground_dem = (ground_dem[0].astype(int), ground_dem[1].astype(int))
+    ground_dem = (ground_dem[1].astype(int), ground_dem[0].astype(int))  # check index, make sure correct
 
     ras = dem
     shape = ras.data.shape
@@ -378,9 +378,11 @@ def ray_stats_to_dem(rays, dem_in):
 
 
 # las file
-las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las'
+# las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las'
+las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_UF.las'
 # trajectory file
-traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
+# traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
+traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
 # working hdf5 file
 hdf5_path = las_in.replace('.las', '_ray_sampling.hdf5')
 
@@ -399,8 +401,10 @@ vox = vox_load(hdf5_path)
 
 
 # sample voxel space
-dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_dem_res_.10m.bil"
-ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_returns_res_.10m.tif"
+# dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_dem_res_.10m.bil"
+dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.25m.bil"
+# ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_returns_res_.10m.tif"
+ras_out = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_expected_returns_res_.25m.tif"
 phi = 0
 theta = 0
 agg_sample_length = vox.sample_length
@@ -466,3 +470,5 @@ plt.imshow(peace_1, interpolation='nearest')
 peace_2 = peace.data[1]
 peace_2[peace_2 == peace.no_data] = 1
 plt.imshow(peace_2, interpolation='nearest')
+
+plt.imshow(ras.data[0], interpolation='nearest')
