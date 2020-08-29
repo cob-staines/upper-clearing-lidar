@@ -217,7 +217,7 @@ def las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all'):
     return vox
 
 
-def aggregate_voxels_over_dem(vox, rays, agg_sample_length):
+def aggregate_voxels_over_dem(vox, rays, agg_sample_length, iterations=100):
     # pull points
     p0 = rays.values[:, 0:3]
     p1 = rays.values[:, 3:6]
@@ -271,7 +271,7 @@ def aggregate_voxels_over_dem(vox, rays, agg_sample_length):
     prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
     prior_a = prior_b * K / N
 
-    iterations = 100
+    permutations = int(iterations * 0.1)
 
     returns_mean = np.full(len(path_samples), np.nan)
     returns_med = np.full(len(path_samples), np.nan)
@@ -292,7 +292,6 @@ def aggregate_voxels_over_dem(vox, rays, agg_sample_length):
         nb_samples = nb_samples * agg_sample_length
 
         # permutate sums for resultant distribution
-        permutations = int(iterations * 0.1)
         return_sums = np.full([iterations, permutations], np.nan)
         for jj in range(0, permutations):
             return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)
@@ -324,7 +323,7 @@ def dem_to_vox_rays(dem_in, vec, vox):
     phi = vec[0]  # angle from nadir in degrees
     theta = vec[1]  # angle cw from N in degrees
 
-    # calculate sink at z_max
+    # calculate endpoint at z_max
     dz = vox.max[2] - ground_all[:, 2]
     dx = dz * np.sin(theta * np.pi / 180) * np.tan(phi * np.pi / 180)
     dy = dz * np.cos(theta * np.pi / 180) * np.tan(phi * np.pi / 180)
@@ -352,8 +351,8 @@ def ray_stats_to_dem(rays, dem_in):
     p0 = rays.values[:, 0:3]
     p1 = rays.values[:, 3:6]
 
-    ground_dem = ~dem.T1 * (p0[:, 0], p0[:, 1])
-    ground_dem = (ground_dem[1].astype(int), ground_dem[0].astype(int))  # check index, make sure correct
+    ground_dem = np.rint(~dem.T1 * (p0[:, 0], p0[:, 1])).astype(int)
+    ground_dem = (ground_dem[1], ground_dem[0])  # check index, make sure correct
 
     ras = dem
     shape = ras.data.shape
@@ -378,11 +377,11 @@ def ray_stats_to_dem(rays, dem_in):
 
 
 # las file
-# las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las'
-las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_UF.las'
+las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las'
+# las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_UF.las'
 # trajectory file
-# traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
-traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
+traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
+# traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
 # working hdf5 file
 hdf5_path = las_in.replace('.las', '_ray_sampling.hdf5')
 
@@ -401,10 +400,10 @@ vox = vox_load(hdf5_path)
 
 
 # sample voxel space
-# dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_dem_res_.10m.bil"
-dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.25m.bil"
-# ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_returns_res_.10m.tif"
-ras_out = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_expected_returns_res_.25m.tif"
+dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_dem_res_.25m.bil"
+# dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.25m.bil"
+ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_returns_res_.25m.tif"
+# ras_out = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_expected_returns_res_.25m.tif"
 phi = 0
 theta = 0
 agg_sample_length = vox.sample_length
@@ -416,6 +415,8 @@ rastools.raster_save(ras, ras_out)
 # create aggregate object
 
 ### SANDBOX
+
+cProfile.run('rays_out = aggregate_voxels_over_dem(vox, rays_in, agg_sample_length)')
 
 peace = rastools.raster_load(ras_out)
 
@@ -472,3 +473,9 @@ peace_2[peace_2 == peace.no_data] = 1
 plt.imshow(peace_2, interpolation='nearest')
 
 plt.imshow(ras.data[0], interpolation='nearest')
+
+
+
+plt.scatter(rays_out.x0, rays_out.y0)
+plt.scatter(ground_dem[0], ground_dem[1])
+plt.scatter(p0[:, 0], p0[:, 1])

@@ -15,6 +15,7 @@ synth_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar
 synth_lai = read.csv(synth_lai_in, header=TRUE, na.strings = c("NA",""), sep=",")
 synth_meta_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/synthetic_hemis/opt/poisson/hemimetalog.csv"
 synth_meta = read.csv(synth_meta_in, header=TRUE, na.strings = c("NA",""), sep=",")
+synth_meta$footprint = sqrt(synth_meta$point_size_scalar / (synth_meta$optimization_scalar * 2834.64))
 
 synth = merge(synth_lai, synth_meta, by.x='picture', by.y='file_name', all.x=TRUE)
 
@@ -43,22 +44,23 @@ all_agg$poisson_radius_m = as.factor(all_agg$poisson_radius_m)
 
 # rmse
 ggplot(all_agg, aes(x=optimization_scalar, y=rmse_lai, color=poisson_radius_m)) +
-  geom_point()
+  geom_point() +
+  geom_line()
 
 # mean bias
 ggplot(all_agg, aes(x=optimization_scalar, y=mean_bias_lai, color=poisson_radius_m)) +
   geom_point() +
-  geom_line() +
-  xlim(0, 7) + ylim(-1, 1)
+  geom_line()
 
 # subset to look at spread
 selection_1 <- all %>%
-  filter(poisson_radius_m==0.15, optimization_scalar==1)
+  filter(poisson_radius_m==0.15, optimization_scalar==8)
 selection_2 <- all %>%
-  filter(poisson_radius_m==0, optimization_scalar==.06)
-selection = rbind(selection_1, selection_2)
+  filter(poisson_radius_m==0.05, optimization_scalar==.7)
+selection_3 <- all %>%
+  filter(poisson_radius_m==0, optimization_scalar==.45)
+selection = rbind(selection_1, selection_2, selection_3)
 
-selection = all
 selection$poisson_radius_m = as.factor(selection$poisson_radius_m)
 
 ggplot(selection, aes(x=lai_no_cor_photo, y=lai_no_cor_synth, color=poisson_radius_m)) + 
