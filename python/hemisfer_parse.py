@@ -121,11 +121,11 @@ def parse_file(file_in, file_out):
 
     return data
 
-# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\poisson\\LAI.dat"
-# file_out = file_in.replace('LAI.dat', 'LAI_parsed.csv')
+file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\poisson\\LAI.dat"
+file_out = file_in.replace('LAI.dat', 'LAI_parsed.dat')
 
-file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_149\\clean\\sized\\LAI_rc_rings.dat"
-file_out = file_in.replace('.dat', '_parsed.dat')
+# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_149\\clean\\sized\\LAI_rc_rings.dat"
+# file_out = file_in.replace('.dat', '_parsed.dat')
 
 # with open(file_in) as file:
 #     file_contents = file.read()

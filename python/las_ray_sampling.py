@@ -402,9 +402,9 @@ vox = vox_load(hdf5_path)
 # sample voxel space
 dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_dem_res_.25m.bil"
 # dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.25m.bil"
-ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_returns_res_.25m.tif"
+ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_returns_res_.25m_15-0.tif"
 # ras_out = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_expected_returns_res_.25m.tif"
-phi = 0
+phi = 15
 theta = 0
 agg_sample_length = vox.sample_length
 vec = [phi, theta]

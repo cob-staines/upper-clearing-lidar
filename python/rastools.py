@@ -88,7 +88,7 @@ def raster_save(ras_object, file_path, file_format="GTiff", data_format="float32
             raise Exception("ras_object.band_count and length of ras_object.data do not agree.")
     elif isinstance(ras_object.data, np.ndarray):
         if ras_object.band_count == 1:
-            if ras_object.shape.__len__() == 2:
+            if ras_object.data.shape.__len__() == 2:
                 # nest data in list for single band output
                 ras_object.data = [ras_object.data]
             else:

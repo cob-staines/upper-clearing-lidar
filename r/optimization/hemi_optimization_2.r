@@ -112,9 +112,15 @@ ggplot(all_agg, aes(x=optimization_scalar, y=rmse, color=rmse_group)) +
 
 # calculation time
 all$poisson_radius_m = as.factor(all$poisson_radius_m)
+ggplot(all, aes(x=point_count, y=computation_time_s, color=poisson_radius_m)) +
+  geom_point() +
+  ylim(0, 200) +
+  xlim(0, 1.4*10^7)
+
 ggplot(all, aes(x=optimization_scalar, y=computation_time_s, color=poisson_radius_m)) +
   geom_point() +
   ylim(0, 200)
+
 
 # subset to look at spread
 selection_1 <- all %>%
@@ -141,63 +147,88 @@ photos_meta = photos_meta %>% select('id', 'filename')
 photos_manual_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/19_149/clean/sized/LAI_manual_parsed.dat"
 photos_manual = read.csv(photos_manual_in, header=TRUE, na.strings = c("NA",""), sep=",")
 photos_manual$original_file = gsub("_r.JPG", ".JPG", photos_manual$picture)
-photos_manual = photos_manual %>% select('original_file', 'lai_no_cor', 'lai_s', 'lai_cc', 'lai_s_cc', 'openness')
+photos_manual = photos_manual %>% select('original_file', 'lai_no_cor', 'lai_s', 'lai_cc', 'lai_s_cc', 'openness', 'transmission')
 photos_manual = merge(photos_meta, photos_manual, by.x='filename', by.y='original_file', all.y=TRUE)
 lai_manual = photos_manual %>%
   gather('lai_method', 'manual', 3:6) %>%
-  select(-'filename', -'openness')
+  select(-'filename', -'openness', -'transmission')
+trans_manual = photos_manual %>%
+  gather('transmission_method', 'manual', c('transmission', 'openness')) %>%
+  select(-'filename', -'lai_no_cor', -'lai_s', -'lai_cc', -'lai_s_cc')
 
 photos_rc_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/19_149/clean/sized/LAI_rc_parsed.dat"
 photos_rc = read.csv(photos_rc_in, header=TRUE, na.strings = c("NA",""), sep=",")
 photos_rc$original_file = gsub("_r.JPG", ".JPG", photos_rc$picture)
-photos_rc = photos_rc %>% select('original_file', 'lai_no_cor', 'lai_s', 'lai_cc', 'lai_s_cc', 'openness')
+photos_rc = photos_rc %>% select('original_file', 'lai_no_cor', 'lai_s', 'lai_cc', 'lai_s_cc', 'openness', 'transmission')
 photos_rc = merge(photos_meta, photos_rc, by.x='filename', by.y='original_file', all.y=TRUE)
 lai_rc = photos_rc %>%
   gather('lai_method', 'rc', 3:6) %>%
-  select(-'filename', -'openness')
+  select(-'filename', -'openness', -'transmission')
+trans_rc = photos_rc %>%
+  gather('transmission_method', 'rc', c('transmission', 'openness')) %>%
+  select(-'filename', -'lai_no_cor', -'lai_s', -'lai_cc', -'lai_s_cc')
 
 photos_rc_rings_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/19_149/clean/sized/LAI_rc_rings_parsed.dat"
 photos_rc_rings = read.csv(photos_rc_rings_in, header=TRUE, na.strings = c("NA",""), sep=",")
 photos_rc_rings$original_file = gsub("_r.JPG", ".JPG", photos_rc_rings$picture)
-photos_rc_rings = photos_rc_rings %>% select('original_file', 'lai_no_cor', 'lai_s', 'lai_cc', 'lai_s_cc', 'openness')
+photos_rc_rings = photos_rc_rings %>% select('original_file', 'lai_no_cor', 'lai_s', 'lai_cc', 'lai_s_cc', 'openness', 'transmission')
 photos_rc_rings = merge(photos_meta, photos_rc_rings, by.x='filename', by.y='original_file', all.y=TRUE)
 lai_rc_rings = photos_rc_rings %>%
   gather('lai_method', 'rc_rings', 3:6) %>%
-  select(-'filename', -'openness')
+  select(-'filename', -'openness', -'transmission')
+trans_rc_rings = photos_rc_rings %>%
+  gather('transmission_method', 'rc_rings', c('transmission', 'openness')) %>%
+  select(-'filename', -'lai_no_cor', -'lai_s', -'lai_cc', -'lai_s_cc')
 
 photos_nh_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/19_149/clean/sized/LAI_nh_parsed.dat"
 photos_nh = read.csv(photos_nh_in, header=TRUE, na.strings = c("NA",""), sep=",")
 photos_nh$original_file = gsub("_r.JPG", ".JPG", photos_nh$picture)
-photos_nh = photos_nh %>% select('original_file', 'lai_no_cor', 'lai_s', 'lai_cc', 'lai_s_cc', 'openness')
+photos_nh = photos_nh %>% select('original_file', 'lai_no_cor', 'lai_s', 'lai_cc', 'lai_s_cc', 'openness', 'transmission')
 photos_nh = merge(photos_meta, photos_nh, by.x='filename', by.y='original_file', all.y=TRUE)
 lai_nh = photos_nh %>%
   gather('lai_method', 'nh', 3:6) %>%
-  select(-'filename', -'openness')
+  select(-'filename', -'openness', -'transmission')
+trans_nh = photos_nh %>%
+  gather('transmission_method', 'nh', c('transmission', 'openness')) %>%
+  select(-'filename', -'lai_no_cor', -'lai_s', -'lai_cc', -'lai_s_cc')
 
 photos_nh_rings_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/19_149/clean/sized/LAI_nh_rings_parsed.dat"
 photos_nh_rings = read.csv(photos_nh_rings_in, header=TRUE, na.strings = c("NA",""), sep=",")
 photos_nh_rings$original_file = gsub("_r.JPG", ".JPG", photos_nh_rings$picture)
-photos_nh_rings = photos_nh_rings %>% select('original_file', 'lai_no_cor', 'lai_s', 'lai_cc', 'lai_s_cc', 'openness')
+photos_nh_rings = photos_nh_rings %>% select('original_file', 'lai_no_cor', 'lai_s', 'lai_cc', 'lai_s_cc', 'openness', 'transmission')
 photos_nh_rings = merge(photos_meta, photos_nh_rings, by.x='filename', by.y='original_file', all.y=TRUE)
 lai_nh_rings = photos_nh_rings %>%
   gather('lai_method', 'nh_rings', 3:6) %>%
-  select(-'filename', -'openness')
+  select(-'filename', -'openness', -'transmission')
+trans_nh_rings = photos_nh_rings %>%
+  gather('transmission_method', 'nh_rings', c('transmission', 'openness')) %>%
+  select(-'filename', -'lai_no_cor', -'lai_s', -'lai_cc', -'lai_s_cc')
 
-
-
-synth_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/synthetic_hemis/opt/poisson/LAI_parsed.dat"
-synth_lai = read.csv(synth_lai_in, header=TRUE, na.strings = c("NA",""), sep=",")
-synth_lai = synth_lai %>% select('picture', 'lai_no_cor', 'lai_s', 'lai_cc', 'lai_s_cc', 'openness')
+synth_data_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/synthetic_hemis/opt/poisson/LAI_parsed.dat"
+synth_data = read.csv(synth_data_in, header=TRUE, na.strings = c("NA",""), sep=",")
+synth_data = synth_data %>% select('picture', 'lai_no_cor', 'lai_s', 'lai_cc', 'lai_s_cc', 'openness', 'transmission')
 
 synth_meta_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/synthetic_hemis/opt/poisson/hemimetalog.csv"
 synth_meta = read.csv(synth_meta_in, header=TRUE, na.strings = c("NA",""), sep=",")
 synth_meta = synth_meta %>% select('id', 'file_name', 'poisson_radius_m', 'optimization_scalar')
 
-synth = merge(synth_meta, synth_lai, by.x='file_name', by.y='picture', all.x=TRUE)
+synth = merge(synth_meta, synth_data, by.x='file_name', by.y='picture', all.x=TRUE)
 lai_synth = synth %>%
   gather('lai_method', 'lai_synth', 5:8) %>%
-  select(-'openness')
+  select(-'openness', -'transmission')
+trans_synth = synth %>%
+  gather('transmission_method', 'trans_synth', c('transmission', 'openness')) %>%
+  select(-'lai_no_cor', -'lai_s', -'lai_cc', -'lai_s_cc')
 
+rmse = function(difdata){
+  sqrt(sum(difdata^2, na.rm = TRUE))/sqrt(length(na.omit(difdata)))
+}
+# define rmse
+mae = function(difdata){
+  sum(abs(difdata), na.rm = TRUE)/length(na.omit(difdata))
+}
+
+# LAI
 lai = merge(lai_synth, lai_manual, by=c('id', 'lai_method'), all.x=TRUE)
 lai = merge(lai, lai_rc, by=c('id', 'lai_method'), all.x=TRUE)
 lai = merge(lai, lai_rc_rings, by=c('id', 'lai_method'), all.x=TRUE)
@@ -208,35 +239,131 @@ lai = lai %>%
   gather('threshold_method', 'lai_photo', 7:11) %>%
   mutate(lai_error = lai_synth - lai_photo)
 
-rmse = function(difdata){
-  sqrt(sum(difdata^2, na.rm = TRUE))/sqrt(length(na.omit(difdata)))
-}
-# define rmse
-mae = function(difdata){
-  sum(abs(difdata), na.rm = TRUE)/length(na.omit(difdata))
-}
-
-
 lai_summary = lai %>%
   group_by(poisson_radius_m, optimization_scalar, threshold_method, lai_method) %>%
   summarise(lai_rmse = rmse(lai_error), lai_mae = mae(lai_error), lai_mean_bias = mean(lai_error, na.rm = TRUE), n = n())
+
 lai_summary$poisson_radius_m = as.factor(lai_summary$poisson_radius_m)
+lai_summary$threshold_method = as.factor(lai_summary$threshold_method)
+lai_summary$lai_method = as.factor(lai_summary$lai_method)
+
+levels(lai_summary$lai_method)
+levels(lai_summary$threshold_method) = c('Manual', 'Nobis-Hunziker', 'Nobis-Hunziker rings', 'Ridler-Calvard', 'Ridler-Calvard rings')
+
+lai_summary$lai_method_order = factor(lai_summary$lai_method, levels=c('lai_no_cor', 'lai_s', 'lai_cc', 'lai_s_cc'))
+levels(lai_summary$lai_method_order) = c('No correction', 'Schleppi', 'Chen-Cihlar', 'Schleppi + Chen-Cihlar')
 
 # plots
-# rmse
+# lai rmse
 ggplot(lai_summary, aes(x=optimization_scalar, y=lai_rmse, color=poisson_radius_m)) +
-  facet_grid(lai_method ~ threshold_method) +
+  facet_grid(lai_method_order ~ threshold_method) +
   geom_point() +
   geom_line() +
-  ylim(0, 2)
+  scale_x_log10() +
+  ylim(0, 1.75) +
+  labs(title='LAI RMSE between synthetic hemispheres and hemispherical photos (n = 15)',
+       subtitle='for different photo threshold methods (horizontal) and LAI corrections (vertical)',
+       x='Point size optimization scalar',
+       y='RMSE of LAI',
+       color='Poisson sampling radius (m)')
 
-# mb
-ggplot(lai_summary, aes(x=optimization_scalar, y=lai_mean_bias, color=poisson_radius_m)) +
-  facet_grid(lai_method ~ threshold_method) +
+# lai mae
+ggplot(lai_summary, aes(x=optimization_scalar, y=lai_mae, color=poisson_radius_m)) +
+  facet_grid(lai_method_order ~ threshold_method) +
   geom_point() +
-  geom_line()
+  geom_line() +
+  scale_x_log10() +
+  ylim(0, 1.65) +
+  labs(title='LAI MAE between synthetic hemispheres and hemispherical photos (n = 15)',
+       subtitle='for different photo threshold methods (horizontal) and LAI corrections (vertical)',
+       x='Point size optimization scalar',
+       y='MAE of LAI',
+       color='Poisson sampling radius (m)')
 
-# all = merge(synth, photos, by='id', all.x=TRUE, suffixes=c("_synth", "_manual"))
+# lai mean bias
+ggplot(lai_summary, aes(x=optimization_scalar, y=lai_mean_bias, color=poisson_radius_m)) +
+  facet_grid(lai_method_order ~ threshold_method) +
+  geom_point() +
+  geom_line() +
+  scale_x_log10() +
+  geom_abline(slope=0, intercept=0) +
+  labs(title='LAI mean bias between synthetic hemispheres and hemispherical photos (n = 15)',
+       subtitle='for different photo threshold methods (horizontal) and LAI corrections (vertical)',
+       x='Point size optimization scalar',
+       y='Mean bias of LAI',
+       color='Poisson sampling radius (m)')
+
+# subsetting
+lai_subset = lai_summary %>%
+  filter(threshold_method == 'manual', lai_method == 'lai_s')
+
+
+# transmission
+trans = merge(trans_synth, trans_manual, by=c('id', 'transmission_method'), all.x=TRUE)
+trans = merge(trans, trans_rc, by=c('id', 'transmission_method'), all.x=TRUE)
+trans = merge(trans, trans_rc_rings, by=c('id', 'transmission_method'), all.x=TRUE)
+trans = merge(trans, trans_nh, by=c('id', 'transmission_method'), all.x=TRUE)
+trans = merge(trans, trans_nh_rings, by=c('id', 'transmission_method'), all.x=TRUE)
+
+trans = trans %>%
+  gather('threshold_method', 'trans_photo', 7:11) %>%
+  mutate(trans_error = trans_synth - trans_photo)
+
+trans_summary = trans %>%
+  group_by(poisson_radius_m, optimization_scalar, threshold_method, transmission_method) %>%
+  summarise(trans_rmse = rmse(trans_error), trans_mae = mae(trans_error), trans_mean_bias = mean(trans_error, na.rm = TRUE), n = n())
+
+trans_summary$poisson_radius_m = as.factor(trans_summary$poisson_radius_m)
+trans_summary$threshold_method = as.factor(trans_summary$threshold_method)
+trans_summary$transmission_method = as.factor(trans_summary$transmission_method)
+
+levels(trans_summary$threshold_method) = c('Manual', 'Nobis-Hunziker', 'Nobis-Hunziker rings', 'Ridler-Calvard', 'Ridler-Calvard rings')
+
+trans_summary$trans_method_order = factor(trans_summary$transmission_method, levels=c('transmission', 'openness'))
+levels(trans_summary$trans_method_order) = c('Transmission', 'Openness')
+
+
+# openness rmse
+openness_summary = trans_summary %>%
+  filter(transmission_method == 'openness')
+
+ggplot(openness_summary, aes(x=optimization_scalar, y=trans_rmse, color=poisson_radius_m)) +
+  facet_grid(. ~ threshold_method) +
+  geom_point() +
+  geom_line() +
+  scale_x_log10() +
+  ylim(0, .25) +
+  labs(title='RMSE of canopy openness between synthetic hemispheres and hemispherical photos (n = 15)',
+       subtitle='for different photo threshold methods (horizontal)',
+       x='Point size optimization scalar',
+       y='RMSE of Canopy Openness',
+       color='Poisson sampling radius (m)')
+
+# openness mae
+ggplot(openness_summary, aes(x=optimization_scalar, y=trans_mae, color=poisson_radius_m)) +
+  facet_grid(. ~ threshold_method) +
+  geom_point() +
+  geom_line() +
+  scale_x_log10()+
+  ylim(0, .25) +
+  labs(title='MAE of canopy openness between synthetic hemispheres and hemispherical photos (n = 15)',
+       subtitle='for different photo threshold methods (horizontal)',
+       x='Point size optimization scalar',
+       y='MAE of Canopy Openness',
+       color='Poisson sampling radius (m)')
+
+# openness mean bias
+ggplot(openness_summary, aes(x=optimization_scalar, y=trans_mean_bias, color=poisson_radius_m)) +
+  facet_grid(. ~ threshold_method) +
+  geom_point() +
+  geom_line() +
+  scale_x_log10() +
+  geom_abline(slope=0, intercept=0) +
+  labs(title='Mean bias of canopy openness between synthetic hemispheres and hemispherical photos (n = 15)',
+       subtitle='for different photo threshold methods (horizontal)',
+       x='Point size optimization scalar',
+       y='Mean bias of canopy openness',
+       color='Poisson sampling radius (m)')
 
 
 # BOOKMAKR -- everything below this is old hat...

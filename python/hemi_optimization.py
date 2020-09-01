@@ -4,7 +4,7 @@ import laslib
 import time
 
 poisson_list = [0, .05, .15]
-os_list = [.45, .7, 8]
+os_list = [1.5, 2, 15]
 for ii in range(0, poisson_list.__len__()):
     # define metadata object
     hemimeta = laslib.HemiMetaObj()
