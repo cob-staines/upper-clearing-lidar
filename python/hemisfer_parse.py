@@ -121,7 +121,7 @@ def parse_file(file_in, file_out):
 
     return data
 
-file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\poisson\\LAI.dat"
+file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\uf_1m_pr_.15_os_10\\outputs\\LAI.dat"
 file_out = file_in.replace('LAI.dat', 'LAI_parsed.dat')
 
 # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_149\\clean\\sized\\LAI_rc_rings.dat"

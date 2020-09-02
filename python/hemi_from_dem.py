@@ -6,23 +6,29 @@ import rastools
 # build point list
 dem_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\19_149_dem_res_1.00m.bil'
 # load dem
-dem = rastools.raster_load(dem_in)
-# list points where dem data exists
-pts_index = np.where(dem.data != dem.no_data)
-# convert to utm
-pts_utm = dem.T1 * pts_index
-# add all to df
-pts = pd.DataFrame({'x_utm11n': pts_utm[0],
-                    'y_utm11n': pts_utm[1],
-                    'z_m': dem.data[pts_index],
-                    'x_index': pts_index[1],
-                    'y_index': pts_index[1]})
+
+
+#### OBSOLETE, instead just use rastools.raster_to_pd()
+# dem = rastools.raster_load(dem_in)
+# # list points where dem data exists
+# pts_index = np.where(dem.data != dem.no_data)
+# # convert to utm
+# pts_utm = dem.T1 * pts_index
+# # add all to df
+# pts = pd.DataFrame({'x_utm11n': pts_utm[0],
+#                     'y_utm11n': pts_utm[1],
+#                     'z_m': dem.data[pts_index],
+#                     'x_index': pts_index[0],
+#                     'y_index': pts_index[1]})
+
+pts = rastools.raster_to_pd(dem_in, colname='z_m')
+
 # add point id
 pts = pts.reset_index()
-pts.columns = ['id', 'x_utm11n', 'y_utm11n', 'z_m', 'x_index', 'y_index']
+pts.columns = ['id', 'x_utm11n', 'y_utm11n', 'x_index', 'y_index', 'z_m']
 
 # add flag for UF
-uf_plot = dem
+uf_plot = rastools.raster_load(dem_in)
 uf_plot.data = np.full((dem.rows, dem.cols), 0)
 uf_plot_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\uf_1m.tiff'
 rastools.raster_save(uf_plot, uf_plot_dir, data_format='byte')

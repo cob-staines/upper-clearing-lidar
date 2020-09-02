@@ -1,6 +1,33 @@
 # import rasterio
 # import ogr
 
+#define class rasterObj
+class rasterObj(object):
+    def __init__(self, raster):
+        from affine import Affine
+
+        # load metadata
+        self.gt = raster.GetGeoTransform()
+        self.proj = raster.GetProjection()
+        self.cols = raster.RasterXSize
+        self.rows = raster.RasterYSize
+        self.band_count = raster.RasterCount
+        if self.band_count == 1:
+            self.band = raster.GetRasterBand(1)
+            self.data = self.band.ReadAsArray()
+            self.no_data = self.band.GetNoDataValue()
+        elif self.band_count > 1:
+            self.band = []
+            self.data = []
+            for ii in range(1, self.band_count + 1):
+                self.band.append(raster.GetRasterBand(ii))
+                self.data.append(self.band[ii - 1].ReadAsArray())
+            self.no_data = self.band[0].GetNoDataValue()
+        # get affine transformation
+        self.T0 = Affine.from_gdal(*raster.GetGeoTransform())
+        # cell-centered affine transformation
+        self.T1 = self.T0 * Affine.translation(0.5, 0.5)
+
 
 def raster_load(ras_in):
     # takes in path for georaster file, returns raster objects with following attributes:
@@ -15,33 +42,8 @@ def raster_load(ras_in):
 
     # dependencies
     import gdal
-    from affine import Affine
-    import numpy as np
 
-    #define class rasterObj
-    class rasterObj(object):
-        def __init__(self, raster):
-            # load metadata
-            self.gt = raster.GetGeoTransform()
-            self.proj = raster.GetProjection()
-            self.cols = raster.RasterXSize
-            self.rows = raster.RasterYSize
-            self.band_count = raster.RasterCount
-            if self.band_count == 1:
-                self.band = raster.GetRasterBand(1)
-                self.data = self.band.ReadAsArray()
-                self.no_data = self.band.GetNoDataValue()
-            elif self.band_count > 1:
-                self.band = []
-                self.data = []
-                for ii in range(1, self.band_count + 1):
-                    self.band.append(raster.GetRasterBand(ii))
-                    self.data.append(self.band[ii - 1].ReadAsArray())
-                self.no_data = self.band[0].GetNoDataValue()
-            # get affine transformation
-            self.T0 = Affine.from_gdal(*raster.GetGeoTransform())
-            # cell-centered affine transformation
-            self.T1 = self.T0 * Affine.translation(0.5, 0.5)
+    import numpy as np
 
     # open single band geo-raster file
     ras = gdal.Open(ras_in, gdal.GA_ReadOnly)
@@ -107,6 +109,7 @@ def raster_save(ras_object, file_path, file_format="GTiff", data_format="float32
         outdata.GetRasterBand(ii + 1).WriteArray(ras_object.data[ii])
         outdata.GetRasterBand(ii + 1).SetNoDataValue(ras_object.no_data)
 
+
 def ras_dif(ras_1_in, ras_2_in, inherit_from=1):
     # Returns raster object as follows:
         # ras_dif.data = ras_1. data - ras_2.data
@@ -157,6 +160,7 @@ def raster_burn(ras_in, shp_in, burn_val):
     # run command
     subprocess.call(cmd, shell=True)
 
+
 def raster_merge(ras_in_dir, ras_in_ext, ras_out, no_data="-9999"):
     # merges all raster files in directory "ras_in_dir" with extention "ras_in_ext" and saves them as a merged output "ras_out"
 
@@ -175,6 +179,7 @@ def raster_merge(ras_in_dir, ras_in_ext, ras_out, no_data="-9999"):
     chdir(ras_in_dir)
     # run command
     subprocess.call(cmd, shell=True)
+
 
 def point_sample_raster(ras_in, pts_in, pts_out, pts_xcoord_name, pts_ycoord_name, sample_col_name, sample_no_data_value=-9999):
 
@@ -206,6 +211,7 @@ def point_sample_raster(ras_in, pts_in, pts_out, pts_xcoord_name, pts_ycoord_nam
     # write to file
     pts.to_csv(pts_out, index=False, na_rep=sample_no_data_value)
 
+
 def raster_to_hdf5(ras_in, hdf5_out, data_col_name="data"):
     import numpy as np
     import vaex
@@ -233,6 +239,7 @@ def raster_to_hdf5(ras_in, hdf5_out, data_col_name="data"):
 
     # export to file
     df.export_hdf5(hdf5_out)
+
 
 # something fishy here... it seems that the values are coming out in flipped coordinates
 def hdf5_sample_raster(hdf5_in, hdf5_out, ras_in, sample_col_name="sample"):
@@ -282,6 +289,7 @@ def hdf5_sample_raster(hdf5_in, hdf5_out, ras_in, sample_col_name="sample"):
     df.export_hdf5(hdf5_out)
     df.close()
 
+
 # could clean up for time using KDTrees if desired. Currently takes +/- 100s for .25 res
 def raster_nearest_neighbor(points, ras):
     import numpy as np
@@ -300,9 +308,48 @@ def raster_nearest_neighbor(points, ras):
     return index_map, distance_map
 
 
+def raster_to_pd(ras, colname='value'):
+    import numpy as np
+    import pandas as pd
+    # test if ras is path or raster_object
+    if not isinstance(ras, rasterObj):
+        if isinstance(ras, str):
+            ras_in = ras
+            ras = raster_load(ras_in)
+        else:
+            raise Exception('ras is not an instance of rasterObj or str (filepath), raster_to_pd() aborted.')
 
-# ras.GetRasterBand(1)
-# data = np.array(ras.ReadAsArray())
+    if isinstance(ras.data, np.ndarray):
+        # nest data in list if not already
+        ras.data = [ras.data]
+    if ras.band_count != len(ras.data):
+        raise Exception('data dimensions do not match band_count, raster_to_pd() aborted.')
+
+    if isinstance(colname, str):
+        # nest colname in list if not already
+        colname = [colname]
+    if ras.band_count != len(colname):
+        raise Exception('length of colname does not match band_count, raster_to_pd() aborted.')
+
+
+    has_value = np.full([ras.rows, ras.cols, ras.band_count], False)
+    for ii in range(0, ras.band_count):
+        has_value[:, :, ii] = (ras.data[ii] != ras.no_data)
+    has_value = np.any(has_value, axis=2)
+
+
+    pts_index = np.where(has_value)
+    pts_coords = ras.T1 * pts_index
+    pts = pd.DataFrame({'x_coord': pts_coords[0],
+                        'y_coord': pts_coords[1],
+                        'x_index': pts_index[0],
+                        'y_index': pts_index[1]})
+
+    for ii in range(0, ras.band_count):
+        pts.loc[:, colname[ii]] = ras.data[ii][has_value]
+
+    return pts
+
 
 # import matplotlib
 # matplotlib.use('TkAgg')
