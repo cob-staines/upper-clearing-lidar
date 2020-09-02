@@ -171,13 +171,36 @@ show(hv.render(plot))
 
 
 # basic datashader
+import rastools
 import datashader as ds
 import pandas as pd
+import numpy as np
 import datashader.transfer_functions as tf
 from datashader.utils import export_image
 
-traj_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt"
-img_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\lpmf_vs_hs.png"
+hs_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\hs\\19_052\\hs_19_052_res_.10m.tif"
+dnt_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DNT\\19_149_snow_off_627975_5646450_spike_free_chm_.10m_kho_distance_.10m.tif"
+img_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\ds_test_hs_vs_dnt.png"
+
+# load parent
+hs = rastools.raster_load(hs_in)
+hs_pts = np.where(hs.data != hs.no_data)
+hs_coords = hs.T1 * hs_pts
+
+pts = pd.DataFrame({'x_utm11n': pts_utm[0],
+                    'y_utm11n': pts_utm[1],
+                    'z_m': dem.data[pts_index],
+                    'x_index': pts_index[0],
+                    'y_index': pts_index[1]})
+# convert to df
+
+
+dnt = rastools.raster_load(dnt_in)
+dnt_pts = np.where(dnt.data != dnt.no_data)
+dnt_coords = dnt.T1 * dnt_pts
+
+
+
 
 df = pd.read_csv(traj_in)
 

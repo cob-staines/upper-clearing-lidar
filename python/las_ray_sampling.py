@@ -6,6 +6,7 @@ import time
 import cProfile
 import h5py
 
+
 class VoxelObj(object):
     def __init__(self):
         # voxel object metadata
@@ -27,6 +28,7 @@ class VoxelObj(object):
     def save(self, hdf5_path):
         vox_save(self, hdf5_path)
 
+
 def vox_save(vox, hdf5_path):
     h5f = h5py.File(hdf5_path, 'r+')
     h5f.create_dataset('vox_desc', data=vox.desc)
@@ -39,6 +41,7 @@ def vox_save(vox, hdf5_path):
     h5f.create_dataset('vox_sample_data', data=vox.sample_data)
     h5f.create_dataset('vox_return_set', data=vox.return_set)
     h5f.create_dataset('vox_return_data', data=vox.return_data)
+
 
 def vox_load(hdf5_path):
     vox = VoxelObj()
@@ -54,6 +57,7 @@ def vox_load(hdf5_path):
     vox.return_set = h5f.get('vox_return_set')[()]
     vox.return_data = h5f.get('vox_return_data')[()]
     return vox
+
 
 def utm_to_vox(voxel_object, utm_points):
     return (utm_points - voxel_object.origin) / voxel_object.step
@@ -261,7 +265,7 @@ def aggregate_voxels_over_dem(vox, rays, agg_sample_length, iterations=100):
 
     # calculate expected points and varience
     # MOVE PARAMETERS TO PASSED VARIABLE
-    ratio = .1  # ratio of voxel area weight of prior
+    ratio = .05  # ratio of voxel area weight of prior
     F = .16 * 0.05  # expected footprint area
     V = np.prod(vox.step)  # volume of each voxel
     K = np.sum(vox.return_data)  # total number of returns in set
@@ -269,7 +273,7 @@ def aggregate_voxels_over_dem(vox, rays, agg_sample_length, iterations=100):
 
     # gamma prior hyperparameters
     prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
-    prior_a = prior_b * K / N
+    prior_a = prior_b * 1  # prior_b * K / N
 
     permutations = int(iterations * 0.1)
 
@@ -308,6 +312,7 @@ def aggregate_voxels_over_dem(vox, rays, agg_sample_length, iterations=100):
 
     return rays
 
+
 def dem_to_vox_rays(dem_in, vec, vox):
     # why pass vox here? consider workaround/more general approach for ray bounding
 
@@ -343,6 +348,7 @@ def dem_to_vox_rays(dem_in, vec, vox):
                        'z1': sky[:, 2]})
     return df
 
+
 def ray_stats_to_dem(rays, dem_in):
     # load raster dem
     dem = rastools.raster_load(dem_in)
@@ -368,7 +374,7 @@ def ray_stats_to_dem(rays, dem_in):
     ras.data[1][np.isnan(ras.data[1])] = ras.no_data
 
     ras.data[2][ground_dem] = rays.returns_std
-    ras.data[2][np.isnan(ras.data[1])] = ras.no_data
+    ras.data[2][np.isnan(ras.data[2])] = ras.no_data
 
     ras.band_count = 3
 
@@ -402,9 +408,9 @@ vox = vox_load(hdf5_path)
 # sample voxel space
 dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_dem_res_.25m.bil"
 # dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.25m.bil"
-ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_returns_res_.25m_15-0.tif"
+ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_returns_res_.25m_0-0_t_1.tif"
 # ras_out = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_expected_returns_res_.25m.tif"
-phi = 15
+phi = 0
 theta = 0
 agg_sample_length = vox.sample_length
 vec = [phi, theta]

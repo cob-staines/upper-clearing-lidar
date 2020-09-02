@@ -3,9 +3,12 @@ import numpy as np
 import laslib
 import rastools
 
-# # build point list
-# dem_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\19_149_dem_res_1.00m.bil'
-# # load dem
+# build point list
+dem_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\19_149_dem_res_1.00m.bil'
+# load dem
+
+
+#### OBSOLETE, instead just use rastools.raster_to_pd()
 # dem = rastools.raster_load(dem_in)
 # # list points where dem data exists
 # pts_index = np.where(dem.data != dem.no_data)
@@ -15,27 +18,29 @@ import rastools
 # pts = pd.DataFrame({'x_utm11n': pts_utm[0],
 #                     'y_utm11n': pts_utm[1],
 #                     'z_m': dem.data[pts_index],
-#                     'x_index': pts_index[1],
+#                     'x_index': pts_index[0],
 #                     'y_index': pts_index[1]})
-# # add point id
-# pts = pts.reset_index()
-# pts.columns = ['id', 'x_utm11n', 'y_utm11n', 'z_m', 'x_index', 'y_index']
-#
-# # add flag for UF
-# uf_plot = dem
-# uf_plot.data = np.full((dem.rows, dem.cols), 0)
-# uf_plot_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\uf_1m.tiff'
-# rastools.raster_save(uf_plot, uf_plot_dir, data_format='byte')
-# site_poly = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\upper_forest_poly_UTM11N.shp'
-# rastools.raster_burn(uf_plot_dir, site_poly, 1)
-# uf_plot = rastools.raster_load(uf_plot_dir)
-#
-# pts = pts.assign(uf=uf_plot.data[pts_index].astype(bool))
-# pts.to_csv(pts_dir, index=False)
+
+pts = rastools.raster_to_pd(dem_in, colname='z_m')
+
+# add point id
+pts = pts.reset_index()
+pts.columns = ['id', 'x_utm11n', 'y_utm11n', 'x_index', 'y_index', 'z_m']
+
+# add flag for UF
+uf_plot = rastools.raster_load(dem_in)
+uf_plot.data = np.full((dem.rows, dem.cols), 0)
+uf_plot_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\uf_1m.tiff'
+rastools.raster_save(uf_plot, uf_plot_dir, data_format='byte')
+site_poly = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\upper_forest_poly_UTM11N.shp'
+rastools.raster_burn(uf_plot_dir, site_poly, 1)
+uf_plot = rastools.raster_load(uf_plot_dir)
+
+pts = pts.assign(uf=uf_plot.data[pts_index].astype(bool))
+pts_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\1m_dem_points.csv'
+pts.to_csv(pts_dir, index=False)
 
 # build hemispheres
-# pts_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\1m_dem_points.csv'
-pts_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\1m_dem_points.csv'
 pts = pd.read_csv(pts_dir)
 # filter to upper forest
 pts = pts[pts.uf]
