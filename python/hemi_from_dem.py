@@ -56,7 +56,7 @@ hemimeta.src_keep_class = 5
 hemimeta.poisson_sampling_radius = 0.15  # meters (for no poisson sampling, specify 0)
 
 # output file dir
-hemimeta.file_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\poisson\\"
+hemimeta.file_dir = "C:\\Users\\jas600\\workzone\\data\\hemigen\\outputs\\"
 
 # max distance of points considered in image
 hemimeta.max_distance = 50  # meters
@@ -67,27 +67,29 @@ hemimeta.img_size = 10  # in inches
 hemimeta.img_resolution = 100  # pixels/inch
 
 
-# poisson sample point cloud (src_las_in)
-if (hemimeta.poisson_sampling_radius is None) or (hemimeta.poisson_sampling_radius == 0):
-    # skip poisson sampling
-    las_poisson_path = hemimeta.src_las_file
-    print("no Poisson sampling conducted")
-else:
-    if hemimeta.poisson_sampling_radius > 0:
-        # poisson sampling
-        las_poisson_path = hemimeta.src_las_file.replace('.las', '_poisson_' + str(hemimeta.poisson_sampling_radius) + '.las')
-        # laslib.las_poisson_sample(hemimeta.src_las_file, hemimeta.poisson_sampling_radius, classification=hemimeta.src_keep_class, las_out=las_poisson_path)  # takes 10 minutes
-    else:
-        raise Exception('hemimeta.poisson_sampling_radius should be a numeric >= 0 or None.')
+# # poisson sample point cloud (src_las_in)
+# if (hemimeta.poisson_sampling_radius is None) or (hemimeta.poisson_sampling_radius == 0):
+#     # skip poisson sampling
+#     las_poisson_path = hemimeta.src_las_file
+#     print("no Poisson sampling conducted")
+# else:
+#     if hemimeta.poisson_sampling_radius > 0:
+#         # poisson sampling
+#         las_poisson_path = hemimeta.src_las_file.replace('.las', '_poisson_' + str(hemimeta.poisson_sampling_radius) + '.las')
+#         # laslib.las_poisson_sample(hemimeta.src_las_file, hemimeta.poisson_sampling_radius, classification=hemimeta.src_keep_class, las_out=las_poisson_path)  # takes 10 minutes
+#     else:
+#         raise Exception('hemimeta.poisson_sampling_radius should be a numeric >= 0 or None.')
+#
+# # export las to hdf5
+# print("-------- Exporting to HDF5 --------")
+# hdf5_path = las_poisson_path.replace('.las', '.hdf5')
+# laslib.las_xyz_to_hdf5(las_poisson_path, hdf5_path, keep_class=hemimeta.src_keep_class)
 
-# export las to hdf5
-print("-------- Exporting to HDF5 --------")
-hdf5_path = las_poisson_path.replace('.las', '.hdf5')
-laslib.las_xyz_to_hdf5(las_poisson_path, hdf5_path, keep_class=hemimeta.src_keep_class)
+hdf5_path = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_snow_off_classified_merged_poisson_0.15.hdf5'
 
 hemimeta.id = pts.id
-hemimeta.origin = np.array([pts.x_utmn11,
-                            pts.y_utmn11,
+hemimeta.origin = np.array([pts.x_utm11n,
+                            pts.y_utm11n,
                             pts.z_m + hemi_m_above_ground]).swapaxes(0, 1)
 
 

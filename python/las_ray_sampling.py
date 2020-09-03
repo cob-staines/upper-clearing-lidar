@@ -221,7 +221,9 @@ def las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all'):
     return vox
 
 
-def aggregate_voxels_over_dem(vox, rays, agg_sample_length, iterations=100):
+def aggregate_voxels_over_rays(vox, rays, agg_sample_length, iterations=100):
+    print('Aggregating voxels over rays:')
+
     # pull points
     p0 = rays.values[:, 0:3]
     p1 = rays.values[:, 3:6]
@@ -245,6 +247,7 @@ def aggregate_voxels_over_dem(vox, rays, agg_sample_length, iterations=100):
     path_returns = np.full([len(p0), max_steps], np.nan)
 
     # for each sample step
+    print('Sampling voxels...')
     for ii in range(0, max_steps):
         # distance from p0 along ray
         sample_dist = (ii + offset) * agg_sample_length
@@ -263,6 +266,8 @@ def aggregate_voxels_over_dem(vox, rays, agg_sample_length, iterations=100):
             path_samples[in_range, ii] = vox.sample_data[sample_address]
             path_returns[in_range, ii] = vox.return_data[sample_address]
 
+        print(str(ii + 1) + ' of ' + str(max_steps) + ' steps')
+
     # calculate expected points and varience
     # MOVE PARAMETERS TO PASSED VARIABLE
     ratio = .05  # ratio of voxel area weight of prior
@@ -280,6 +285,7 @@ def aggregate_voxels_over_dem(vox, rays, agg_sample_length, iterations=100):
     returns_mean = np.full(len(path_samples), np.nan)
     returns_med = np.full(len(path_samples), np.nan)
     returns_std = np.full(len(path_samples), np.nan)
+    print('Aggregating samples over each ray...')
     for ii in range(0, len(path_samples)):
         kk = path_returns[ii, 0:n_samples[ii]]
         nn = path_samples[ii, 0:n_samples[ii]]
@@ -304,6 +310,8 @@ def aggregate_voxels_over_dem(vox, rays, agg_sample_length, iterations=100):
         returns_mean[ii] = np.mean(return_sums)
         returns_med[ii] = np.median(return_sums)
         returns_std[ii] = np.std(return_sums)
+
+        print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
 
     rays = rays.assign(path_length=dist)
     rays = rays.assign(returns_mean=returns_mean)
@@ -383,20 +391,20 @@ def ray_stats_to_dem(rays, dem_in):
 
 
 # las file
-las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las'
-# las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_UF.las'
+# las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las'
+las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_UF.las'
 # trajectory file
-traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
-# traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
+# traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
+traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
 # working hdf5 file
-hdf5_path = las_in.replace('.las', '_ray_sampling.hdf5')
+hdf5_path = las_in.replace('.las', '_ray_sampling_0.1.hdf5')
 
 # # write las to hdf5
 laslib.las_to_hdf5(las_in, hdf5_path)
 # # interpolate trajectory
 laslib.las_traj(hdf5_path, traj_in)
 
-voxel_length = 0.5
+voxel_length = 0.1
 vox_sample_length = voxel_length/np.pi
 vox = las_ray_sample(hdf5_path, vox_sample_length, voxel_length, return_set='first')
 vox_save(vox, hdf5_path)
@@ -406,19 +414,19 @@ vox = vox_load(hdf5_path)
 
 
 # sample voxel space
-dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_dem_res_.25m.bil"
-# dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.25m.bil"
-ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_returns_res_.25m_0-0_t_1.tif"
-# ras_out = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_expected_returns_res_.25m.tif"
-phi = 0
+# dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_dem_res_.10m.bil"
+dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.10m.bil"
+# ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_returns_res_.10m_0-0_t_1.tif"
+ras_out = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_expected_returns_res_.10m.tif"
+phi = 10
 theta = 0
 agg_sample_length = vox.sample_length
 vec = [phi, theta]
 rays_in = dem_to_vox_rays(dem_in, vec, vox)
-rays_out = aggregate_voxels_over_dem(vox, rays_in, agg_sample_length)
+rays_out = aggregate_voxels_over_rays(vox, rays_in, agg_sample_length)
 ras = ray_stats_to_dem(rays_out, dem_in)
 rastools.raster_save(ras, ras_out)
-# create aggregate object
+
 
 ### SANDBOX
 
