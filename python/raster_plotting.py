@@ -183,16 +183,15 @@ dnt_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\li
 img_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\ds_test_hs_vs_dnt.png"
 
 # load parent
-hs = rastools.raster_load(hs_in)
-hs_pts = np.where(hs.data != hs.no_data)
-hs_coords = hs.T1 * hs_pts
+data = rastools.raster_to_pd(hs_in, 'hs')
 
-pts = pd.DataFrame({'x_utm11n': pts_utm[0],
-                    'y_utm11n': pts_utm[1],
-                    'z_m': dem.data[pts_index],
-                    'x_index': pts_index[0],
-                    'y_index': pts_index[1]})
-# convert to df
+# sample child at parent coords
+
+child = rastools.raster_load(dnt_in)
+child_index = ~child.T1 * (data.x_coord.values, data.y_coord.values)
+child_index = (np.rint(child_index[0]), np.rint(child_index[1]))
+
+peace = child_index
 
 
 dnt = rastools.raster_load(dnt_in)

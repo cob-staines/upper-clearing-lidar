@@ -308,7 +308,7 @@ def raster_nearest_neighbor(points, ras):
     return index_map, distance_map
 
 
-def raster_to_pd(ras, colname='value'):
+def raster_to_pd(ras, colnames):
     import numpy as np
     import pandas as pd
     # test if ras is path or raster_object
@@ -325,10 +325,10 @@ def raster_to_pd(ras, colname='value'):
     if ras.band_count != len(ras.data):
         raise Exception('data dimensions do not match band_count, raster_to_pd() aborted.')
 
-    if isinstance(colname, str):
+    if isinstance(colnames, str):
         # nest colname in list if not already
-        colname = [colname]
-    if ras.band_count != len(colname):
+        colnames = [colnames]
+    if ras.band_count != len(colnames):
         raise Exception('length of colname does not match band_count, raster_to_pd() aborted.')
 
 
@@ -346,7 +346,7 @@ def raster_to_pd(ras, colname='value'):
                         'y_index': pts_index[1]})
 
     for ii in range(0, ras.band_count):
-        pts.loc[:, colname[ii]] = ras.data[ii][has_value]
+        pts.loc[:, colnames[ii]] = ras.data[ii][has_value]
 
     return pts
 
