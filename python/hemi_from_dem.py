@@ -3,42 +3,45 @@ import numpy as np
 import laslib
 import rastools
 
-# build point list
+# build point list from DEM
 dem_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\19_149_dem_res_1.00m.bil'
-# load dem
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uf_1m_pr_.15_os_10\\'
 
-
-#### OBSOLETE, instead just use rastools.raster_to_pd()
-# dem = rastools.raster_load(dem_in)
-# # list points where dem data exists
-# pts_index = np.where(dem.data != dem.no_data)
-# # convert to utm
-# pts_utm = dem.T1 * pts_index
-# # add all to df
-# pts = pd.DataFrame({'x_utm11n': pts_utm[0],
-#                     'y_utm11n': pts_utm[1],
-#                     'z_m': dem.data[pts_index],
-#                     'x_index': pts_index[0],
-#                     'y_index': pts_index[1]})
-
-pts = rastools.raster_to_pd(dem_in, colname='z_m')
-
+# load dem into pd
+pts = rastools.raster_to_pd(dem_in, 'z_m')
 # add point id
 pts = pts.reset_index()
 pts.columns = ['id', 'x_utm11n', 'y_utm11n', 'x_index', 'y_index', 'z_m']
 
-# add flag for UF
+# # add flag for site (UF)
+# load dem as template
 uf_plot = rastools.raster_load(dem_in)
-uf_plot.data = np.full((dem.rows, dem.cols), 0)
-uf_plot_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\uf_1m.tiff'
+# fill data with zeros
+uf_plot.data = np.full((uf_plot.rows, uf_plot.cols), 0)
+# save to file
+uf_plot_dir = batch_dir + 'uf_plot_over_dem.tiff'
 rastools.raster_save(uf_plot, uf_plot_dir, data_format='byte')
+# burn site polygon into plot data as ones
 site_poly = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\upper_forest_poly_UTM11N.shp'
 rastools.raster_burn(uf_plot_dir, site_poly, 1)
+# load plot data
 uf_plot = rastools.raster_load(uf_plot_dir)
 
+# merge plot data with points
+pts_index = (pts.x_index.values, pts.y_index.values)
 pts = pts.assign(uf=uf_plot.data[pts_index].astype(bool))
-pts_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\1m_dem_points.csv'
+
+# export point lookup as csv
+pts_dir = batch_dir + '1m_dem_points.csv'
 pts.to_csv(pts_dir, index=False)
+
+# format point ids as raster
+id_raster = rastools.raster_load(dem_in)
+id_raster.data = np.full([id_raster.rows, id_raster.cols], id_raster.no_data).astype(int)
+id_raster.data[pts_index] = pts.id
+# save id raster to file
+id_raster_out = batch_dir + '1m_dem_point_ids.tif'
+rastools.raster_save(id_raster, id_raster_out, data_format="int32")
 
 # build hemispheres
 pts = pd.read_csv(pts_dir)
@@ -56,7 +59,7 @@ hemimeta.src_keep_class = 5
 hemimeta.poisson_sampling_radius = 0.15  # meters (for no poisson sampling, specify 0)
 
 # output file dir
-hemimeta.file_dir = "C:\\Users\\jas600\\workzone\\data\\hemigen\\outputs\\"
+hemimeta.file_dir = batch_dir + "outputs\\"
 
 # max distance of points considered in image
 hemimeta.max_distance = 50  # meters
@@ -67,25 +70,25 @@ hemimeta.img_size = 10  # in inches
 hemimeta.img_resolution = 100  # pixels/inch
 
 
-# # poisson sample point cloud (src_las_in)
-# if (hemimeta.poisson_sampling_radius is None) or (hemimeta.poisson_sampling_radius == 0):
-#     # skip poisson sampling
-#     las_poisson_path = hemimeta.src_las_file
-#     print("no Poisson sampling conducted")
-# else:
-#     if hemimeta.poisson_sampling_radius > 0:
-#         # poisson sampling
-#         las_poisson_path = hemimeta.src_las_file.replace('.las', '_poisson_' + str(hemimeta.poisson_sampling_radius) + '.las')
-#         # laslib.las_poisson_sample(hemimeta.src_las_file, hemimeta.poisson_sampling_radius, classification=hemimeta.src_keep_class, las_out=las_poisson_path)  # takes 10 minutes
-#     else:
-#         raise Exception('hemimeta.poisson_sampling_radius should be a numeric >= 0 or None.')
-#
-# # export las to hdf5
-# print("-------- Exporting to HDF5 --------")
-# hdf5_path = las_poisson_path.replace('.las', '.hdf5')
-# laslib.las_xyz_to_hdf5(las_poisson_path, hdf5_path, keep_class=hemimeta.src_keep_class)
+# poisson sample point cloud (src_las_in)
+if (hemimeta.poisson_sampling_radius is None) or (hemimeta.poisson_sampling_radius == 0):
+    # skip poisson sampling
+    las_poisson_path = hemimeta.src_las_file
+    print("no Poisson sampling conducted")
+else:
+    if hemimeta.poisson_sampling_radius > 0:
+        # poisson sampling
+        las_poisson_path = hemimeta.src_las_file.replace('.las', '_poisson_' + str(hemimeta.poisson_sampling_radius) + '.las')
+        laslib.las_poisson_sample(hemimeta.src_las_file, hemimeta.poisson_sampling_radius, classification=hemimeta.src_keep_class, las_out=las_poisson_path)  # takes 10 minutes
+    else:
+        raise Exception('hemimeta.poisson_sampling_radius should be a numeric >= 0 or None.')
 
-hdf5_path = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_snow_off_classified_merged_poisson_0.15.hdf5'
+# export las to hdf5
+print("-------- Exporting to HDF5 --------")
+hdf5_path = las_poisson_path.replace('.las', '.hdf5')
+laslib.las_xyz_to_hdf5(las_poisson_path, hdf5_path, keep_class=hemimeta.src_keep_class)
+
+hdf5_path = hemimeta.src_las_file.replace('.las', 'hdf5')
 
 hemimeta.id = pts.id
 hemimeta.origin = np.array([pts.x_utm11n,

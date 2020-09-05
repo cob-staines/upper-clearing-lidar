@@ -265,7 +265,7 @@ def hdf5_sample_raster(hdf5_in, hdf5_out, ras_in, sample_col_name="sample"):
         # load raster
         ras = raster_load(ras_in[ii])
 
-        # convert sample points to index refference
+        # convert sample points to index reference
         row_col_pts = np.floor(~ras.T0 * (df.UTM11N_x.values, df.UTM11N_y.values)).astype(int)
 
         # flag samples out of raster bounds
@@ -311,6 +311,7 @@ def raster_nearest_neighbor(points, ras):
 def raster_to_pd(ras, colnames):
     import numpy as np
     import pandas as pd
+
     # test if ras is path or raster_object
     if not isinstance(ras, rasterObj):
         if isinstance(ras, str):
@@ -349,6 +350,39 @@ def raster_to_pd(ras, colnames):
         pts.loc[:, colnames[ii]] = ras.data[ii][has_value]
 
     return pts
+
+
+def pd_sample_raster(parent, ras, colnames):
+    import numpy as np
+
+    # sample child in child coords
+    child = raster_to_pd(ras, colnames)
+
+    if parent is None:
+        # default to raster_to_pd output
+        return child
+    else:
+        # import if ras is file path, move on if ras is raster object
+        if not isinstance(ras, rasterObj):
+            if isinstance(ras, str):
+                ras_in = ras
+                ras = raster_load(ras_in)
+            else:
+                raise Exception('ras is not an instance of rasterObj or str (filepath), raster_to_pd() aborted.')
+
+        # convert parent coords to child index
+        parent_in_child_index = ~ras.T1 * (parent.x_coord.values, parent.y_coord.values)
+        parent.loc[:, 'child_x_index'] = np.rint(parent_in_child_index[0])
+        parent.loc[:, 'child_y_index'] = np.rint(parent_in_child_index[1])
+
+        # drop unnecessary columns befor merge
+        child = child.drop(columns=['x_coord', 'y_coord'])
+        # merge along child index
+        pc = parent.merge(child, how='left', left_on=['child_x_index', 'child_y_index'], right_on=['x_index', 'y_index'], suffixes=['', '_child'])
+        # drop child index
+        pc = pc.drop(columns=['child_x_index', 'child_y_index', 'x_index_child', 'y_index_child'])
+
+        return pc
 
 
 # import matplotlib

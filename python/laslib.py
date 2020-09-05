@@ -178,7 +178,7 @@ def hemigen(hdf5_path, hemimeta, initial_index=0):
     log_path = hemimeta.file_dir + "hemimetalog.csv"
     if not os.path.exists(log_path):
         with open(log_path, mode='w', encoding='utf-8') as log:
-            log.write(", ".join(hm.columns) + '\n')
+            log.write(",".join(hm.columns) + '\n')
         log.close()
 
     for ii in range(initial_index, hemimeta.origin.shape[0]):

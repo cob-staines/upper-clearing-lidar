@@ -183,16 +183,49 @@ dnt_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\li
 img_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\ds_test_hs_vs_dnt.png"
 
 # load parent
-data = rastools.raster_to_pd(hs_in, 'hs')
+parent = rastools.raster_to_pd(hs_in, 'hs')
+merged = rastools.pd_sample_raster(parent, dnt_in, 'dnt')
 
-# sample child at parent coords
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 
-child = rastools.raster_load(dnt_in)
-child_index = ~child.T1 * (data.x_coord.values, data.y_coord.values)
-child_index = (np.rint(child_index[0]), np.rint(child_index[1]))
+plt.scatter(merged.hs, merged.dnt)
 
-peace = child_index
+cvs = ds.Canvas(plot_width=400, plot_height=400)
+agg = cvs.points(data, 'hs', 'dnt', agg=ds.count('dnt'))
+img = tf.shade(agg, cmap=['lightblue', 'darkblue'], how='log')
+export_image(img, img_out)
+#####
 
+# datashader + holoviews + matplotlib
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+import holoviews as hv
+import holoviews.operation.datashader as hd
+hd.shade.cmap=["lightblue", "darkblue"]
+hv.extension("matplotlib")
+hv.output(backend='matplotlib')
+#agg = ds.Canvas().points(df,'x','y')
+agg = ds.Canvas().points(data, 'hs', 'dnt')
+
+# fig = plt.imshow(agg.data, interpolation='nearest', cmap='binary_r')
+# plt.colorbar()
+# plt.title('hs vs. dnt')
+# plt.show()
+
+tt = hd.shade(hv.Image(agg))
+hv.RGB(np.array(tf.shade(agg).to_pil()))
+#####
+
+points = hv.Points(data.loc[:, ['hs', 'dnt']])
+hd.datashade(points)
+
+# datashader + holoviews + bokeh
+hv.extension("bokeh")
+hv.output(backend="bokeh")
+hd.datashade(data)
 
 dnt = rastools.raster_load(dnt_in)
 dnt_pts = np.where(dnt.data != dnt.no_data)
@@ -259,3 +292,34 @@ ax = plt.axes([0., 0., 1., 1.])
 sp1 = ax.scatter(plot_data.hs, plot_data.lpmc, s=1, c="black")
 fig.add_axes(ax)
 # fig.savefig(hemimeta.file_dir + hemimeta.file_name[ii])
+import rastools
+# raster of LAI
+lai_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uf_1m_pr_.15_os_10\\outputs\\LAI_parsed.dat'
+pts_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uf_1m_pr_.15_os_10\\1m_dem_points.csv'
+template_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\19_149_dem_res_1.00m.bil'
+
+
+lai = pd.read_csv(lai_in)
+pts = pd.read_csv(pts_in)
+lai = lai.merge(pts, how='left', on='id')
+lai = lai.loc[:, ['id', 'x_utm11n', 'y_utm11n', 'x_index', 'y_index', 'lai_s_cc', 'openness']]
+
+ras = rastools.raster_load(template_in)
+
+idx = (lai.x_index.values.astype(int), lai.y_index.values.astype(int))
+ras.data[idx] = lai.lai_s_cc
+ras_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uf_1m_pr_.15_os_10\\lai_test.tif'
+rastools.raster_save(ras, ras_out)
+
+lai_data = np.full([ras.rows, ras.cols], np.nan)
+lai_data[(lai.x_index.values, lai.y_index.values)] = lai.lai_s
+fig = plt.imshow(lai_data, interpolation='nearest', cmap='binary_r')
+plt.colorbar()
+plt.title('Simulated LAI over Upper Forest \n LAI-2000 with Schleppi et al. 2007 correction')
+
+open_data = np.full([ras.rows, ras.cols], np.nan)
+open_data[(lai.x_index.values, lai.y_index.values)] = 1 - lai.openness
+fig = plt.imshow(open_data, interpolation='nearest', cmap='binary_r')
+plt.colorbar()
+plt.title('Canopy closure over Upper Forest \n from LAI-2000 rings')
+

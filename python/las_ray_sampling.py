@@ -391,20 +391,20 @@ def ray_stats_to_dem(rays, dem_in):
 
 
 # las file
-# las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las'
-las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_UF.las'
+las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_snow_off_classified_merged.las'
+# las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_snow_off_classified_merged.las'
 # trajectory file
-# traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
-traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
+traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
+# traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
 # working hdf5 file
-hdf5_path = las_in.replace('.las', '_ray_sampling_0.1.hdf5')
+hdf5_path = las_in.replace('.las', '_ray_sampling_0.25.hdf5')
 
 # # write las to hdf5
 laslib.las_to_hdf5(las_in, hdf5_path)
 # # interpolate trajectory
 laslib.las_traj(hdf5_path, traj_in)
 
-voxel_length = 0.1
+voxel_length = 0.25
 vox_sample_length = voxel_length/np.pi
 vox = las_ray_sample(hdf5_path, vox_sample_length, voxel_length, return_set='first')
 vox_save(vox, hdf5_path)
@@ -414,11 +414,11 @@ vox = vox_load(hdf5_path)
 
 
 # sample voxel space
-# dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_dem_res_.10m.bil"
-dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.10m.bil"
-# ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_returns_res_.10m_0-0_t_1.tif"
-ras_out = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_expected_returns_res_.10m.tif"
-phi = 10
+dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_dem_res_.25m.bil"
+#dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.10m.bil"
+ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_first_returns_res_.25m_0-0_t_1.tif"
+# ras_out = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_expected_returns_res_.10m.tif"
+phi = 0
 theta = 0
 agg_sample_length = vox.sample_length
 vec = [phi, theta]
@@ -488,6 +488,30 @@ plt.imshow(peace_2, interpolation='nearest')
 
 plt.imshow(ras.data[0], interpolation='nearest')
 
+### VISUALIZATION
+import rastools
+import numpy as np
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+
+ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\19_149_expected_returns_res_.25m_0-0_t_1.tif"
+ras = rastools.raster_load(ras_in)
+
+
+plot_data = ras.data[0]
+plot_data[plot_data == ras.no_data] = -10
+fig = plt.imshow(plot_data, interpolation='nearest', cmap='binary_r')
+plt.colorbar()
+plt.title('Upper Forest expected returns from nadir scans with no occlusion\n(ray-sampling method)')
+# plt.show(fig)
+
+plot_data = ras.data[2] / ras.data[0]
+plot_data[ras.data[2] == ras.no_data] = 0
+fig = plt.imshow(plot_data, interpolation='nearest', cmap='binary_r')
+plt.colorbar()
+plt.title('Upper Forest relative standard deviation of returns\n(ray-sampling method)')
+# plt.show(fig)
 
 
 plt.scatter(rays_out.x0, rays_out.y0)

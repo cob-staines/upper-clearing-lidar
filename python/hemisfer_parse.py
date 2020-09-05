@@ -116,12 +116,21 @@ def parse_file(file_in, file_out):
     # convert transmissions to from percent to decimal
     data[['transmission', 'transmission_gaps', 'openness', 'openness_gaps']] = data[['transmission', 'transmission_gaps', 'openness', 'openness_gaps']].astype('float') / 100
 
+    # load hemimeta (metadata)
+    hemimeta_in = file_in.replace('LAI.dat', 'hemimetalog.csv')
+    hemimeta = pd.read_csv(hemimeta_in)
+    hemimeta = hemimeta.loc[:, ['id', 'file_name']]
+    hemimeta.id = hemimeta.id.astype(int)
+
+    data = hemimeta.merge(data, how='right', left_on='file_name', right_on='picture')
+    data = data.drop(columns='picture')
+
     # write output to file
     data.to_csv(file_out, index=False)
 
     return data
 
-file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\uf_1m_pr_.15_os_10\\outputs\\LAI.dat"
+file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uf_1m_pr_.15_os_10\\outputs\\LAI.dat"
 file_out = file_in.replace('LAI.dat', 'LAI_parsed.dat')
 
 # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_149\\clean\\sized\\LAI_rc_rings.dat"
