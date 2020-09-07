@@ -88,3 +88,11 @@ ggplot(data, aes(lai_s_cc, cc)) +
 
 ggplot(data, aes(dnt, dce)) +
   geom_point()
+
+ggplot(data, aes(x=lai_no_cor, y=lai_s_cc)) +
+  geom_point() +
+  geom_abline(slope=1, intercept=0)
+
+ggplot(data, aes(x=contactnum_1, y=er_001_median)) +
+  geom_bin2d(binwidth=c(.1, 1))
+# why are contact num and expected returns seemingly inversely related? I expected at least a blurry positive signal...

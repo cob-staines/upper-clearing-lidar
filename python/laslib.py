@@ -6,6 +6,9 @@ def las_to_hdf5(las_in, hdf5_out, drop_columns=None):
     :param drop_columns: None, string, or list of strings declaring column names to be dropped before output to file
     :return: None
     """
+
+    print('Writing LAS file to hdf5... ', end='')
+
     import laspy
     import pandas as pd
 
@@ -31,6 +34,8 @@ def las_to_hdf5(las_in, hdf5_out, drop_columns=None):
         p0 = p0.drop(columns=drop_columns)
     elif type(drop_columns) != type(None):
         raise Exception('"drop_columns" instance of unexpected class: ' + str(type(drop_columns)))
+
+    print('done.')
 
     # save to file
     p0.to_hdf(hdf5_out, key='las_data', mode='w', format='table')
@@ -254,6 +259,8 @@ def las_traj(hdf5_path, traj_in):
     :return:
     """
 
+    print('Interpolating point cloud to trajectory... ', end='')
+
     import numpy as np
     import pandas as pd
 
@@ -319,6 +326,8 @@ def las_traj(hdf5_path, traj_in):
 
     # select columns for output
     output = merged[["gps_time", "traj_x", "traj_y", "traj_z", "distance_from_sensor_m", "angle_from_nadir_deg", "angle_cw_from_north_deg"]]
+
+    print('done.')
 
     # save to hdf5 file
     output.to_hdf(hdf5_path, key='las_traj', mode='r+', format='table')

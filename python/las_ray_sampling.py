@@ -68,6 +68,9 @@ def vox_to_utm(voxel_object, vox_points):
 
 
 def add_points_to_voxels(voxel_object, dataset, points):
+
+    print('sampling ' + vox.return_set + ' returns... ', end='')
+
     # convert to voxel coordinate system
     vox_coords = utm_to_vox(voxel_object, points).astype(int)
 
@@ -87,10 +90,14 @@ def add_points_to_voxels(voxel_object, dataset, points):
     else:
         raise Exception("Expected 'samples' or 'returns' for dataset, encountered:" + str(dataset))
 
+    print('done.')
+
     return voxel_object
 
 
 def interpolate_to_bounding_box(fixed_points, flex_points, bb=None):
+    print('Interpolating rays to bounding box... ', end='')
+
     if fixed_points.shape != flex_points.shape:
         raise Exception('fixed_points and flex_points have different shapes!')
 
@@ -115,10 +122,16 @@ def interpolate_to_bounding_box(fixed_points, flex_points, bb=None):
                     flex_points[lows, ii] - fixed_points[lows, ii]) + flex_points[lows, jj]
             bb_points[highs, jj] = (ub[ii] - flex_points[highs, ii]) * (flex_points[highs, jj] - fixed_points[highs, jj]) / (
                         flex_points[highs, ii] - fixed_points[highs, ii]) + flex_points[highs, jj]
+
+    print('done.')
+
     return bb_points
 
 
 def las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all'):
+
+    print('----- LAS Ray Sampling -----')
+
     start = time.time()
 
     # define voxel object
@@ -171,7 +184,6 @@ def las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all'):
     vox.sample_data = np.zeros(vox.ncells)
     vox.return_data = np.zeros(vox.ncells)
 
-    print('Interpolating to bounding box...')
     # interpolate rays to bounding box
     ray_bb = interpolate_to_bounding_box(ray_1, ray_0)
 
@@ -212,21 +224,20 @@ def las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all'):
     vox.sample_data = vox.sample_data * vox.sample_length
 
     # voxel sample returns
-    print('sampling ' + vox.return_set + ' returns...')
     vox = add_points_to_voxels(vox, "returns", return_points)
 
     end = time.time()
-    print('done in ' + str(end - start) + ' seconds.')
+    print('Ray sampling done in ' + str(end - start) + ' seconds.')
 
     return vox
 
 
-def aggregate_voxels_over_rays(vox, rays, agg_sample_length, iterations=100):
+def aggregate_voxels_over_rays(vox, rays, agg_sample_length, iterations=100, permutations=1):
     print('Aggregating voxels over rays:')
 
     # pull points
-    p0 = rays.values[:, 0:3]
-    p1 = rays.values[:, 3:6]
+    p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
+    p1 = rays.loc[:, ['x1', 'y1', 'z1']].values
 
 
     # calculate distance between ray start (ground) and end (sky)
@@ -280,8 +291,6 @@ def aggregate_voxels_over_rays(vox, rays, agg_sample_length, iterations=100):
     prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
     prior_a = prior_b * 1  # prior_b * K / N
 
-    permutations = int(iterations * 0.1)
-
     returns_mean = np.full(len(path_samples), np.nan)
     returns_med = np.full(len(path_samples), np.nan)
     returns_std = np.full(len(path_samples), np.nan)
@@ -330,30 +339,33 @@ def dem_to_vox_rays(dem_in, vec, vox):
     # use cell center and elevation as ray source (where data exists)
     xy = np.swapaxes(np.array(dem.T1 * np.where(dem.data != dem.no_data)), 0, 1)
     z = dem.data[np.where(dem.data != dem.no_data)]
-    ground_all = np.concatenate([xy, z[:, np.newaxis]], axis=1)
+    ground = np.concatenate([xy, z[:, np.newaxis]], axis=1)
 
     # specify integration rays
     phi = vec[0]  # angle from nadir in degrees
     theta = vec[1]  # angle cw from N in degrees
 
     # calculate endpoint at z_max
-    dz = vox.max[2] - ground_all[:, 2]
+    dz = vox.max[2] - ground[:, 2]
     dx = dz * np.sin(theta * np.pi / 180) * np.tan(phi * np.pi / 180)
     dy = dz * np.cos(theta * np.pi / 180) * np.tan(phi * np.pi / 180)
-    sky_all = ground_all + np.swapaxes(np.array([dx, dy, dz]), 0, 1)
+    sky = ground + np.swapaxes(np.array([dx, dy, dz]), 0, 1)
 
-    # select rays with both points within voxel bounding box
-    ground_in_range = np.all((vox.origin <= ground_all) & (ground_all <= vox.max), axis=1)
-    sky_in_range = np.all((vox.origin <= sky_all) & (sky_all <= vox.max), axis=1)
-    ground = ground_all[ground_in_range & sky_in_range]
-    sky = sky_all[ground_in_range & sky_in_range]
+    # # select rays with both points within voxel bounding box
+    # ground_in_range = np.all((vox.origin <= ground_all) & (ground_all <= vox.max), axis=1)
+    # sky_in_range = np.all((vox.origin <= sky_all) & (sky_all <= vox.max), axis=1)
+    # ground = ground_all[ground_in_range & sky_in_range]
+    # sky = sky_all[ground_in_range & sky_in_range]
+
+    # instead of throwing out points where sky is outside of bounding box, we will just interpolate sky to bb
+    sky_bb = interpolate_to_bounding_box(ground, sky, bb=[vox.origin, vox.max])
 
     df = pd.DataFrame({'x0': ground[:, 0],
                        'y0': ground[:, 1],
                        'z0': ground[:, 2],
-                       'x1': sky[:, 0],
-                       'y1': sky[:, 1],
-                       'z1': sky[:, 2]})
+                       'x1': sky_bb[:, 0],
+                       'y1': sky_bb[:, 1],
+                       'z1': sky_bb[:, 2]})
     return df
 
 
@@ -389,9 +401,43 @@ def ray_stats_to_dem(rays, dem_in):
     return ras
 
 
+def point_to_hemi_rays(origin, img_size, vox, max_dist=50):
+
+    # convert img index to phi/theta
+    img_origin = (img_size - 1) / 2
+    # cell index
+    template = np.full([img_size, img_size], True)
+    index = np.where(template)
+
+    rays = pd.DataFrame({'x_index': index[0],
+                         'y_index': index[1],
+                         'x0': origin[0],
+                         'y0': origin[1],
+                         'z0': origin[2]})
+    # calculate phi and theta
+    rays = rays.assign(phi=np.sqrt((rays.x_index - img_origin) ** 2 + (rays.y_index - img_origin) ** 2) * (np.pi / 2) / img_origin)
+    rays = rays.assign(theta=np.arctan2((rays.x_index - img_origin), (rays.y_index - img_origin)) + np.pi)
+
+    # remove rays which exceed hemisphere
+    rays = rays[rays.phi <= np.pi / 2]
+
+    # calculate cartesian coords of point at r = max_dist along ray
+    rr = max_dist
+    x1 = rr * np.sin(rays.theta) * np.sin(rays.phi)
+    y1 = rr * np.cos(rays.theta) * np.sin(rays.phi)
+    z1 = rr * np.cos(rays.phi)
+
+    p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
+    p1 = np.swapaxes(np.array([x1, y1, z1]), 0, 1) + p0
+
+    # interpolate p1 to bounding box
+    p1_bb = interpolate_to_bounding_box(p0, p1, bb=[vox.origin, vox.max])
+    rays = rays.assign(x1=p1_bb[:, 0], y1=p1_bb[:, 1], z1=p1_bb[:, 2])
+
+    return rays
 
 # las file
-las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_snow_off_classified_merged.las'
+las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las'
 # las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_snow_off_classified_merged.las'
 # trajectory file
 traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
@@ -413,7 +459,7 @@ vox_save(vox, hdf5_path)
 vox = vox_load(hdf5_path)
 
 
-# sample voxel space
+# sample voxel space from dem
 dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_dem_res_.25m.bil"
 #dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.10m.bil"
 ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_first_returns_res_.25m_0-0_t_1.tif"
@@ -428,7 +474,32 @@ ras = ray_stats_to_dem(rays_out, dem_in)
 rastools.raster_save(ras, ras_out)
 
 
+# sample voxel space as hemisphere
+hemi_pts = pd.read_csv('C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uf_1m_pr_.15_os_10\\1m_dem_points.csv')
+hemi_pts = hemi_pts[hemi_pts.uf == 1]
+hemi_pts = hemi_pts[hemi_pts.id == 20426]
+pts = pd.DataFrame({'x0': hemi_pts.x_utm11n,
+                    'y0': hemi_pts.y_utm11n,
+                    'z0': hemi_pts.z_m})
+
+# for each point
+origin = (pts.iloc[0].x0, pts.iloc[0].y0, pts.iloc[0].z0)
+img_size = 100
+agg_sample_length = vox.sample_length
+rays_in = point_to_hemi_rays(origin, img_size, vox, max_dist=50)
+rays_out = aggregate_voxels_over_rays(vox, rays_in, agg_sample_length)
+
+
+area_factor = 0.1
+# cosine correction
+rays_out = rays_out.assign(transmittance=np.exp(-1 * area_factor * rays_out.returns_median / np.cos(rays_out.phi)))
+# no cosine correction
+rays_out = rays_out.assign(transmittance=np.exp(-1 * area_factor * rays_out.returns_median))
+template = np.full([img_size, img_size], 1.0)
+template[(rays_out.y_index.values, rays_out.x_index.values)] = rays_out.transmittance
+
 ### SANDBOX
+
 
 cProfile.run('rays_out = aggregate_voxels_over_dem(vox, rays_in, agg_sample_length)')
 
@@ -517,3 +588,15 @@ plt.title('Upper Forest relative standard deviation of returns\n(ray-sampling me
 plt.scatter(rays_out.x0, rays_out.y0)
 plt.scatter(ground_dem[0], ground_dem[1])
 plt.scatter(p0[:, 0], p0[:, 1])
+
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+fig = plt.imshow(template, interpolation='nearest')
+plt.show(fig)
+
+from scipy import misc
+import imageio
+img = np.rint(template * 255).astype(np.uint8)
+img_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\ray_sampling_transmittance.png'
+imageio.imsave(img_out, img)
