@@ -397,3 +397,144 @@ def las_poisson_sample(las_in, poisson_radius, classification=None, las_out=None
 
     # return results as array
     return arrays
+
+
+def las_quantile_dem(las_in, ras_template, q, q_out=None, n_out=None, las_ground_class=2):
+    import rastools
+    import scipy.stats
+    import numpy as np
+
+    # load las ground points
+    las = las_xyz_load(las_in, keep_class=las_ground_class)
+
+    # load template raster for pixel geometry
+    ras = rastools.raster_load(ras_template)
+    # calculate bins
+    ras_bins = list(ras.T0 * (np.linspace(0, ras.rows, ras.rows + 1), np.linspace(0, ras.rows, ras.rows + 1)))
+    # rectify bins
+    for ii in [0, 1]:
+        if ras_bins[ii][0] > ras_bins[ii][-1]:
+            ras_bins[ii] = np.flip(ras_bins[ii])
+
+    stat_n, xEdges, yEdges, binnumber = scipy.stats.binned_statistic_2d(las[:, 0], las[:, 1], las[:, 2], statistic='count', bins=ras_bins)
+
+    def quantile_q(x):
+        return np.quantile(x, q)
+
+    # preallocate stat_q
+    stat_q = np.full((ras.rows, ras.cols), np.nan)
+
+    # for each column
+    for ii in range(0, ras.cols):
+        # select points in column
+        stripe_points = (las[:, 1] > ras_bins[1][ii]) & (las[:, 1] < ras_bins[1][ii + 1])
+        las_sub = las[stripe_points, :]
+
+        if las_sub.size > 0:
+            # calculate quantile
+            stat_q_col, xEdges, binnumber = scipy.stats.binned_statistic(las_sub[:, 0], las_sub[:, 2], statistic=quantile_q, bins=ras_bins[0])
+            # save to composite output
+            stat_q[:, ii] = stat_q_col
+
+        # advance start bound
+        print('column ' + str(ii + 1) + ' of ' + str(ras.cols))
+
+    # # preallocate stat_q
+    # stat_q = np.full((ras.rows, ras.cols), np.nan)
+    # # stripe data to manage memory
+    # stripe_cutoff = 500000
+    # a = 0
+    # b = 0
+    #
+    # max_stripes = np.int(len(las) / stripe_cutoff) + 1
+    # stripe_count = 0
+    # # for each stripe
+    # while a <= ras.cols:
+    #     stripe_count = stripe_count + 1
+    #     stripe_sum = 0
+    #
+    #     while (stripe_sum < stripe_cutoff) & (b <= ras.cols):
+    #         b = b + 1
+    #         stripe_sum = np.sum(stat_n[:, a:b])
+    #
+    #     # subset bins
+    #     stripe_bins = [ras_bins[0], ras_bins[1][a:(b + 1)]]
+    #
+    #     # select points in stripe bins
+    #     stripe_points = (las[:, 1] > stripe_bins[1][0]) & (las[:, 1] < stripe_bins[1][-1])
+    #     las_sub = las[stripe_points, :]
+    #
+    #     if las_sub.size > 0:
+    #         # calculate quantile
+    #         stat_q_stripe, xEdges, yEdges, binnumber = scipy.stats.binned_statistic_2d(las_sub[:, 0], las_sub[:, 1], las_sub[:, 2], statistic=quantile_q, bins=stripe_bins)
+    #         # save to composite output
+    #         stat_q[:, a:b] = stat_q_stripe
+    #
+    #     # advance start bound
+    #     a = b
+    #     print('stripe ' + str(stripe_count) + ' of max ' + str(max_stripes))
+
+
+    # # SANDBOX
+    # las_sub = las[0:10000000, :]
+    # ras_bins_sub = [ras_bins[0], ras_bins[1][150:160]]
+    #
+    # start = time.time()
+    # stat_q, xEdges, yEdges, binnumber = scipy.stats.binned_statistic_2d(las_sub[:, 0], las_sub[:, 1], las_sub[:, 2], statistic=quantile_q, bins=ras_bins_sub)
+    # end = time.time()
+    # print(end - start)
+    # #####
+
+    # save outputs to file
+    if q_out is not None:
+        q_ras = rastools.raster_load(ras_template)
+        q_ras.data = stat_q
+        q_ras.data[np.isnan(q_ras.data)] = q_ras.no_data
+        rastools.raster_save(q_ras, q_out, data_format='float32')
+
+    if n_out is not None:
+        n_ras = rastools.raster_load(ras_template)
+        n_ras.data = stat_n
+        n_ras.data[np.isnan(n_ras.data)] = n_ras.no_data
+        rastools.raster_save(n_ras, n_out, data_format='float32')
+
+    return stat_q, stat_n
+
+
+def delauney_fill(values, values_out, ras_template, n_count=None, min_n=0):
+    import numpy as np
+    import rastools
+    from scipy.interpolate import LinearNDInterpolator
+
+    if (min_n > 0) & n_count is None:
+        raise Exception('no ncount provided, could not threshold to min_n')
+
+    # delauney triangulation between cells where n > min_n
+    if min_n > 0:
+        valid_cells = np.where(n_count > min_n)
+        invalid_cells = np.where(n_count <= min_n)
+    else:
+        valid_cells = np.where(np.isnan(values))
+        invalid_cells = np.where(~np.isnan(values))
+
+    # unzip to coords
+    valid_coords = list(zip(valid_cells[0], valid_cells[1]))
+    # create interpolation function
+    delauney_int = LinearNDInterpolator(valid_coords, values[valid_cells])
+
+    values_filled = values.copy()
+    # interpolate invalid cells
+    values_filled[invalid_cells] = delauney_int(invalid_cells)
+
+    # export filled to raster
+    val_ras = rastools.raster_load(ras_template)
+    val_ras.data = values_filled
+    val_ras.data[np.isnan(val_ras.data)] = val_ras.no_data
+    rastools.raster_save(val_ras, values_out, data_format='float32')
+
+    return values_filled
+
+# import matplotlib
+# matplotlib.use('TkAgg')
+# import matplotlib.pyplot as plt
+# plt.imshow(stat_q, interpolation='nearest')

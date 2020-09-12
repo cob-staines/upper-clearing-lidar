@@ -1,19 +1,51 @@
 import rastools
+import laslib
+import time
 
-snow_on = ["19_045", "19_050", "19_052", "19_107", "19_123"]
-snow_off = "19_149"
-resolution = [".04", ".10", ".25", ".50", "1.00"]
+date = ["19_045", "19_050", "19_052", "19_107", "19_123", "19_149"]
+resolution = [".10", ".25", ".50", "1.00"]
 
-# create dem dictionary
-dem_dir = {}
-for dd in snow_on:
-    dirdump = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\" + dd + "\\" + \
-                   dd + "_snow_on\\OUTPUT_FILES\\DEM\\"
-    dem_dir.update({dd: dirdump})
-dd = snow_off
-dirdump = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\" + dd + "\\" + \
-                   dd + "_snow_off\\OUTPUT_FILES\\DEM\\"
-dem_dir.update({dd: dirdump})
+dem_quantile = .20
+
+las_in_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\LAS\\<DATE>_classified_merged.las'
+dem_ref_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\raster_templates\\hs_19_045_res_<RES>m.tif'
+dem_path_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\DEM\\<DATE>_dem_r<RES>m_q<QUANTILE>.tif'
+count_path_template = dem_path_template.replace('q<QUANTILE>', 'count')
+dhs_path_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\<DDI>_<DDJ>\\<DDI>_<DDJ>_dhs_r<RES>.tif'
+
+# # create dem dictionary
+# dem_dir = {}
+# for dd in date:
+#     dirdump = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\" + dd + "\\" + \
+#                    dd + "_las_proc\\OUTPUT_FILES\\DEM\\"
+#     dem_dir.update({dd: dirdump})
+
+# create dems at all resolutions using quantile method
+dem_path_q = dem_path_template.replace('<QUANTILE>', str(dem_quantile))
+
+for dd in date:
+    # update file paths with date
+    las_in = las_in_template.replace('<DATE>', dd)
+    dem_path_d = dem_path_q.replace('<DATE>', dd)
+    count_path_d = count_path_template.replace('<DATE>', dd)
+    for rr in resolution:
+        # update file paths with resolution
+        ras_template = dem_ref_template.replace('<RES>', rr)
+        dem_path = dem_path_d.replace('<RES>', rr)
+        count_path = count_path_d.replace('<RES>', rr)
+
+        # calculate dem
+        start = time.time()
+        laslib.las_quantile_dem(las_in, ras_template, dem_quantile, q_out=dem_path, n_out=count_path)
+        end = time.time()
+        print(end - start)
+
+for ii in range(0, date.__len__()):
+    ddi = date[ii]
+    for jj in range(ii, date.__len__()):
+        ddj = date[jj]
+
+
 
 # create merged dem products
 ras_in_ext = ".bil"
