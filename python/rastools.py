@@ -110,7 +110,7 @@ def raster_save(ras_object, file_path, file_format="GTiff", data_format="float32
         outdata.GetRasterBand(ii + 1).SetNoDataValue(ras_object.no_data)
 
 
-def ras_dif(ras_1_in, ras_2_in, inherit_from=1):
+def raster_dif(ras_1_in, ras_2_in, inherit_from=1, dif_out=None):
     # Returns raster object as follows:
         # ras_dif.data = ras_1. data - ras_2.data
         # metadata inherited from "inherit_from" (1 or 2).
@@ -141,6 +141,10 @@ def ras_dif(ras_1_in, ras_2_in, inherit_from=1):
     mask = (ras_A.data == ras_A.no_data) | (ras_B.data == ras_B.no_data)
     ras_dif.data = (ras_A.data - ras_B.data) * flip_factor
     ras_dif.data[mask] = ras_A.no_data
+
+    if dif_out is not None:
+        # output dif
+        raster_save(ras_dif, dif_out, data_format='float32')
 
     return ras_dif
 
@@ -383,6 +387,50 @@ def pd_sample_raster(parent, ras, colnames):
         pc = pc.drop(columns=['child_x_index', 'child_y_index', 'x_index_child', 'y_index_child'])
 
         return pc
+
+
+def delauney_fill(values, values_out, ras_template, n_count=None, n_threshold=0):
+    import numpy as np
+    from scipy.interpolate import LinearNDInterpolator
+
+    if (n_threshold > 0) & (n_count is None):
+        raise Exception('no n_count provided, could not threshold to min_n')
+
+    if isinstance(values, str):
+        values_in = values
+        ras = raster_load(values_in)
+        values = ras.data
+        values[values == ras.no_data] = np.nan
+
+    if isinstance(n_count, str):
+        n_count_in = n_count
+        ras = raster_load(n_count_in)
+        n_count = ras.data
+
+    # delauney triangulation between cells where n > min_n
+    if n_threshold > 0:
+        valid_cells = np.where(n_count > n_threshold)
+        invalid_cells = np.where(n_count <= n_threshold)
+    else:
+        valid_cells = np.where(np.isnan(values))
+        invalid_cells = np.where(~np.isnan(values))
+
+    # unzip to coords
+    valid_coords = list(zip(valid_cells[0], valid_cells[1]))
+    # create interpolation function
+    delauney_int = LinearNDInterpolator(valid_coords, values[valid_cells])
+
+    values_filled = values.copy()
+    # interpolate invalid cells
+    values_filled[invalid_cells] = delauney_int(invalid_cells)
+
+    # export filled to raster
+    val_ras = raster_load(ras_template)
+    val_ras.data = values_filled
+    val_ras.data[np.isnan(val_ras.data)] = val_ras.no_data
+    raster_save(val_ras, values_out, data_format='float32')
+
+    return values_filled
 
 
 # import matplotlib

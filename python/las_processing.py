@@ -13,3 +13,5 @@
 # dce
 # lpm
 # ray_sampling_method
+
+# merged data products

@@ -49,6 +49,9 @@ def las_xyz_load(las_path, drop_class=None, keep_class=None):
     :param keep_class: None, integer, or list of integers declaring point class(es) to be dropped
     :return: las_xyz: numpy array of x, y, and z coordinates for
     """
+
+    print('Loading LAS file... ', end='')
+
     import laspy
     import numpy as np
 
@@ -86,6 +89,8 @@ def las_xyz_load(las_path, drop_class=None, keep_class=None):
 
     # filter xyz with class_filter
     las_xyz = p0[drop_class_filter & keep_class_filter]
+
+    print('done')
 
     return las_xyz
 
@@ -400,6 +405,17 @@ def las_poisson_sample(las_in, poisson_radius, classification=None, las_out=None
 
 
 def las_quantile_dem(las_in, ras_template, q, q_out=None, n_out=None, las_ground_class=2):
+    """
+    Produces a raster DEM from classified point cloud by calculating a pixel-wise quantile
+    :param las_in: path to LAS point cloud file
+    :param ras_template: path to a geotif image from which pixel binning will be inherited
+    :param q: quantile in range [0, 1] quich will be calculated for each pixel
+    :param q_out: path of resultant quantile product (optional)
+    :param n_out: path of resultant cell point count product (optional)
+    :param las_ground_class: class of points representing ground
+    :return: quantile product, count product
+    """
+
     import rastools
     import scipy.stats
     import numpy as np
@@ -409,14 +425,22 @@ def las_quantile_dem(las_in, ras_template, q, q_out=None, n_out=None, las_ground
 
     # load template raster for pixel geometry
     ras = rastools.raster_load(ras_template)
+
     # calculate bins
     ras_bins = list(ras.T0 * (np.linspace(0, ras.rows, ras.rows + 1), np.linspace(0, ras.rows, ras.rows + 1)))
+
     # rectify bins
+    rectified = [False, False]
     for ii in [0, 1]:
         if ras_bins[ii][0] > ras_bins[ii][-1]:
             ras_bins[ii] = np.flip(ras_bins[ii])
+            rectified[ii] = True
 
+    print('Computing counts... ', end='')
     stat_n, xEdges, yEdges, binnumber = scipy.stats.binned_statistic_2d(las[:, 0], las[:, 1], las[:, 2], statistic='count', bins=ras_bins)
+    print('done')
+
+    print('Computing quantile... ')
 
     def quantile_q(x):
         return np.quantile(x, q)
@@ -439,60 +463,26 @@ def las_quantile_dem(las_in, ras_template, q, q_out=None, n_out=None, las_ground
         # advance start bound
         print('column ' + str(ii + 1) + ' of ' + str(ras.cols))
 
-    # # preallocate stat_q
-    # stat_q = np.full((ras.rows, ras.cols), np.nan)
-    # # stripe data to manage memory
-    # stripe_cutoff = 500000
-    # a = 0
-    # b = 0
-    #
-    # max_stripes = np.int(len(las) / stripe_cutoff) + 1
-    # stripe_count = 0
-    # # for each stripe
-    # while a <= ras.cols:
-    #     stripe_count = stripe_count + 1
-    #     stripe_sum = 0
-    #
-    #     while (stripe_sum < stripe_cutoff) & (b <= ras.cols):
-    #         b = b + 1
-    #         stripe_sum = np.sum(stat_n[:, a:b])
-    #
-    #     # subset bins
-    #     stripe_bins = [ras_bins[0], ras_bins[1][a:(b + 1)]]
-    #
-    #     # select points in stripe bins
-    #     stripe_points = (las[:, 1] > stripe_bins[1][0]) & (las[:, 1] < stripe_bins[1][-1])
-    #     las_sub = las[stripe_points, :]
-    #
-    #     if las_sub.size > 0:
-    #         # calculate quantile
-    #         stat_q_stripe, xEdges, yEdges, binnumber = scipy.stats.binned_statistic_2d(las_sub[:, 0], las_sub[:, 1], las_sub[:, 2], statistic=quantile_q, bins=stripe_bins)
-    #         # save to composite output
-    #         stat_q[:, a:b] = stat_q_stripe
-    #
-    #     # advance start bound
-    #     a = b
-    #     print('stripe ' + str(stripe_count) + ' of max ' + str(max_stripes))
+    # undo rectification
+    for ii in [0, 1]:
+        if rectified[ii]:
+            stat_n = np.flip(stat_n, ii)
+            stat_q = np.flip(stat_q, ii)
 
-
-    # # SANDBOX
-    # las_sub = las[0:10000000, :]
-    # ras_bins_sub = [ras_bins[0], ras_bins[1][150:160]]
-    #
-    # start = time.time()
-    # stat_q, xEdges, yEdges, binnumber = scipy.stats.binned_statistic_2d(las_sub[:, 0], las_sub[:, 1], las_sub[:, 2], statistic=quantile_q, bins=ras_bins_sub)
-    # end = time.time()
-    # print(end - start)
-    # #####
+    # swap axes
+    stat_n = stat_n.swapaxes(0, 1)
+    stat_q = stat_q.swapaxes(0, 1)
 
     # save outputs to file
     if q_out is not None:
+        # output quantile
         q_ras = rastools.raster_load(ras_template)
         q_ras.data = stat_q
         q_ras.data[np.isnan(q_ras.data)] = q_ras.no_data
         rastools.raster_save(q_ras, q_out, data_format='float32')
 
     if n_out is not None:
+        # output count
         n_ras = rastools.raster_load(ras_template)
         n_ras.data = stat_n
         n_ras.data[np.isnan(n_ras.data)] = n_ras.no_data
@@ -501,38 +491,7 @@ def las_quantile_dem(las_in, ras_template, q, q_out=None, n_out=None, las_ground
     return stat_q, stat_n
 
 
-def delauney_fill(values, values_out, ras_template, n_count=None, min_n=0):
-    import numpy as np
-    import rastools
-    from scipy.interpolate import LinearNDInterpolator
 
-    if (min_n > 0) & n_count is None:
-        raise Exception('no ncount provided, could not threshold to min_n')
-
-    # delauney triangulation between cells where n > min_n
-    if min_n > 0:
-        valid_cells = np.where(n_count > min_n)
-        invalid_cells = np.where(n_count <= min_n)
-    else:
-        valid_cells = np.where(np.isnan(values))
-        invalid_cells = np.where(~np.isnan(values))
-
-    # unzip to coords
-    valid_coords = list(zip(valid_cells[0], valid_cells[1]))
-    # create interpolation function
-    delauney_int = LinearNDInterpolator(valid_coords, values[valid_cells])
-
-    values_filled = values.copy()
-    # interpolate invalid cells
-    values_filled[invalid_cells] = delauney_int(invalid_cells)
-
-    # export filled to raster
-    val_ras = rastools.raster_load(ras_template)
-    val_ras.data = values_filled
-    val_ras.data[np.isnan(val_ras.data)] = val_ras.no_data
-    rastools.raster_save(val_ras, values_out, data_format='float32')
-
-    return values_filled
 
 # import matplotlib
 # matplotlib.use('TkAgg')
