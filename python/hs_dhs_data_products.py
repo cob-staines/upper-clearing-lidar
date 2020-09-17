@@ -1,10 +1,11 @@
 import rastools
 import laslib
-import time
 import os
 
 date = ["19_045", "19_050", "19_052", "19_107", "19_123", "19_149"]
-int_date = ["19_149"]
+snow_on = ["19_045", "19_050", "19_052", "19_107", "19_123"]
+snow_off = ["19_149"]
+
 resolution = [".04", ".10", ".25", ".50", "1.00"]
 
 dem_quantile = .25
@@ -82,7 +83,7 @@ for ii in range(0, date.__len__()):
             dhs = rastools.raster_dif(ddi_in, ddj_in, inherit_from=2, dif_out=dhs_out)
 
 # interpolated products
-for dd in int_date:
+for dd in snow_off:
     print(dd, end='')
     # update file paths with date
     int_dir = path_sub(int_dir_template, dd)
@@ -102,16 +103,17 @@ for dd in int_date:
         print(' -- ' + rr, end='')
     print('\n')
 
-#### BOOKMARK -- OLD HAT BELOW
-
-# point sample HS products
+# point sample HS products to merge with snow surveys
 initial_pts_file = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\surveys\\all_ground_points_UTM11N_uid_flagged_cover.csv"
-for dd in snow_on:
+for rr in resolution:
     pts_file_in = initial_pts_file
-    pts_file_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\hs\\" + \
-                   dd + "\\all_ground_points_hs_" + dd + ".csv"
-    for rr in resolution:
-        ras_sample = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\hs\\" + \
-                     dd + "\\hs_" + dd + "_res_" + rr + "m.tif"
-        rastools.point_sample_raster(ras_sample, pts_file_in, pts_file_out, "xcoordUTM11", "ycoordUTM11", rr)
-        pts_file_in = pts_file_out
+    pts_file_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\dhs\\all_ground_points_dhs_r" + rr + ".csv"
+    for ii in range(0, date.__len__()):
+        ddi = date[ii]
+        for jj in range(ii + 1, date.__len__()):
+            ddj = date[jj]
+
+            ras_sample = path_sub([dhs_dir_template, dhs_file_template], ddi=ddi, ddj=ddj, rr=rr)
+            colname = str(ddi) + '-' + str(ddj)
+            rastools.csv_sample_raster(ras_sample, pts_file_in, pts_file_out, "xcoordUTM11", "ycoordUTM11", colname, sample_no_data_value='')
+            pts_file_in = pts_file_out

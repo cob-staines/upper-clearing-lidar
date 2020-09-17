@@ -4,14 +4,15 @@ import pandas as pd
 from skimage.morphology import reconstruction, opening
 from scipy.ndimage.measurements import label, maximum_position
 from sklearn.cluster import KMeans
+import os
 
 # config
 # raster chm for identifying treetops
-ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_snow_off_627975_5646450_spike_free_chm_.10m.bil"
+ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\CHM\\19_149_snow_off_627975_5646450_spike_free_chm_.10m.bil"
 # raster template for output nearest and distance maps
-ras_map_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_snow_off_627975_5646450_spike_free_chm_.10m.bil"
+ras_template_in = ras_in
 # output file naming conventions
-output_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DNT\\"
+output_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\DNT\\"
 file_base = ras_in.split("\\")[-1].replace(".bil", "")
 treetops_out = output_dir + file_base + "_kho_treetops.csv"
 
@@ -108,10 +109,14 @@ output.to_csv(treetops_out, index=False)
 # filter to true peaks
 peaks_filtered = peaklist.loc[peaklist.true_peak == 1, ['UTM11N_x', 'UTM11N_y']]
 # load raster template for outputs
-ras_map = rastools.raster_load(ras_map_in)
+ras_map = rastools.raster_load(ras_template_in)
 
 # calculate distance and index maps
 index_map, distance_map = rastools.raster_nearest_neighbor(peaks_filtered, ras_map)
+
+# make output dir
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
 
 # export index_map to raster file
 ras_index = ras_map

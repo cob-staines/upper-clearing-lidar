@@ -185,7 +185,7 @@ def raster_merge(ras_in_dir, ras_in_ext, ras_out, no_data="-9999"):
     subprocess.call(cmd, shell=True)
 
 
-def point_sample_raster(ras_in, pts_in, pts_out, pts_xcoord_name, pts_ycoord_name, sample_col_name, sample_no_data_value=-9999):
+def csv_sample_raster(ras_in, pts_in, pts_out, pts_xcoord_name, pts_ycoord_name, sample_col_name, sample_no_data_value=''):
 
     # takes in csv file of points "pts_in" with x-column "pts_xcoord_name" and y-column "pts_ycoord_name" and saves
     # point values of raster "ras_in" to column "sample_col_name" in output csv "pts_out"

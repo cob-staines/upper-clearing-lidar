@@ -1,16 +1,16 @@
 import numpy as np
 from scipy.ndimage import convolve
-import matplotlib
 import rastools
-matplotlib.use('TkAgg')
+import os
 
 # config
-ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_snow_off_627975_5646450_spike_free_chm_.10m.bil"
+ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\CHM\\19_149_snow_off_627975_5646450_spike_free_chm_.10m.bil"
 step_size = 0.10  # in m
 canopy_min_elev = 2
 kernel_dim = 3  # step size = (kernel_dim - 1)/2
 max_scan = 30  # max number of steps
-output_fname = prominence_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DCE\\19_149_snow_off_627975_5646450_spike_free_chm_.10m_DCE.tiff"
+dir_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\DCE\\"
+file_out = "19_149_snow_off_627975_5646450_spike_free_chm_.10m_DCE.tiff"
 
 # load raster
 ras = rastools.raster_load(ras_in)
@@ -47,6 +47,10 @@ record = record * step_size
 
 record[np.isnan(record)] = ras.no_data
 
+# export
+if not os.path.exists(dir_out):
+    os.makedirs(dir_out)
+
 ras_dce = ras
 ras_dce.data = record
-rastools.raster_save(ras_dce, output_fname, data_format="float32")
+rastools.raster_save(ras_dce, dir_out + file_out, data_format="float32")

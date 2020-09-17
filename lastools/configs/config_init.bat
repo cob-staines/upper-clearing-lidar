@@ -4,7 +4,7 @@
 :: folder containing batch files
 SET DIR_BAT=C:\Users\Cob\index\educational\usask\research\masters\repos\upper-clearing-lidar\lastools
 
-:: snow_on
+:: call las_proc
 SET DATE=19_045
 SET PRODUCT_ID=%DATE%_las_proc
 call %DIR_BAT%\configs\las_proc.bat
@@ -25,7 +25,6 @@ SET DATE=19_123
 SET PRODUCT_ID=%DATE%_las_proc
 call %DIR_BAT%\configs\las_proc.bat
 
-:: snow_off
 SET DATE=19_149
 SET PRODUCT_ID=%DATE%_las_proc
 call %DIR_BAT%\configs\las_proc.bat

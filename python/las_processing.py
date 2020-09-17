@@ -5,13 +5,17 @@
 
 # ----- DEM analysis -----
 # calculate dems and differential dem products
-# hs_dhs_data_products
+import hs_dhs_data_products
 
 # ----- Canopy analysis -----
 # hemigen
 # tree_top_kho
+import tree_top_kho
 # dce
-# lpm
+import distance_to_canopy_edge
+# lpm calculation
+import lpm_map_gen
 # ray_sampling_method
 
 # merged data products
+import merged_data_products
