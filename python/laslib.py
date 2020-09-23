@@ -201,10 +201,14 @@ def hemigen(hdf5_path, hemimeta, initial_index=0):
         if hemimeta.max_distance is None:
             hemimeta.max_distance = float("inf")
 
+        # if no min_radius, set to 0
+        if hemimeta.min_distance is None:
+            hemimeta.min_distance = float(0)
+
         # calculate r
         r = np.sqrt(np.sum(p1 ** 2, axis=1))
         # subset to within max_radius
-        subset_f = r < hemimeta.max_distance
+        subset_f = (r < hemimeta.max_distance) & (r > hemimeta.min_distance)
         r = r[subset_f]
         p1 = p1[subset_f]
 
@@ -251,6 +255,7 @@ class HemiMetaObj(object):
         self.optimization_scalar = None
         self.poisson_sampling_radius = None
         self.max_distance = None
+        self.min_distance = None
         self.img_size = None
         self.img_resolution = None
         self.point_size_scalar = None

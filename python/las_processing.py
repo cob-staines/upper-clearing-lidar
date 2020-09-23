@@ -8,7 +8,14 @@
 import hs_dhs_data_products
 
 # ----- Canopy analysis -----
-# hemigen
+# hemi_optimization.py (optimizing synthetics)
+# hemisfer (photos/optimizing synthetics)
+# hemisfer_parse.py (photos/optimizing synthetics)
+# hemi_ptimization_2.r (select optimization parameters)
+# hemi_from_dem.py (synthetics)
+# hemisfer (synthetics)
+# hemisfer_parse.py (synthetics)
+
 # tree_top_kho
 import tree_top_kho
 # dce

@@ -1,12 +1,16 @@
 import rastools
 import laslib
+import numpy as np
 import os
 
-date = ["19_045", "19_050", "19_052", "19_107", "19_123", "19_149"]
 snow_on = ["19_045", "19_050", "19_052", "19_107", "19_123"]
 snow_off = ["19_149"]
+all_dates = snow_on + snow_off
 
 resolution = [".04", ".10", ".25", ".50", "1.00"]
+
+depth_to_density_intercept = dict(zip(snow_on, [193.8071, 148.3014, 120.3762, 251.3936, 232.0078]))
+depth_to_density_slope = dict(zip(snow_on, [0, 0, 0, 0, 0]))
 
 dem_quantile = .25
 interpolation_threshold = 0
@@ -17,13 +21,20 @@ dem_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters
 dem_file_template = '<DATE>_dem_r<RES>m_q<QUANT>.tif'
 count_file_template = '<DATE>_dem_r<RES>m_count.tif'
 
-dhs_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\dhs\\<DDI>-<DDJ>\\'
-dhs_file_template = '<DDI>-<DDJ>_dhs_r<RES>.tif'
+hs_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\hs\\<DDI>-<DDJ>\\'
+hs_file_template = 'hs_<DDI>-<DDJ>_r<RES>_q<QUANT>.tif'
+
+swe_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\SWE\\<DATE>\\'
+swe_file_template = 'swe_<DATE>_r<RES>m_q<QUANT>.tif'
+
+dswe_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\dSWE\\<DDI>-<DDJ>\\'
+dswe_file_template = 'dswe_<DDI>-<DDJ>_r<RES>m_q<QUANT>.tif'
 
 int_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\DEM\\interpolated\\'
 int_file_template = '<DATE>_dem_r<RES>m_q<QUANT>_interpolated_t<ITN>.tif'
 
-def path_sub(path, dd=None, rr=None, qq=None, ddi=None, ddj=None, itn=None):
+
+def path_sub(path, dd=None, rr=None, qq=None, ddi=None, ddj=None, itn=None, mm=None, bb=None):
     if isinstance(path, str):
         # nest pure strings in list
         path = [path]
@@ -39,14 +50,14 @@ def path_sub(path, dd=None, rr=None, qq=None, ddi=None, ddj=None, itn=None):
             path[ii] = path[ii].replace('<DDI>', str(ddi))
         if ddj is not None:
             path[ii] = path[ii].replace('<DDJ>', str(ddj))
-        if min is not None:
+        if itn is not None:
             path[ii] = path[ii].replace('<ITN>', str(itn))
 
     return ''.join(path)
 
 
 # create dems at all resolutions using quantile method
-for dd in date:
+for dd in all_dates:
     # update file paths with date
     las_in = path_sub(las_in_template, dd)
     dem_dir = path_sub(dem_dir_template, dd)
@@ -64,23 +75,66 @@ for dd in date:
         # calculate dem
         stat_q, stat_n = laslib.las_quantile_dem(las_in, ras_template, dem_quantile, q_out=dem_file, n_out=count_file)
 
-# differential dem products
-for ii in range(0, date.__len__()):
-    ddi = date[ii]
-    for jj in range(ii + 1, date.__len__()):
-        ddj = date[jj]
+# differential dem products (snow depth/hs)
+for ddi in snow_on:
+    for ddj in snow_off:
 
-        # create dHS directory if does not exist
-        dhs_dir = path_sub(dhs_dir_template, ddi=ddi, ddj=ddj)
-        if not os.path.exists(dhs_dir):
-            os.makedirs(dhs_dir)
+        # create HS directory if does not exist
+        hs_dir = path_sub(hs_dir_template, ddi=ddi, ddj=ddj)
+        if not os.path.exists(hs_dir):
+            os.makedirs(hs_dir)
 
         for rr in resolution:
             ddi_in = path_sub([dem_dir_template, dem_file_template], dd=ddi, rr=rr, qq=dem_quantile)
             ddj_in = path_sub([dem_dir_template, dem_file_template], dd=ddj, rr=rr, qq=dem_quantile)
-            dhs_out = path_sub([dhs_dir_template, dhs_file_template], ddi=ddi, ddj=ddj, rr=rr)
+            hs_out = path_sub([hs_dir_template, hs_file_template], ddi=ddi, ddj=ddj, rr=rr, qq=dem_quantile)
 
-            dhs = rastools.raster_dif(ddi_in, ddj_in, inherit_from=2, dif_out=dhs_out)
+            hs = rastools.raster_dif(ddi_in, ddj_in, inherit_from=2, dif_out=hs_out)
+
+# SWE products
+for ddi in snow_on:
+    for ddj in snow_off:
+        # update file paths with date
+        swe_dir = path_sub(swe_dir_template, ddi)
+
+        # create SWE directory if does not exist
+        if not os.path.exists(swe_dir):
+            os.makedirs(swe_dir)
+
+        mm = depth_to_density_slope[ddi]
+        bb = depth_to_density_intercept[ddi]
+
+        for rr in resolution:
+            # update file paths with resolution
+            hs_file = path_sub([hs_dir_template, hs_file_template], ddi=ddi, ddj=ddj, rr=rr, qq=dem_quantile)
+            swe_file = path_sub([swe_dir_template, swe_file_template], dd=ddi, rr=rr, qq=dem_quantile)
+
+            # calculate swe
+            ras = rastools.raster_load(hs_file)
+            valid_cells = np.where(ras.data != ras.no_data)
+            depth = ras.data[valid_cells]
+            swe = depth * (mm * depth + bb)
+            ras.data[valid_cells] = swe
+            rastools.raster_save(ras, swe_file)
+
+# differential SWE products
+for ii in range(0, len(snow_on)):
+    ddi = snow_on[ii]
+    for jj in range(ii + 1, len(snow_on)):
+        ddj = snow_on[jj]
+        # update file paths with dates
+        dswe_dir = path_sub(dswe_dir_template, ddi=ddi, ddj=ddj)
+
+        # create SWE directory if does not exist
+        if not os.path.exists(dswe_dir):
+            os.makedirs(dswe_dir)
+
+        for rr in resolution:
+            ddi_in = path_sub([swe_dir_template, swe_file_template], dd=ddi, rr=rr, qq=dem_quantile)
+            ddj_in = path_sub([swe_dir_template, swe_file_template], dd=ddj, rr=rr, qq=dem_quantile)
+            dswe_out = path_sub([dswe_dir_template, dswe_file_template], ddi=ddi, ddj=ddj, rr=rr, qq=dem_quantile)
+
+            hs = rastools.raster_dif(ddj_in, ddi_in, inherit_from=2, dif_out=dswe_out)
 
 # interpolated products
 for dd in snow_off:
