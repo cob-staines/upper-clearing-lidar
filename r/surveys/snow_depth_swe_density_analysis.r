@@ -1,6 +1,8 @@
 library('dplyr')
 library('tidyr')
 library('ggplot2')
+library('grid')
+library('gridExtra')
 
 # load survey samples
 tasks <- c("19_045", "19_050", "19_052", "19_107", "19_123")
@@ -17,6 +19,7 @@ survey = survey[,c('snow_depth_cm', 'swe_raw_cm', 'swe_tare_cm', 'swe_quality_fl
 
 survey$swe_mm = 10 * (survey$swe_raw_cm - survey$swe_tare_cm)
 survey$density = survey$swe_mm / (survey$snow_depth_cm * 0.01)
+survey$cover = survey$standardized_survey_notes
 
 survey$swe_quality_flag[is.na(survey$swe_quality_flag)] = 0
 
@@ -26,27 +29,33 @@ survey = survey[survey$swe_quality_flag == 0,]
 # calculate density
 # facet grid plot of density vs depth for all dates
 
-ggplot(survey, aes(x=snow_depth_cm, y=swe_mm, color=standardized_survey_notes)) +
+p_swe = ggplot(survey, aes(x=snow_depth_cm, y=swe_mm, color=cover)) +
   facet_grid(. ~ doy) +
-  geom_point()
+  geom_point() +
+  labs(title='Snow depth vs. SWE across survey days', x='Snow depth (cm)', y='SWE (mm)')
 
-ggplot(survey, aes(x=snow_depth_cm, y=density, color=standardized_survey_notes)) +
+p_den = ggplot(survey, aes(x=snow_depth_cm, y=density, color=cover)) +
   facet_grid(. ~ doy) +
-  geom_point()
+  geom_point() +
+  labs(title='Snow depth vs. density across survey days', x='Snow depth (cm)', y='Density (kg/m^3)')
+
+foreststuff =  survey %>%
+  filter(cover == 'forest')
+
+p_for = ggplot(foreststuff, aes(x=snow_depth_cm, y=density, color=cover)) +
+  facet_grid(. ~ doy) +
+  geom_point() +
+  labs(title='Snow depth vs. density for forest points across survey days', x='Snow depth (cm)', y='Density (kg/m^3)') +
   geom_smooth(method = "lm", se=FALSE, color="black", formula = y ~ x)
 
-survey %>%
-  filter(standardized_survey_notes == 'forest') %>%
-  ggplot(., aes(x=snow_depth_cm, y=density)) +
-    facet_grid(. ~ doy) +
-    geom_point() +
-    labs(title('Snow depth vs. density for forest points ove different days'))
-
+p_sden = grid.arrange(p_swe, p_den, p_for, nrow=3)
+gd = 'C:/Users/Cob/index/educational/usask/research/masters/graphics/automated/'
+ggsave(paste0(gd, "snow_depth_v_density.pdf"), p_sden, width = 29.7, height = 21, units = "cm")
 
 survey %>%
   filter(doy %in% c('19_045', '19_050', '19_052')) %>%
   ggplot(., aes(x=snow_depth_cm, y=density, color=doy)) +
-    facet_grid(. ~ standardized_survey_notes) +
+    facet_grid(. ~ cover) +
     geom_point()
     theme_minimal()
 
@@ -71,11 +80,19 @@ a_123 = survey[(survey$doy == '19_123'),]
 
 
 
+
+
 lm_f_045 = lm(density ~ snow_depth_cm, data = f_045)
 lm_f_050 = lm(density ~ snow_depth_cm, data = f_050)
 lm_f_052 = lm(density ~ snow_depth_cm, data = f_052)
 lm_f_107 = lm(density ~ snow_depth_cm, data = f_107)
 lm_f_123 = lm(density ~ snow_depth_cm, data = f_123)
+
+summary(lm_f_045)
+summary(lm_f_050)
+summary(lm_f_052)
+summary(lm_f_107)
+summary(lm_f_123)
 
 lm_c_045 = lm(density ~ snow_depth_cm, data = c_045)
 lm_c_050 = lm(density ~ snow_depth_cm, data = c_050)
@@ -89,9 +106,21 @@ lm_a_052 = lm(density ~ snow_depth_cm, data = a_052)
 lm_a_107 = lm(density ~ snow_depth_cm, data = a_107)
 lm_a_123 = lm(density ~ snow_depth_cm, data = a_123)
 
+library(lme4)
+mixed_lm_a_045 = lmer(density ~ snow_depth_cm + (1|standardized_survey_notes), data = a_045)
+summary(mixed_lm_a_045)
+
 ks.test(f_045$density, f_050$density)
-ks.test(f_050$density, f_052$density)
 ks.test(f_045$density, f_052$density)
+ks.test(f_050$density, f_052$density)
+ks.test(f_045$density, f_107$density)
+ks.test(f_050$density, f_107$density)
+ks.test(f_052$density, f_107$density)
+ks.test(f_045$density, f_123$density)
+ks.test(f_050$density, f_123$density)
+ks.test(f_052$density, f_123$density)
+ks.test(f_107$density, f_123$density)
+
 
 mean(f_045$density)
 mean(f_050$density)
