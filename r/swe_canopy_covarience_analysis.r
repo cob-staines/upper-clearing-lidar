@@ -4,7 +4,7 @@ library('ggplot2')
 library('grid')
 library('gridExtra')
 
-data_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/hs_uf_.25m_canopy_19_149.csv'
+data_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/swe_uf_.25m_canopy_19_149.csv'
 gd = 'C:/Users/Cob/index/educational/usask/research/masters/graphics/automated/'
 data = read.csv(data_in, header=TRUE, na.strings = c("NA",""), sep=",")
 data$cc = 1 - data$openness
@@ -19,7 +19,7 @@ levels(data_swe$date) = c("19_045", "19_050", "19_052", "19_107", "19_123")
 bincount = 50
 plot_h = 21  # cm
 plot_w = 29.7  # cm
-xmin = -25
+xmin = -50
 xmax = 150
 clow = '#000055'
 chigh = '#CCCCFF'
@@ -39,7 +39,7 @@ p_dnt = ggplot(data_swe, aes(x=swe, y=dnt)) +
 # dce
 p_dce = ggplot(data_swe, aes(x=swe, y=dce)) +
   facet_grid(. ~ date) +
-  geom_bin2d(binwidth=c(4, .1)) +
+  geom_bin2d(binwidth=c(3, .1)) +
   xlim(xmin, xmax) +
   labs(x='SWE (mm)', y='Distance to canopy edge (rectilinear m)') +
   scale_fill_gradient(low=clow, high=chigh) +

@@ -9,8 +9,8 @@ all_dates = snow_on + snow_off
 
 resolution = [".04", ".10", ".25", ".50", "1.00"]
 
-depth_to_density_intercept = dict(zip(snow_on, [193.8071, 148.3014, 120.3762, 251.3936, 232.0078]))
-depth_to_density_slope = dict(zip(snow_on, [0, 0, 0, 0, 0]))
+depth_to_density_intercept = dict(zip(snow_on, [0, 0, 0, 0, 0]))
+depth_to_density_slope = dict(zip(snow_on, 100*np.array([2.695, 2.7394, 3.0604, 3.1913, 2.5946])))
 
 dem_quantile = .25
 interpolation_threshold = 0

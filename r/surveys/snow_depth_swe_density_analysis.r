@@ -29,6 +29,7 @@ survey = survey[survey$swe_quality_flag == 0,]
 # calculate density
 # facet grid plot of density vs depth for all dates
 
+
 p_swe = ggplot(survey, aes(x=snow_depth_cm, y=swe_mm, color=cover)) +
   facet_grid(. ~ doy) +
   geom_point() +
@@ -57,8 +58,26 @@ survey %>%
   ggplot(., aes(x=snow_depth_cm, y=density, color=doy)) +
     facet_grid(. ~ cover) +
     geom_point()
-    theme_minimal()
 
+all_vals = survey
+all_vals$cover = 'all'
+
+for_all = rbind(survey[survey$cover == 'forest',], all_vals)
+
+ggplot(for_all, aes(x=snow_depth_cm, y=density)) +
+  facet_grid(cover ~ doy) +
+  geom_point() +
+  ylim(0, 350) +
+  xlim(0, 85) +
+  geom_smooth(method='lm', formula= y~x)
+
+
+ggplot(for_all, aes(x=snow_depth_cm, y=swe_mm)) +
+  facet_grid(cover ~ doy) +
+  geom_point() +
+  geom_smooth(method='lm', formula= y~ 0 + x)
+    
+## Linear models
 # build forest linear models
 f_045 = survey[(survey$standardized_survey_notes == 'forest') & (survey$doy == '19_045'),]
 f_050 = survey[(survey$standardized_survey_notes == 'forest') & (survey$doy == '19_050'),]
@@ -88,6 +107,12 @@ lm_f_052 = lm(density ~ snow_depth_cm, data = f_052)
 lm_f_107 = lm(density ~ snow_depth_cm, data = f_107)
 lm_f_123 = lm(density ~ snow_depth_cm, data = f_123)
 
+lm_f_045 = lm(density ~ 0 + swe_mm, data = f_045)
+lm_f_050 = lm(density ~ 0 + swe_mm, data = f_050)
+lm_f_052 = lm(density ~ 0 + swe_mm, data = f_052)
+lm_f_107 = lm(density ~ 0 + swe_mm, data = f_107)
+lm_f_123 = lm(density ~ 0 + swe_mm, data = f_123)
+
 summary(lm_f_045)
 summary(lm_f_050)
 summary(lm_f_052)
@@ -105,6 +130,18 @@ lm_a_050 = lm(density ~ snow_depth_cm, data = a_050)
 lm_a_052 = lm(density ~ snow_depth_cm, data = a_052)
 lm_a_107 = lm(density ~ snow_depth_cm, data = a_107)
 lm_a_123 = lm(density ~ snow_depth_cm, data = a_123)
+
+lm_a_045 = lm(density ~ 0 + swe_mm, data = a_045)
+lm_a_050 = lm(density ~ 0 + swe_mm, data = a_050)
+lm_a_052 = lm(density ~ 0 + swe_mm, data = a_052)
+lm_a_107 = lm(density ~ 0 + swe_mm, data = a_107)
+lm_a_123 = lm(density ~ 0 + swe_mm, data = a_123)
+
+summary(lm_a_045)
+summary(lm_a_050)
+summary(lm_a_052)
+summary(lm_a_107)
+summary(lm_a_123)
 
 library(lme4)
 mixed_lm_a_045 = lmer(density ~ snow_depth_cm + (1|standardized_survey_notes), data = a_045)

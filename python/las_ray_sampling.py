@@ -265,7 +265,8 @@ def nb_sample_explicit_sum(rays, path_samples, path_returns, n_samples, iteratio
         return_sums[:, 0] = np.sum(nb_samples, axis=1)
         # permutate sums for resultant distribution
         for jj in range(1, permutations):
-            return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)
+            # return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)  # does nothing
+            return_sums[:, jj] = np.sum(shuffle_within_cols(nb_samples), axis=1)
 
         returns_mean[ii] = np.mean(return_sums)
         returns_med[ii] = np.median(return_sums)
@@ -320,7 +321,8 @@ def nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples,
         return_sums[:, 0] = np.sum(nb_samples, axis=1)
         # permutate sums for resultant distribution
         for jj in range(1, permutations):
-            return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)
+            # return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)  # does nothing
+            return_sums[:, jj] = np.sum(shuffle_within_cols(nb_samples), axis=1)
 
         returns_mean[ii] = np.mean(return_sums)
         returns_med[ii] = np.median(return_sums)
@@ -391,7 +393,8 @@ def nb_sample_explicit_sum_lookup(rays, path_samples, path_returns, n_samples, i
         return_sums = np.full([iterations, permutations], np.nan)
         # permutate sums for resultant distribution
         for jj in range(0, permutations):
-            return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)
+            # return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)  # does nothing
+            return_sums[:, jj] = np.sum(shuffle_within_cols(nb_samples), axis=1)
 
         returns_mean[ii] = np.mean(return_sums)
         returns_med[ii] = np.median(return_sums)
@@ -453,7 +456,8 @@ def nb_sample_explicit_sum_combined_trunc(rays, path_samples, path_returns, n_sa
         return_sums[:, 0] = np.sum(nb_samples, axis=1)
         # permutate sums for resultant distribution
         for jj in range(1, permutations):
-            return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)
+            # return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)  # does nothing
+            return_sums[:, jj] = np.sum(shuffle_within_cols(nb_samples), axis=1)
 
         returns_mean[ii] = np.mean(return_sums)
         returns_med[ii] = np.median(return_sums)
@@ -594,26 +598,28 @@ def aggregate_voxels_over_rays(vox, rays, agg_sample_length):
 
 
     # start = time.time()
-    # rays_1 = nb_sample_explicit_sum(rays, path_samples, path_returns, n_samples, iterations=100, permutations=10)
+    # rays_2 = nb_sample_explicit_sum(rays, path_samples, path_returns, n_samples, iterations=10, permutations=1)
     # end = time.time()
     # print((end - start)/len(rays))
-
+    #
     # start = time.time()
-    rays = nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, iterations=100, permutations=1)
+    # rays_2 = nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, iterations=10, permutations=1)
     # end = time.time()
     # print((end - start)/len(rays))
-
+    #
     # start = time.time()
-    # rays_3 = nb_sample_explicit_sum_combined_trunc(rays, path_samples, path_returns, n_samples, iterations=100, permutations=10, q=.5)
+    # rays_2 = nb_sample_explicit_sum_combined_trunc(rays, path_samples, path_returns, n_samples, iterations=10, permutations=1, q=.05)
     # end = time.time()
     # print((end - start)/len(rays))
-
+    #
     # start = time.time()
-    # rays_4 = nb_sample_explicit_sum_lookup(rays, path_samples, path_returns, n_samples, iterations=1000, permutations=10)
+    # rays_2 = nb_sample_explicit_sum_lookup(rays, path_samples, path_returns, n_samples, iterations=10, permutations=1)
     # end = time.time()
     # print((end - start) / len(rays))
 
-    # rays = nb_sum_sample(rays, path_samples, path_returns, n_samples, k_max=10000, iterations=100, permutations=10)
+
+    rays = nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, iterations=100, permutations=1)
+
 
     return rays
 
@@ -727,6 +733,17 @@ def point_to_hemi_rays(origin, img_size, vox, max_dist=50):
 
     return rays
 
+
+def shuffle_within_cols(mask):
+    xx, yy = mask.shape
+    mapping = np.stack([list(np.random.permutation(np.arange(xx))) for _ in range(yy)])
+    return mask[mapping.T, np.arange(yy)]
+
+
+def shuffle_within_rows(mask):
+    xx, yy = mask.shape
+    mapping = np.stack([list(np.random.permutation(np.arange(yy))) for _ in range(xx)])
+    return mask[np.arange(xx), mapping.T].T
 
 # las file
 las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las'
@@ -902,3 +919,17 @@ import imageio
 img = np.rint(template * 255).astype(np.uint8)
 img_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\ray_sampling_transmittance.png'
 imageio.imsave(img_out, img)
+
+peace = np.array([[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]]).repeat(10, axis=0).swapaxes(0, 1)
+np.random.permutation(peace)  # outputs permutation of rows
+np.random.shuffle(peace)  # permutates rows in place
+
+# efficient shuffle rows
+
+
+
+
+
+mask = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]])
+shuffle_within_cols(mask)
+shuffle_within_rows(mask)
