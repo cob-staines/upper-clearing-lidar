@@ -5,52 +5,22 @@ import rastools
 import os
 
 # build point list from DEM
-dem_in = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_dem_r1.00m_q0.25_interpolated_min1.tif'
-las_in = "C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_las_proc_classified_merged.las"
-site_poly = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\upper_forest_poly_UTM11N.shp'
-batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\uf_1m_pr_0_os_0.5\\'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uf_1m_pr_.15_os_10\\'
+las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las"
+pts_in = batch_dir + '1m_dem_points.csv'
+
+# dem_in = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_dem_r1.00m_q0.25_interpolated_min1.tif'
+# las_in = "C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_las_proc_classified_merged.las"
+# site_poly = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\upper_forest_poly_UTM11N.shp'
+# batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\uf_1m_pr_0_os_0.5\\'
 
 # create batch dir if does not exist
 if not os.path.exists(batch_dir):
     os.makedirs(batch_dir)
 
-# load dem into pd
-pts = rastools.raster_to_pd(dem_in, 'z_m')
-# add point id
-pts = pts.reset_index()
-pts.columns = ['id', 'x_utm11n', 'y_utm11n', 'x_index', 'y_index', 'z_m']
-
-# # add flag for site (UF)
-# load dem as template
-uf_plot = rastools.raster_load(dem_in)
-# fill data with zeros
-uf_plot.data = np.full((uf_plot.rows, uf_plot.cols), 0)
-# save to file
-uf_plot_dir = batch_dir + 'uf_plot_over_dem.tiff'
-rastools.raster_save(uf_plot, uf_plot_dir, data_format='byte')
-# burn site polygon into plot data as ones
-rastools.raster_burn(uf_plot_dir, site_poly, 1)
-# load plot data
-uf_plot = rastools.raster_load(uf_plot_dir)
-
-# merge plot data with points
-pts_index = (pts.x_index.values, pts.y_index.values)
-pts = pts.assign(uf=uf_plot.data[pts_index].astype(bool))
-
-# export point lookup as csv
-pts_dir = batch_dir + '1m_dem_points.csv'
-pts.to_csv(pts_dir, index=False)
-
-# format point ids as raster
-id_raster = rastools.raster_load(dem_in)
-id_raster.data = np.full([id_raster.rows, id_raster.cols], id_raster.no_data).astype(int)
-id_raster.data[pts_index] = pts.id
-# save id raster to file
-id_raster_out = batch_dir + '1m_dem_point_ids.tif'
-rastools.raster_save(id_raster, id_raster_out, data_format="int32")
-
 # build hemispheres
-pts = pd.read_csv(pts_dir)
+pts = pd.read_csv(pts_in)
+
 # filter to upper forest
 pts = pts[pts.uf]
 

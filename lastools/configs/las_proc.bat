@@ -70,6 +70,10 @@ SET CHM_RESOLUTION=.25
 SET CHM_MAX_TIN_EDGE=.75
 call %DIR_BAT%\las_04_canopy.bat
 
+SET CHM_RESOLUTION=3
+SET CHM_MAX_TIN_EDGE=9
+call %DIR_BAT%\las_04_canopy.bat
+
 
 :: _____COMPILE [5]_____
 ::call %DIR_BAT%\las_05_compile.bat
