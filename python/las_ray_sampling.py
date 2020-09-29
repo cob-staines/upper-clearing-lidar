@@ -68,17 +68,15 @@ def vox_to_utm(voxel_object, vox_points):
 
 
 def add_points_to_voxels(voxel_object, dataset, points):
-
-    print('sampling ' + vox.return_set + ' returns... ', end='')
-
     # convert to voxel coordinate system
     vox_coords = utm_to_vox(voxel_object, points).astype(int)
 
-    # select voxels within range (not needed if successfully interpolated to walls.
-    in_range = np.all(([0, 0, 0] <= vox_coords) & (vox_coords <= voxel_object.ncells), axis=1)
-    if np.sum(~in_range):
-        raise Exception('You thought that points would not show up out of bounds... you thought wrong.')
-    vox_in_range = vox_coords[in_range]
+    # # select voxels within range (not needed if successfully interpolated to walls.
+    # in_range = np.all(([0, 0, 0] <= vox_coords) & (vox_coords <= voxel_object.ncells), axis=1)
+    # if np.sum(~in_range):
+    #     raise Exception('You thought that points would not show up out of bounds... you thought wrong.')
+    # vox_in_range = vox_coords[in_range]
+    vox_in_range = vox_coords
 
     # format
     vox_address = (vox_in_range[:, 0], vox_in_range[:, 1], vox_in_range[:, 2])
@@ -89,8 +87,6 @@ def add_points_to_voxels(voxel_object, dataset, points):
         np.add.at(voxel_object.return_data, vox_address, 1)
     else:
         raise Exception("Expected 'samples' or 'returns' for dataset, encountered:" + str(dataset))
-
-    print('done.')
 
     return voxel_object
 
@@ -232,7 +228,323 @@ def las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all'):
     return vox
 
 
-def aggregate_voxels_over_rays(vox, rays, agg_sample_length, iterations=100, permutations=1):
+def nb_sample_explicit_sum(rays, path_samples, path_returns, n_samples, iterations=100, permutations=1):
+    # calculate expected points and varience
+    # MOVE PARAMETERS TO PASSED VARIABLE
+    ratio = .05  # ratio of voxel area weight of prior
+    F = .16 * 0.05  # expected footprint area
+    V = np.prod(vox.step)  # volume of each voxel
+    K = np.sum(vox.return_data)  # total number of returns in set
+    N = np.sum(vox.sample_data)  # total number of meters sampled in set
+
+    # gamma prior hyperparameters
+    prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
+    prior_a = prior_b * 1  # prior_b * K / N
+
+    returns_mean = np.full(len(path_samples), np.nan)
+    returns_med = np.full(len(path_samples), np.nan)
+    returns_var = np.full(len(path_samples), np.nan)
+    print('Aggregating samples over each ray...')
+    for ii in range(0, len(path_samples)):
+        kk = path_returns[ii, 0:n_samples[ii]]
+        nn = path_samples[ii, 0:n_samples[ii]]
+
+        # posterior hyperparameters
+        post_a = kk + prior_a
+        post_b = 1 - 1 / (1 + prior_b + nn)
+
+        nb_samples = np.full([iterations, n_samples[ii]], 0)
+        for jj in range(0, n_samples[ii] - 1):
+            nb_samples[:, jj] = np.random.negative_binomial(post_a[jj], post_b[jj], iterations)
+
+        # correct for agg sample length
+        nb_samples = nb_samples * agg_sample_length
+
+        # take sum as first permutation
+        return_sums = np.full([iterations, permutations], np.nan)
+        return_sums[:, 0] = np.sum(nb_samples, axis=1)
+        # permutate sums for resultant distribution
+        for jj in range(1, permutations):
+            return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)
+
+        returns_mean[ii] = np.mean(return_sums)
+        returns_med[ii] = np.median(return_sums)
+        returns_var[ii] = np.var(return_sums)
+
+        print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
+
+    rays = rays.assign(returns_mean=returns_mean)
+    rays = rays.assign(returns_median=returns_med)
+    rays = rays.assign(returns_var=returns_var)
+
+    return rays
+
+
+def nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, iterations=100, permutations=1):
+    # calculate expected points and varience
+    # MOVE PARAMETERS TO PASSED VARIABLE
+    ratio = .05  # ratio of voxel area weight of prior
+    F = .16 * 0.05  # expected footprint area
+    V = np.prod(vox.step)  # volume of each voxel
+    K = np.sum(vox.return_data)  # total number of returns in set
+    N = np.sum(vox.sample_data)  # total number of meters sampled in set
+
+    # gamma prior hyperparameters
+    prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
+    prior_a = prior_b * 1  # prior_b * K / N
+
+    returns_mean = np.full(len(path_samples), np.nan)
+    returns_med = np.full(len(path_samples), np.nan)
+    returns_var = np.full(len(path_samples), np.nan)
+    print('Aggregating samples over each ray...')
+    for ii in range(0, len(path_samples)):
+        kk = path_returns[ii, 0:n_samples[ii]]
+        nn = path_samples[ii, 0:n_samples[ii]]
+
+        # posterior hyperparameters
+        post_a = kk + prior_a
+        post_b = 1 - 1 / (1 + prior_b + nn)
+
+        unique_p = np.unique(post_b)
+        nb_samples = np.full([iterations, len(unique_p)], 0)
+        for pp in range(0, len(unique_p)):
+            # sum alphas with corresponding probabilities (p)
+            alpha = np.sum(post_a[post_b == unique_p[pp]])
+            nb_samples[:, pp] = np.random.negative_binomial(alpha, unique_p[pp], iterations)
+
+        # correct for agg sample length
+        nb_samples = nb_samples * agg_sample_length
+
+        # take sum as first permutation
+        return_sums = np.full([iterations, permutations], np.nan)
+        return_sums[:, 0] = np.sum(nb_samples, axis=1)
+        # permutate sums for resultant distribution
+        for jj in range(1, permutations):
+            return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)
+
+        returns_mean[ii] = np.mean(return_sums)
+        returns_med[ii] = np.median(return_sums)
+        returns_var[ii] = np.var(return_sums)
+
+        print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
+
+    rays = rays.assign(returns_mean=returns_mean)
+    rays = rays.assign(returns_median=returns_med)
+    rays = rays.assign(returns_var=returns_var)
+
+    return rays
+
+
+def nb_sample_explicit_sum_lookup(rays, path_samples, path_returns, n_samples, iterations=100, permutations=1):
+    # calculate expected points and varience
+    # MOVE PARAMETERS TO PASSED VARIABLE
+    ratio = .05  # ratio of voxel area weight of prior
+    F = .16 * 0.05  # expected footprint area
+    V = np.prod(vox.step)  # volume of each voxel
+    K = np.sum(vox.return_data)  # total number of returns in set
+    N = np.sum(vox.sample_data)  # total number of meters sampled in set
+
+    # gamma prior hyperparameters
+    prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
+    prior_a = prior_b * 1  # prior_b * K / N
+
+    returns_mean = np.full(len(path_samples), np.nan)
+    returns_med = np.full(len(path_samples), np.nan)
+    returns_var = np.full(len(path_samples), np.nan)
+    print('Aggregating samples over each ray...')
+
+
+    # lookup for unique pairs of post_a and post_b
+    post_a = prior_a + path_returns
+    post_b = 1 - 1 / (1 + prior_b + path_samples)
+
+    allem = np.array((np.reshape(post_a, post_a.size), np.reshape(post_b, post_b.size))).swapaxes(0, 1)
+    allem = allem[~np.any(np.isnan(allem), axis=1), :]
+    peace = np.unique(allem, axis=0)
+    peace = list(zip(peace[:, 0], peace[:, 1]))
+
+
+    # calculate all possible values
+    lookup = {}
+    for dd in range(0, len(peace)):
+        lookup[peace[dd]] = np.random.negative_binomial(peace[dd][0], peace[dd][1], iterations)
+
+    # for each ray
+    for ii in range(0, len(path_samples)):
+        aa = post_a[ii, 0:n_samples[ii]]
+        bb = post_b[ii, 0:n_samples[ii]]
+
+        keys = np.array((aa, bb)).swapaxes(0, 1)
+        ukeys, uindex, ucount = np.unique(keys, axis=0, return_inverse=True, return_counts=True)
+        ukeys = list(zip(ukeys[:, 0], ukeys[:, 1]))
+
+        nb_samples = np.full([iterations, n_samples[ii]], 0)
+        for kk in range(0, len(ukeys)):
+            tile = lookup[ukeys[kk]]
+            nb_samples[:, uindex == kk] = lookup[ukeys[kk]][:, np.newaxis].repeat(ucount[kk], axis=1)
+
+
+        # correct for agg sample length
+        nb_samples = nb_samples * agg_sample_length
+
+        # take sum as first permutation
+        return_sums = np.full([iterations, permutations], np.nan)
+        # permutate sums for resultant distribution
+        for jj in range(0, permutations):
+            return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)
+
+        returns_mean[ii] = np.mean(return_sums)
+        returns_med[ii] = np.median(return_sums)
+        returns_var[ii] = np.var(return_sums)
+
+        print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
+
+    rays = rays.assign(returns_mean=returns_mean)
+    rays = rays.assign(returns_median=returns_med)
+    rays = rays.assign(returns_var=returns_var)
+
+    return rays
+
+
+def nb_sample_explicit_sum_combined_trunc(rays, path_samples, path_returns, n_samples, iterations=100, permutations=1, q=.5):
+    # calculate expected points and varience
+    # MOVE PARAMETERS TO PASSED VARIABLE
+    ratio = .05  # ratio of voxel area weight of prior
+    F = .16 * 0.05  # expected footprint area
+    V = np.prod(vox.step)  # volume of each voxel
+    K = np.sum(vox.return_data)  # total number of returns in set
+    N = np.sum(vox.sample_data)  # total number of meters sampled in set
+
+    # gamma prior hyperparameters
+    prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
+    prior_a = prior_b * 1  # prior_b * K / N
+
+    returns_mean = np.full(len(path_samples), np.nan)
+    returns_med = np.full(len(path_samples), np.nan)
+    returns_var = np.full(len(path_samples), np.nan)
+    print('Aggregating samples over each ray...')
+    for ii in range(0, len(path_samples)):
+        kk = path_returns[ii, 0:n_samples[ii]]
+        nn = path_samples[ii, 0:n_samples[ii]]
+
+        # posterior hyperparameters
+        post_a = kk + prior_a
+        post_b = 1 - 1 / (1 + prior_b + nn)
+
+        # truncate to above specified quantile
+        floor_a = np.quantile(post_a, q=q)
+        post_a_trunc = post_a[post_a > floor_a]
+        post_b_trunc = post_b[post_a > floor_a]
+
+        unique_p = np.unique(post_b_trunc)
+
+
+        nb_samples = np.full([iterations, len(unique_p)], 0)
+        for pp in range(0, len(unique_p)):
+            # sum alphas with corresponding probabilities (p)
+            alpha = np.sum(post_a_trunc[post_b_trunc == unique_p[pp]])
+            nb_samples[:, pp] = np.random.negative_binomial(alpha, unique_p[pp], iterations)
+
+        # correct for agg sample length
+        nb_samples = nb_samples * agg_sample_length
+
+        # take sum as first permutation
+        return_sums = np.full([iterations, permutations], np.nan)
+        return_sums[:, 0] = np.sum(nb_samples, axis=1)
+        # permutate sums for resultant distribution
+        for jj in range(1, permutations):
+            return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)
+
+        returns_mean[ii] = np.mean(return_sums)
+        returns_med[ii] = np.median(return_sums)
+        returns_var[ii] = np.var(return_sums)
+
+        print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
+
+    rays = rays.assign(returns_mean=returns_mean)
+    rays = rays.assign(returns_median=returns_med)
+    rays = rays.assign(returns_var=returns_var)
+
+    return rays
+
+
+# needs work, not functional
+def nb_sum_sample(rays, path_samples, path_returns, n_samples, k_max=10000, iterations=100, permutations=1):
+    # calculate expected points and varience
+    # MOVE PARAMETERS TO PASSED VARIABLE
+    ratio = .05  # ratio of voxel area weight of prior
+    F = .16 * 0.05  # expected footprint area
+    V = np.prod(vox.step)  # volume of each voxel
+    K = np.sum(vox.return_data)  # total number of returns in set
+    N = np.sum(vox.sample_data)  # total number of meters sampled in set
+
+    # gamma prior hyperparameters
+    prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
+    prior_a = prior_b * 1  # prior_b * K / N
+
+    returns_mean = np.full(len(path_samples), np.nan)
+    returns_med = np.full(len(path_samples), np.nan)
+    returns_var = np.full(len(path_samples), np.nan)
+    print('Aggregating samples over each ray...')
+    for ii in range(0, len(path_samples)):
+        kk = path_returns[ii, 0:n_samples[ii]]
+        nn = path_samples[ii, 0:n_samples[ii]]
+
+        # posterior hyperparameters
+        post_a = kk + prior_a
+        post_b = 1 - 1 / (1 + prior_b + nn)
+
+
+        # following Furman 2007
+        aj = post_a
+        pj = post_b
+
+        qj = 1 - pj
+        pl = np.max(pj)
+        ql = 1 - pl
+
+        # preallocate
+        dd = np.zeros(k_max + 1)
+        dd[0] = 1
+        ival = np.zeros(k_max + 1).astype(int)
+        xi = np.zeros(k_max + 1)
+        xi[0] = np.nan
+
+        # kk is the value k takes on.
+        for kk in range(0, k_max):
+            ival[kk] = kk + 1  # could be defined outside loop
+            xi[kk + 1] = np.sum(aj * (1 - ql * pj / (pl * qj)) ** (kk + 1) / (kk + 1))  # could be defined outside of loop
+            dd[kk + 1] = np.sum(ival[0:kk + 1] * xi[ival[0:kk + 1]] * dd[kk + 1 - ival[0:kk + 1]]) / (kk + 1)
+
+        # Rr = np.prod((ql * pj / (pl * qj)) ** -aj)
+        # prk = Rr * dd
+
+        # CURRENTLY prk DOES NOT SUM TO 1!... NEEDS TROUBLESHOOTING< BUT CONTINUING WITH THIS ANSWER FOR NOW.
+        pkk = dd / np.sum(dd)
+        from scipy import stats
+        k_dist = stats.rv_discrete(name='k-dist', values=(kval, pkk))
+
+        k_set = k_dist.rvs(size=iterations)
+
+        samps = np.zeros([iterations, permutations])
+        for kk in range(0, iterations):
+            samps[kk, :] = np.random.negative_binomial(np.sum(aj) + kk, pl, permutations)
+
+        # estimators for output mixture
+        returns_mean[ii] = np.mean(samps)
+        returns_med[ii] = np.median(samps)
+        returns_var[ii] = np.var(samps)
+
+        print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
+
+    rays = rays.assign(returns_mean=returns_mean)
+    rays = rays.assign(returns_median=returns_med)
+    rays = rays.assign(returns_var=returns_var)
+
+    return rays
+
+
+def aggregate_voxels_over_rays(vox, rays, agg_sample_length):
     print('Aggregating voxels over rays:')
 
     # pull points
@@ -242,6 +554,7 @@ def aggregate_voxels_over_rays(vox, rays, agg_sample_length, iterations=100, per
 
     # calculate distance between ray start (ground) and end (sky)
     dist = np.sqrt(np.sum((p1 - p0) ** 2, axis=1))  # DO WE WANT TO ADD THIS VALUE TO THE DF?
+    rays = rays.assign(path_length=dist)
 
     # calc unit step along ray in x, y, z dims
     xyz_step = (p1 - p0) / dist[:, np.newaxis]
@@ -279,53 +592,28 @@ def aggregate_voxels_over_rays(vox, rays, agg_sample_length, iterations=100, per
 
         print(str(ii + 1) + ' of ' + str(max_steps) + ' steps')
 
-    # calculate expected points and varience
-    # MOVE PARAMETERS TO PASSED VARIABLE
-    ratio = .05  # ratio of voxel area weight of prior
-    F = .16 * 0.05  # expected footprint area
-    V = np.prod(vox.step)  # volume of each voxel
-    K = np.sum(vox.return_data)  # total number of returns in set
-    N = np.sum(vox.sample_data)  # total number of meters sampled in set
 
-    # gamma prior hyperparameters
-    prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
-    prior_a = prior_b * 1  # prior_b * K / N
+    # start = time.time()
+    # rays_1 = nb_sample_explicit_sum(rays, path_samples, path_returns, n_samples, iterations=100, permutations=10)
+    # end = time.time()
+    # print((end - start)/len(rays))
 
-    returns_mean = np.full(len(path_samples), np.nan)
-    returns_med = np.full(len(path_samples), np.nan)
-    returns_std = np.full(len(path_samples), np.nan)
-    print('Aggregating samples over each ray...')
-    for ii in range(0, len(path_samples)):
-        kk = path_returns[ii, 0:n_samples[ii]]
-        nn = path_samples[ii, 0:n_samples[ii]]
+    # start = time.time()
+    rays = nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, iterations=100, permutations=1)
+    # end = time.time()
+    # print((end - start)/len(rays))
 
-        # posterior hyperparameters
-        post_a = kk + prior_a
-        post_b = 1 - 1 / (1 + prior_b + nn)
+    # start = time.time()
+    # rays_3 = nb_sample_explicit_sum_combined_trunc(rays, path_samples, path_returns, n_samples, iterations=100, permutations=10, q=.5)
+    # end = time.time()
+    # print((end - start)/len(rays))
 
-        nb_samples = np.full([iterations, n_samples[ii]], 0)
-        for jj in range(0, n_samples[ii] - 1):
-            nb_samples[:, jj] = np.random.negative_binomial(post_a[jj], post_b[jj], iterations)
+    # start = time.time()
+    # rays_4 = nb_sample_explicit_sum_lookup(rays, path_samples, path_returns, n_samples, iterations=1000, permutations=10)
+    # end = time.time()
+    # print((end - start) / len(rays))
 
-        # correct for agg sample length
-        nb_samples = nb_samples * agg_sample_length
-
-        # permutate sums for resultant distribution
-        return_sums = np.full([iterations, permutations], np.nan)
-        for jj in range(0, permutations):
-            return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)
-        return_sums = np.reshape(return_sums, return_sums.size)
-
-        returns_mean[ii] = np.mean(return_sums)
-        returns_med[ii] = np.median(return_sums)
-        returns_std[ii] = np.std(return_sums)
-
-        print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
-
-    rays = rays.assign(path_length=dist)
-    rays = rays.assign(returns_mean=returns_mean)
-    rays = rays.assign(returns_median=returns_med)
-    rays = rays.assign(returns_std=returns_std)
+    # rays = nb_sum_sample(rays, path_samples, path_returns, n_samples, k_max=10000, iterations=100, permutations=10)
 
     return rays
 
@@ -341,15 +629,18 @@ def dem_to_vox_rays(dem_in, vec, vox):
     z = dem.data[np.where(dem.data != dem.no_data)]
     ground = np.concatenate([xy, z[:, np.newaxis]], axis=1)
 
+    # filter ground points to those within vox
+    ground_bb = ground[np.all((vox.origin <= ground) & (ground <= vox.max), axis=1)]
+
     # specify integration rays
     phi = vec[0]  # angle from nadir in degrees
     theta = vec[1]  # angle cw from N in degrees
 
     # calculate endpoint at z_max
-    dz = vox.max[2] - ground[:, 2]
+    dz = vox.max[2] - ground_bb[:, 2]
     dx = dz * np.sin(theta * np.pi / 180) * np.tan(phi * np.pi / 180)
     dy = dz * np.cos(theta * np.pi / 180) * np.tan(phi * np.pi / 180)
-    sky = ground + np.swapaxes(np.array([dx, dy, dz]), 0, 1)
+    sky = ground_bb + np.swapaxes(np.array([dx, dy, dz]), 0, 1)
 
     # # select rays with both points within voxel bounding box
     # ground_in_range = np.all((vox.origin <= ground_all) & (ground_all <= vox.max), axis=1)
@@ -358,11 +649,11 @@ def dem_to_vox_rays(dem_in, vec, vox):
     # sky = sky_all[ground_in_range & sky_in_range]
 
     # instead of throwing out points where sky is outside of bounding box, we will just interpolate sky to bb
-    sky_bb = interpolate_to_bounding_box(ground, sky, bb=[vox.origin, vox.max])
+    sky_bb = interpolate_to_bounding_box(ground_bb, sky, bb=[vox.origin, vox.max])
 
-    df = pd.DataFrame({'x0': ground[:, 0],
-                       'y0': ground[:, 1],
-                       'z0': ground[:, 2],
+    df = pd.DataFrame({'x0': ground_bb[:, 0],
+                       'y0': ground_bb[:, 1],
+                       'z0': ground_bb[:, 2],
                        'x1': sky_bb[:, 0],
                        'y1': sky_bb[:, 1],
                        'z1': sky_bb[:, 2]})
@@ -393,7 +684,7 @@ def ray_stats_to_dem(rays, dem_in):
     ras.data[1][ground_dem] = rays.returns_median
     ras.data[1][np.isnan(ras.data[1])] = ras.no_data
 
-    ras.data[2][ground_dem] = rays.returns_std
+    ras.data[2][ground_dem] = rays.returns_var
     ras.data[2][np.isnan(ras.data[2])] = ras.no_data
 
     ras.band_count = 3
@@ -436,6 +727,7 @@ def point_to_hemi_rays(origin, img_size, vox, max_dist=50):
 
     return rays
 
+
 # las file
 las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las'
 # las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_snow_off_classified_merged.las'
@@ -460,9 +752,9 @@ vox = vox_load(hdf5_path)
 
 
 # sample voxel space from dem
-dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_dem_res_.25m.bil"
+dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\DEM\\interpolated\\19_149_dem_r1.00m_q0.25_interpolated_min1.tif"
 #dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.10m.bil"
-ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\DEM\\19_149_expected_first_returns_res_.25m_0-0_t_1.tif"
+ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\19_149_expected_first_returns_res_.25m_0-0_t_1.tif"
 # ras_out = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_expected_returns_res_.10m.tif"
 phi = 0
 theta = 0
@@ -484,19 +776,29 @@ pts = pd.DataFrame({'x0': hemi_pts.x_utm11n,
 
 # for each point
 origin = (pts.iloc[0].x0, pts.iloc[0].y0, pts.iloc[0].z0)
-img_size = 100
+img_size = 1000
 agg_sample_length = vox.sample_length
 rays_in = point_to_hemi_rays(origin, img_size, vox, max_dist=50)
+start = time.time()
 rays_out = aggregate_voxels_over_rays(vox, rays_in, agg_sample_length)
+end = time.time()
+print(end - start)
 
 
-area_factor = 0.1
+area_factor = .01
 # cosine correction
-rays_out = rays_out.assign(transmittance=np.exp(-1 * area_factor * rays_out.returns_median / np.cos(rays_out.phi)))
+# rays_out = rays_out.assign(transmittance=np.exp(-1 * area_factor * rays_out.returns_median / np.cos(rays_out.phi)))
 # no cosine correction
 rays_out = rays_out.assign(transmittance=np.exp(-1 * area_factor * rays_out.returns_median))
-template = np.full([img_size, img_size], 1.0)
+template = np.full([img_size, img_size], 0.0)
 template[(rays_out.y_index.values, rays_out.x_index.values)] = rays_out.transmittance
+
+from scipy import misc
+import imageio
+img = np.rint(template * 255).astype(np.uint8)
+img_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RSM\\ray_sampling_transmittance_20426_af' + str(area_factor) + '.png'
+imageio.imsave(img_out, img)
+
 
 ### SANDBOX
 
