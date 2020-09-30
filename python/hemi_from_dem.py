@@ -1,17 +1,15 @@
 import pandas as pd
 import numpy as np
 import laslib
-import rastools
 import os
 
-# build point list from DEM
-# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uf_1m_pr_.15_os_10\\'
-# las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las"
-# pts_in = batch_dir + '1m_dem_points.csv'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uls_1m_3m_subgrid_pr_.15_os_10\\'
+las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las"
+pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\1m_dem_points_3m_subgrid_uls.csv"
 
-batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\uls_1m_3m_subgrid_pr_.15_os_10\\'
-las_in = "C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_las_proc_classified_merged.las"
-pts_in = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\1m_dem_points_3m_subgrid_uls.csv'
+# batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\uls_1m_3m_subgrid_pr_.15_os_10\\'
+# las_in = "C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_las_proc_classified_merged.las"
+# pts_in = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\1m_dem_points_3m_subgrid_uls.csv'
 
 # create batch dir if does not exist
 if not os.path.exists(batch_dir):
@@ -19,9 +17,6 @@ if not os.path.exists(batch_dir):
 
 # build hemispheres
 pts = pd.read_csv(pts_in)
-
-# filter to upper forest
-pts = pts[pts.uf]
 
 # hemi run
 # define metadata object
