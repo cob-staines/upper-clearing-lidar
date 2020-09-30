@@ -19,8 +19,8 @@ levels(data_swe$date) = c("19_045", "19_050", "19_052", "19_107", "19_123")
 bincount = 50
 plot_h = 21  # cm
 plot_w = 29.7  # cm
-xmin = -50
-xmax = 150
+xmin = -25
+xmax = 200
 clow = '#000055'
 chigh = '#CCCCFF'
 

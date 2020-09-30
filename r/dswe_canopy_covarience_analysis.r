@@ -15,15 +15,11 @@ data_swe = data %>%
 data_swe$date = as.factor(data_swe$date)
 levels(data_swe$date) = c("19_045-19_050", "19_050-19_052", "19_052-19_107", "19_107-19_123")
 
-
-# reverse sign of dswe
-data_swe$dswe = -1 * data_swe$dswe
-
 # plot params
 bincount = 50
 plot_h = 21  # cm
 plot_w = 29.7  # cm
-xmin =-50
+xmin =-100
 xmax = 50
 clow = '#005500'
 chigh = '#CCFFCC'

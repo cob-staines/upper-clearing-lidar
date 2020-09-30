@@ -12,6 +12,10 @@ resolution = [".04", ".10", ".25", ".50", "1.00"]
 depth_to_density_intercept = dict(zip(snow_on, [0, 0, 0, 0, 0]))
 depth_to_density_slope = dict(zip(snow_on, 100*np.array([2.695, 2.7394, 3.0604, 3.1913, 2.5946])))
 
+depth_to_swe_slope = dict(zip(snow_on, 100*np.array([2.695, 2.7394, 3.0604, 3.1913, 2.5946])))
+
+depth_regression = 'swe'
+
 dem_quantile = .25
 interpolation_threshold = 0
 
@@ -101,8 +105,7 @@ for ddi in snow_on:
         if not os.path.exists(swe_dir):
             os.makedirs(swe_dir)
 
-        mm = depth_to_density_slope[ddi]
-        bb = depth_to_density_intercept[ddi]
+
 
         for rr in resolution:
             # update file paths with resolution
@@ -113,7 +116,18 @@ for ddi in snow_on:
             ras = rastools.raster_load(hs_file)
             valid_cells = np.where(ras.data != ras.no_data)
             depth = ras.data[valid_cells]
-            swe = depth * (mm * depth + bb)
+
+            # juggle regression types
+            if depth_regression == 'density':
+                mm = depth_to_density_slope[ddi]
+                bb = depth_to_density_intercept[ddi]
+                swe = depth * (mm * depth + bb)
+            elif depth_regression == 'swe':
+                mm = depth_to_swe_slope[ddi]
+                swe = mm * depth
+            else:
+                raise Exception('Invalid specification for depth_regression.')
+
             ras.data[valid_cells] = swe
             rastools.raster_save(ras, swe_file)
 
