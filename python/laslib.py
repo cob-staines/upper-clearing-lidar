@@ -356,9 +356,16 @@ def las_poisson_sample(las_in, poisson_radius, classification=None, las_out=None
 
     # do we filter?
     class_filter_bool = classification is not None
-    if class_filter_bool & ~isinstance(classification, int):
-        raise Exception('Only single classes are accepted in class filter currently.'
-                        'Program additional handling if filtering with multiple classes is needed.')
+    if isinstance(classification, int):
+        class_range_low = classification
+        class_range_high = classification
+    elif isinstance(classification, list):
+        if len(classification) == 2:
+            class_range_low = classification[0]
+            class_range_high = classification[1]
+        else:
+            raise Exception('Only ranges of classes accepted, not explicit lists.'
+                            'Program additional handling if filtering with multiple classes outside singe range is needed.')
 
     # do we save to file?
     save_bool = las_out is not None
@@ -370,7 +377,7 @@ def las_poisson_sample(las_in, poisson_radius, classification=None, las_out=None
     json_class_filter = """
                 {{
                 "type":"filters.range",
-                "limits":"Classification[{point_class}:{point_class}]"
+                "limits":"Classification[{class_range_low}:{class_range_high}]"
                 }},"""
     json_poisson = """
                 {{
@@ -394,7 +401,7 @@ def las_poisson_sample(las_in, poisson_radius, classification=None, las_out=None
         json = json + "," + json_save
     json = json + json_close
 
-    json = json.format(inFile=las_in, outFile=las_out, radius=poisson_radius, point_class=classification)
+    json = json.format(inFile=las_in, outFile=las_out, radius=poisson_radius, class_range_low=class_range_low, class_range_high=class_range_high)
 
     # execute json
     pipeline = pdal.Pipeline(json)
