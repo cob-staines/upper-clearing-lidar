@@ -5,14 +5,13 @@ import rastools
 import os
 
 # build point list from DEM
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uf_1m_pr_.15_os_10\\'
-las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las"
-pts_in = batch_dir + '1m_dem_points.csv'
+# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uf_1m_pr_.15_os_10\\'
+# las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las"
+# pts_in = batch_dir + '1m_dem_points.csv'
 
-# dem_in = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_dem_r1.00m_q0.25_interpolated_min1.tif'
-# las_in = "C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_las_proc_classified_merged.las"
-# site_poly = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\upper_forest_poly_UTM11N.shp'
-# batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\uf_1m_pr_0_os_0.5\\'
+batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\uls_1m_3m_subgrid_pr_.15_os_10\\'
+las_in = "C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_las_proc_classified_merged.las"
+pts_in = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\1m_dem_points_3m_subgrid_uls.csv'
 
 # create batch dir if does not exist
 if not os.path.exists(batch_dir):
@@ -31,8 +30,8 @@ hemimeta = laslib.HemiMetaObj()
 # source las file
 las_day = 19_149
 hemimeta.src_las_file = las_in
-hemimeta.src_keep_class = 5
-hemimeta.poisson_sampling_radius = 0  # meters (for no poisson sampling, specify 0)
+hemimeta.src_keep_class = [1, 5]  # range of classes or single class ([1, 5] passes all classes within 1-5)
+hemimeta.poisson_sampling_radius = 0.15  # meters (for no poisson sampling, specify 0)
 
 # output file dir
 hemimeta.file_dir = batch_dir + "outputs\\"
@@ -74,7 +73,7 @@ hemimeta.origin = np.array([pts.x_utm11n,
 
 
 # point size
-hemimeta.optimization_scalar = 0.5
+hemimeta.optimization_scalar = 10
 footprint = 0.15  # in m
 c = 2834.64  # meters to points
 hemimeta.point_size_scalar = footprint**2 * c * hemimeta.optimization_scalar
