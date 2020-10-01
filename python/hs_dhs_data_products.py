@@ -37,6 +37,9 @@ dswe_file_template = 'dswe_<DDI>-<DDJ>_r<RES>m_q<QUANT>.tif'
 int_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\DEM\\interpolated\\'
 int_file_template = '<DATE>_dem_r<RES>m_q<QUANT>_interpolated_t<ITN>.tif'
 
+chm_dir_template = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\CHM\\"
+chm_raw_in_template = "<DATE>_spike_free_chm_r<RES>m.bil"
+chm_filled_out_template = "<DATE>_spike_free_chm_r<RES>m_filled.tif"
 
 def path_sub(path, dd=None, rr=None, qq=None, ddi=None, ddj=None, itn=None, mm=None, bb=None):
     if isinstance(path, str):
@@ -170,6 +173,34 @@ for dd in snow_off:
         rastools.delauney_fill(dem_file, int_file, ras_template, n_count=count_file, n_threshold=interpolation_threshold)
         print(' -- ' + rr, end='')
     print('\n')
+
+# fill chm with zeros where dem in not nan
+# only for dates and resolutions where chm exists
+for dd in all_dates:
+    for rr in resolution:
+        # update file paths with resolution
+        chm_in = path_sub([chm_dir_template, chm_raw_in_template], dd=dd, rr=rr)
+        if os.path.exists(chm_in):
+            count_file = path_sub([dem_dir_template, count_file_template], dd=dd, rr=rr)
+            chm_out = path_sub([chm_dir_template, chm_filled_out_template], dd=dd, rr=rr)
+
+            # fill in chm nan values with 0 where dem count > 0
+
+            data = rastools.pd_sample_raster(None, chm_in, 'chm', include_nans=True)
+            data = rastools.pd_sample_raster(data, count_file, 'n_count')
+
+            ground = np.isnan(data.chm) & (data.n_count > 0)
+
+            ground_index = (np.array(data.x_index[ground]), np.array(data.y_index[ground]))
+
+            chm = rastools.raster_load(chm_in)
+            chm.data[ground_index] = 0
+            rastools.raster_save(chm, chm_out)
+
+
+chm_dir_template = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\CHM\\""
+chm_file_raw_template = "<DATE>_spike_free_chm_r<RES>m.bil"
+chm_file_filled_template = "<DATE>_spike_free_chm_r<RES>m_filled.bil"
 
 # point sample HS products to merge with snow surveys
 initial_pts_file = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\surveys\\all_ground_points_UTM11N_uid_flagged_cover.csv"

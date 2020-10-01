@@ -312,7 +312,7 @@ def raster_nearest_neighbor(points, ras):
     return index_map, distance_map
 
 
-def raster_to_pd(ras, colnames):
+def raster_to_pd(ras, colnames, include_nans=False):
     import numpy as np
     import pandas as pd
 
@@ -336,55 +336,76 @@ def raster_to_pd(ras, colnames):
     if ras.band_count != len(colnames):
         raise Exception('length of colname does not match band_count, raster_to_pd() aborted.')
 
+    all_vals = np.full([ras.rows, ras.cols], True)
 
-    has_value = np.full([ras.rows, ras.cols, ras.band_count], False)
+    nan_vals = np.full([ras.rows, ras.cols, ras.band_count], False)
     for ii in range(0, ras.band_count):
-        has_value[:, :, ii] = (ras.data[ii] != ras.no_data)
-    has_value = np.any(has_value, axis=2)
+        nan_vals[:, :, ii] = (ras.data[ii] == ras.no_data)
+    nan_vals = np.any(nan_vals, axis=2)
 
+    if include_nans:
+        pts_index = np.where(all_vals)
+    else:
+        # only non nans
+        pts_index = np.where(~nan_vals)
 
-    pts_index = np.where(has_value)
     pts_coords = ras.T1 * pts_index
-    pts = pd.DataFrame({'x_coord': pts_coords[0],
+    pts = pd.DataFrame({'x_coord': pts_coords[0],  # affine transform output returns [x, y]
                         'y_coord': pts_coords[1],
-                        'x_index': pts_index[0],
-                        'y_index': pts_index[1]})
+                        'x_index': pts_index[1],  # numpy output from np.where() returns [y, x]
+                        'y_index': pts_index[0]})
 
     for ii in range(0, ras.band_count):
-        pts.loc[:, colnames[ii]] = ras.data[ii][has_value]
+        pts.loc[:, colnames[ii]] = ras.data[ii][pts.y_index, pts.x_index]
+        # sub in np.nan for no_data values
+        pts.loc[pts.loc[:, colnames[ii]] == ras.no_data, colnames[ii]] = np.nan
 
     return pts
 
 
-def pd_sample_raster(parent, ras, colnames):
+def pd_sample_raster(parent, ras_parent, ras_child, colnames, include_nans=False):
     import numpy as np
 
     # sample child in child coords
-    child = raster_to_pd(ras, colnames)
+    child = raster_to_pd(ras_child, colnames, include_nans)
 
     if parent is None:
         # default to raster_to_pd output
         return child
     else:
         # import if ras is file path, move on if ras is raster object
-        if not isinstance(ras, rasterObj):
-            if isinstance(ras, str):
-                ras_in = ras
-                ras = raster_load(ras_in)
+        if not isinstance(ras_child, rasterObj):
+            if isinstance(ras_child, str):
+                ras_child_in = ras_child
+                ras_child = raster_load(ras_child_in)
+            else:
+                raise Exception('ras is not an instance of rasterObj or str (filepath), raster_to_pd() aborted.')
+
+        if not isinstance(ras_parent, rasterObj):
+            if isinstance(ras_parent, str):
+                ras_parent_in = ras_parent
+                ras_parent = raster_load(ras_parent_in)
             else:
                 raise Exception('ras is not an instance of rasterObj or str (filepath), raster_to_pd() aborted.')
 
         # convert parent coords to child index
-        parent_in_child_index = ~ras.T1 * (parent.x_coord.values, parent.y_coord.values)
-        parent.loc[:, 'child_x_index'] = np.rint(parent_in_child_index[0])
-        parent.loc[:, 'child_y_index'] = np.rint(parent_in_child_index[1])
+        parent_in_child_index = ~ras_child.T0 * (np.array(parent.x_coord), np.array(parent.y_coord))
+        parent.loc[:, 'child_x_index'] = np.floor(parent_in_child_index[0]).astype(int)
+        parent.loc[:, 'child_y_index'] = np.floor(parent_in_child_index[1]).astype(int)
 
-        # drop unnecessary columns befor merge
-        child = child.drop(columns=['x_coord', 'y_coord'])
+        # convert child coords to parent index
+        child_in_parent_index = ~ras_parent.T0 * (np.array(child.x_coord), np.array(child.y_coord))
+        child.loc[:, 'parent_x_index'] = np.floor(child_in_parent_index[0]).astype(int)
+        child.loc[:, 'parent_y_index'] = np.floor(child_in_parent_index[1]).astype(int)
+
+        # drop unnecessary columns before merge
+        # child = child.drop(columns=['x_coord', 'y_coord'])
         # merge along child index
         pc = parent.merge(child, how='left', left_on=['child_x_index', 'child_y_index'], right_on=['x_index', 'y_index'], suffixes=['', '_child'])
+        #pc = parent.merge(child, how='left', left_on=['x_index', 'y_index'], right_on=['parent_x_index', 'parent_y_index'], suffixes=['', '_child'])  # neither of these methods produce results that agree. Issues need to be resolved.
+
         # drop child index
-        pc = pc.drop(columns=['child_x_index', 'child_y_index', 'x_index_child', 'y_index_child'])
+        # pc = pc.drop(columns=['child_x_index', 'child_y_index', 'x_index_child', 'y_index_child'])
 
         return pc
 
