@@ -2,20 +2,20 @@ import rastools
 import numpy as np
 import os
 
-angle_set = [5, 10, 15]
+angle_set = [5, 10, 15, 30]
 
-for ii in angle_set:
+for angle in angle_set:
     # load components
     dir_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RAS\\"
-    FG_in = "19_149_las_proc_627975_5646450_first_ground_point_density_a%ANGLE%_.25m.bil".replace('%ANGLE%', str(angle_set[ii]))
-    LG_in = "19_149_las_proc_627975_5646450_last_ground_point_density_a%ANGLE%_.25m.bil".replace('%ANGLE%', str(angle_set[ii]))
-    FC_in = "19_149_las_proc_627975_5646450_first_veg_point_density_a%ANGLE%_.25m.bil".replace('%ANGLE%', str(angle_set[ii]))
+    FG_in = "19_149_las_proc_627975_5646450_first_ground_point_density_a%ANGLE%_r.25m.bil".replace('%ANGLE%', str(angle))
+    LG_in = "19_149_las_proc_627975_5646450_last_ground_point_density_a%ANGLE%_r.25m.bil".replace('%ANGLE%', str(angle))
+    FC_in = "19_149_las_proc_627975_5646450_first_veg_point_density_a%ANGLE%_r.25m.bil".replace('%ANGLE%', str(angle))
 
     # outputs
     dir_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LPM\\"
-    lpmf_out = "19_149_LPM-first_a%ANGLE%_0.25m.tif".replace('%ANGLE%', str(angle_set[ii]))
-    lpml_out = "19_149_LPM-last_a%ANGLE%_0.25m.tif".replace('%ANGLE%', str(angle_set[ii]))
-    lpmc_out = "19_149_LPM-canopy_a%ANGLE%_0.25m.tif".replace('%ANGLE%', str(angle_set[ii]))
+    lpmf_out = "19_149_LPM-first_a%ANGLE%_r0.25m.tif".replace('%ANGLE%', str(angle))
+    lpml_out = "19_149_LPM-last_a%ANGLE%_r0.25m.tif".replace('%ANGLE%', str(angle))
+    lpmc_out = "19_149_LPM-canopy_a%ANGLE%_r0.25m.tif".replace('%ANGLE%', str(angle))
 
     FG = rastools.raster_load(dir_in + FG_in)
     LG = rastools.raster_load(dir_in + LG_in)

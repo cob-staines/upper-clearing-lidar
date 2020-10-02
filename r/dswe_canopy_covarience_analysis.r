@@ -37,6 +37,8 @@ p_dnt = ggplot(data_swe, aes(x=dswe, y=dnt)) +
   scale_fill_gradient(low=clow, high=chigh) +
   theme_minimal()
 
+
+
 # dce
 p_dce = ggplot(data_swe, aes(x=dswe, y=dce)) +
   facet_grid(. ~ date) +

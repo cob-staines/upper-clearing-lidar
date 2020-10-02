@@ -181,20 +181,18 @@ for dd in all_dates:
         # update file paths with resolution
         chm_in = path_sub([chm_dir_template, chm_raw_in_template], dd=dd, rr=rr)
         if os.path.exists(chm_in):
+            # update file paths
             count_file = path_sub([dem_dir_template, count_file_template], dd=dd, rr=rr)
             chm_out = path_sub([chm_dir_template, chm_filled_out_template], dd=dd, rr=rr)
 
-            # fill in chm nan values with 0 where dem count > 0
-
-            data = rastools.pd_sample_raster(None, chm_in, 'chm', include_nans=True)
-            data = rastools.pd_sample_raster(data, count_file, 'n_count')
-
-            ground = np.isnan(data.chm) & (data.n_count > 0)
-
-            ground_index = (np.array(data.x_index[ground]), np.array(data.y_index[ground]))
-
+            # load rasters
             chm = rastools.raster_load(chm_in)
-            chm.data[ground_index] = 0
+            counts = rastools.gdal_raster_reproject(count_file, chm_in)[:, :, 0]
+
+            # fill in chm nan values with 0 where dem count > 0
+            chm.data[(chm.data == chm.no_data) & (counts > 0)] = 0
+
+            # save to chm_out
             rastools.raster_save(chm, chm_out)
 
 

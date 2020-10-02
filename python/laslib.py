@@ -503,8 +503,6 @@ def las_quantile_dem(las_in, ras_template, q, q_out=None, n_out=None, las_ground
     return stat_q, stat_n
 
 
-
-
 # import matplotlib
 # matplotlib.use('TkAgg')
 # import matplotlib.pyplot as plt

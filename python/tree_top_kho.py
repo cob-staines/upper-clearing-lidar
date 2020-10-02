@@ -8,7 +8,7 @@ import os
 
 # config
 # raster chm for identifying treetops
-ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\CHM\\19_149_snow_off_627975_5646450_spike_free_chm_.10m.bil"
+ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\CHM\\19_149_spike_free_chm_r.10m.bil"
 # raster template for output nearest and distance maps
 ras_template_in = ras_in
 # output file naming conventions
@@ -19,6 +19,10 @@ treetops_out = output_dir + file_base + "_kho_treetops.csv"
 file_base = treetops_out.split("\\")[-1].replace("treetops.csv", "")
 index_out = output_dir + file_base + "index_.10m.tif"
 distance_out = output_dir + file_base + "distance_.10m.tif"
+
+# make output dir
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
 
 # parameters
 z_min = 2
@@ -113,10 +117,6 @@ ras_map = rastools.raster_load(ras_template_in)
 
 # calculate distance and index maps
 index_map, distance_map = rastools.raster_nearest_neighbor(peaks_filtered, ras_map)
-
-# make output dir
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
 
 # export index_map to raster file
 ras_index = ras_map
