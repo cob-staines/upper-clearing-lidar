@@ -156,13 +156,9 @@ def hemigen(hdf5_path, hemimeta, initial_index=0):
 
     # pre-plot
     fig = plt.figure(figsize=(hemimeta.img_size, hemimeta.img_size), dpi=hemimeta.img_resolution, frameon=True)
-    # ax = plt.axes([0., 0., 1., 1.], projection="polar", polar=False)
     ax = plt.axes([0., 0., 1., 1.], projection="polar")
-    # sp1 = ax.scatter(data.phi, data.theta, s=data.area, c="black")
     sp1 = ax.scatter([], [], s=[], c="black")
     ax.set_rmax(np.pi / 2)
-    # ax.set_rticks([])
-    # ax.grid(False)
     ax.set_axis_off()
     fig.add_axes(ax)
 
@@ -173,7 +169,7 @@ def hemigen(hdf5_path, hemimeta, initial_index=0):
                        "y_utm11n": hemimeta.origin[:, 1],
                        "elevation_m": hemimeta.origin[:, 2],
                        "src_las_file": hemimeta.src_las_file,
-                       "las_class": hemimeta.src_keep_class,
+                       "las_class_range": " to ".join([str(cl) for cl in hemimeta.src_keep_class]),
                        "poisson_radius_m": hemimeta.poisson_sampling_radius,
                        "optimization_scalar": hemimeta.optimization_scalar,
                        "point_size_scalar": hemimeta.point_size_scalar,
@@ -183,6 +179,7 @@ def hemigen(hdf5_path, hemimeta, initial_index=0):
                        "created_datetime": None,
                        "point_count": None,
                        "computation_time_s": None})
+
 
     # preallocate log file
     log_path = hemimeta.file_dir + "hemimetalog.csv"
