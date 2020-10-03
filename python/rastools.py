@@ -363,6 +363,57 @@ def raster_to_pd(ras, colnames, include_nans=False):
     return pts
 
 
+def gdal_raster_reproject(src, match, nodatavalue=np.nan):
+    from osgeo import gdal, gdalconst
+    import numpy as np
+
+    # Source
+    if isinstance(src, str):
+        src_filename = src
+        src = gdal.Open(src_filename, gdalconst.GA_ReadOnly)
+    elif ~isinstance(src, gdal.Dataset):
+        raise Exception('src is not either a file path or osgeo.gdal.Dataset')
+
+    src_proj = src.GetProjection()
+    src_geotrans = src.GetGeoTransform()
+    band_count = src.RasterCount
+
+    # Match
+    if isinstance(match, str):
+        match_filename = match
+        match = gdal.Open(match_filename, gdalconst.GA_ReadOnly)
+    elif ~isinstance(match, gdal.Dataset):
+        raise Exception('match is not either a file path or osgeo.gdal.Dataset')
+
+    # We want a section of source that matches this:
+    match_proj = match.GetProjection()
+    match_geotrans = match.GetGeoTransform()
+    wide = match.RasterXSize
+    high = match.RasterYSize
+
+    # create memory destination
+    mem_drv = gdal.GetDriverByName('MEM')
+    dest = mem_drv.Create('', wide, high, band_count, gdal.GDT_Float32)
+    # pad with nodatavalue
+    for ii in range(1, band_count + 1):
+        dest.GetRasterBand(ii).WriteArray(np.full((high, wide), nodatavalue), 0, 0)
+
+    # Set the geotransform
+    dest.SetGeoTransform(match_geotrans)
+    dest.SetProjection(match_proj)
+    # Perform the projection/resampling
+    # res = gdal.ReprojectImage(src, dest, src_proj, match_proj, gdal.GRA_Bilinear)
+    res = gdal.ReprojectImage(src, dest, src_proj, match_proj, gdal.GRA_NearestNeighbour)
+
+    rp_array = np.full((high, wide, band_count), nodatavalue)
+    for ii in range(1, band_count + 1):
+        rp_array[:, :, ii - 1] = np.array(dest.GetRasterBand(ii).ReadAsArray())
+
+    del dest  # Flush
+
+    return rp_array
+
+
 def pd_sample_raster_gdal(data_dict, include_nans=False, nodatavalue=np.nan):
     files = list(data_dict.values())
     colnames = list(data_dict.keys())
@@ -528,56 +579,6 @@ def delauney_fill(values, values_out, ras_template, n_count=None, n_threshold=0)
 
     return values_filled
 
-
-def gdal_raster_reproject(src, match, nodatavalue=np.nan):
-    from osgeo import gdal, gdalconst
-    import numpy as np
-
-    # Source
-    if isinstance(src, str):
-        src_filename = src
-        src = gdal.Open(src_filename, gdalconst.GA_ReadOnly)
-    elif ~isinstance(src, gdal.Dataset):
-        raise Exception('src is not either a file path or osgeo.gdal.Dataset')
-
-    src_proj = src.GetProjection()
-    src_geotrans = src.GetGeoTransform()
-    band_count = src.RasterCount
-
-    # Match
-    if isinstance(match, str):
-        match_filename = match
-        match = gdal.Open(match_filename, gdalconst.GA_ReadOnly)
-    elif ~isinstance(match, gdal.Dataset):
-        raise Exception('match is not either a file path or osgeo.gdal.Dataset')
-
-    # We want a section of source that matches this:
-    match_proj = match.GetProjection()
-    match_geotrans = match.GetGeoTransform()
-    wide = match.RasterXSize
-    high = match.RasterYSize
-
-    # create memory destination
-    mem_drv = gdal.GetDriverByName('MEM')
-    dest = mem_drv.Create('', wide, high, band_count, gdal.GDT_Float32)
-    # pad with nodatavalue
-    for ii in range(1, band_count + 1):
-        dest.GetRasterBand(ii).WriteArray(np.full((high, wide), nodatavalue), 0, 0)
-
-    # Set the geotransform
-    dest.SetGeoTransform(match_geotrans)
-    dest.SetProjection(match_proj)
-    # Perform the projection/resampling
-    # res = gdal.ReprojectImage(src, dest, src_proj, match_proj, gdal.GRA_Bilinear)
-    res = gdal.ReprojectImage(src, dest, src_proj, match_proj, gdal.GRA_NearestNeighbour)
-
-    rp_array = np.full((high, wide, band_count), nodatavalue)
-    for ii in range(1, band_count + 1):
-        rp_array[:, :, ii - 1] = np.array(dest.GetRasterBand(ii).ReadAsArray())
-
-    del dest  # Flush
-
-    return rp_array
 
 # import matplotlib
 # matplotlib.use('TkAgg')

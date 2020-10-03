@@ -196,21 +196,17 @@ for dd in all_dates:
             rastools.raster_save(chm, chm_out)
 
 
-chm_dir_template = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\CHM\\""
-chm_file_raw_template = "<DATE>_spike_free_chm_r<RES>m.bil"
-chm_file_filled_template = "<DATE>_spike_free_chm_r<RES>m_filled.bil"
-
-# point sample HS products to merge with snow surveys
-initial_pts_file = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\surveys\\all_ground_points_UTM11N_uid_flagged_cover.csv"
-for rr in resolution:
-    pts_file_in = initial_pts_file
-    pts_file_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\dhs\\all_ground_points_dhs_r" + rr + ".csv"
-    for ii in range(0, date.__len__()):
-        ddi = date[ii]
-        for jj in range(ii + 1, date.__len__()):
-            ddj = date[jj]
-
-            ras_sample = path_sub([dhs_dir_template, dhs_file_template], ddi=ddi, ddj=ddj, rr=rr)
-            colname = str(ddi) + '-' + str(ddj)
-            rastools.csv_sample_raster(ras_sample, pts_file_in, pts_file_out, "xcoordUTM11", "ycoordUTM11", colname, sample_no_data_value='')
-            pts_file_in = pts_file_out
+# # point sample HS products to merge with snow surveys
+# initial_pts_file = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\surveys\\all_ground_points_UTM11N_uid_flagged_cover.csv"
+# for rr in resolution:
+#     pts_file_in = initial_pts_file
+#     pts_file_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\dhs\\all_ground_points_dhs_r" + rr + ".csv"
+#     for ii in range(0, date.__len__()):
+#         ddi = date[ii]
+#         for jj in range(ii + 1, date.__len__()):
+#             ddj = date[jj]
+#
+#             ras_sample = path_sub([dhs_dir_template, dhs_file_template], ddi=ddi, ddj=ddj, rr=rr)
+#             colname = str(ddi) + '-' + str(ddj)
+#             rastools.csv_sample_raster(ras_sample, pts_file_in, pts_file_out, "xcoordUTM11", "ycoordUTM11", colname, sample_no_data_value='')
+#             pts_file_in = pts_file_out
