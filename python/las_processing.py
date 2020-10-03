@@ -5,14 +5,14 @@
 
 # ----- DEM analysis -----
 # calculate dems and differential dem products
-import hs_dhs_data_products
+import hs_swe_data_products
 
 # ----- Canopy analysis -----
 # hemi_optimization.py (optimizing synthetics)
 # hemisfer (photos/optimizing synthetics)
 # hemisfer_parse.py (photos/optimizing synthetics)
 # hemi_ptimization_2.r (select optimization parameters)
-# hemi_from_dem.py (synthetics)
+# hemi_from_pts.py (synthetics)
 # hemisfer (synthetics)
 # hemisfer_parse.py (synthetics)
 

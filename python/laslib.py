@@ -132,7 +132,6 @@ def hemigen(hdf5_path, hemimeta, initial_index=0):
     import pandas as pd
     import numpy as np
     import matplotlib
-    import h5py
     matplotlib.use('Agg')
     # matplotlib.use('TkAgg')  # use for interactive plotting
     import matplotlib.pyplot as plt
