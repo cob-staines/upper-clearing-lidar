@@ -3,13 +3,15 @@ import numpy as np
 import laslib
 import os
 
-# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uls_1m_3m_subgrid_pr_.15_os_10\\'
-# las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las"
-# pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\1m_dem_points_3m_subgrid_uls.csv"
 
-batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\lfp_not-uls_1m_3m_subgrid_pr_.15_os_10\\'
-las_in = "C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_las_proc_classified_merged.las"
-pts_in = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\1m_dem_points_3m_subgrid_lfp_not-uls.csv'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\lfp_1m_3m_subgrid_pr_.15_os_10\\'
+las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las"
+pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\19_149_dem_r1.00m_q0.25_interpolated_min1\\1m_dem_points_3m_subgrid_lfp.csv"
+
+
+# batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\lfp_not-uls_1m_3m_subgrid_pr_.15_os_10\\'
+# las_in = "C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_las_proc_classified_merged.las"
+# pts_in = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\1m_dem_points_3m_subgrid_lfp_not-uls.csv'
 
 # create batch dir if does not exist
 if not os.path.exists(batch_dir):

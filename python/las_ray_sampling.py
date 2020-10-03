@@ -228,7 +228,7 @@ def las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all'):
     return vox
 
 
-def nb_sample_explicit_sum(rays, path_samples, path_returns, n_samples, iterations=100, permutations=1):
+def nb_sample_explicit_sum(rays, path_samples, path_returns, n_samples, iterations=100):
     # calculate expected points and varience
     # MOVE PARAMETERS TO PASSED VARIABLE
     ratio = .05  # ratio of voxel area weight of prior
@@ -239,7 +239,7 @@ def nb_sample_explicit_sum(rays, path_samples, path_returns, n_samples, iteratio
 
     # gamma prior hyperparameters
     prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
-    prior_a = prior_b * 1  # prior_b * K / N
+    prior_a = prior_b * 0.001  # prior_b * K / N
 
     returns_mean = np.full(len(path_samples), np.nan)
     returns_med = np.full(len(path_samples), np.nan)
@@ -260,14 +260,10 @@ def nb_sample_explicit_sum(rays, path_samples, path_returns, n_samples, iteratio
         # correct for agg sample length
         nb_samples = nb_samples * agg_sample_length
 
-        # take sum as first permutation
-        return_sums = np.full([iterations, permutations], np.nan)
-        return_sums[:, 0] = np.sum(nb_samples, axis=1)
-        # permutate sums for resultant distribution
-        for jj in range(1, permutations):
-            # return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)  # does nothing
-            return_sums[:, jj] = np.sum(shuffle_within_cols(nb_samples), axis=1)
+        # sum modeled values along ray
+        return_sums = np.sum(nb_samples, axis=1)
 
+        #calculate stats
         returns_mean[ii] = np.mean(return_sums)
         returns_med[ii] = np.median(return_sums)
         returns_var[ii] = np.var(return_sums)
@@ -281,7 +277,7 @@ def nb_sample_explicit_sum(rays, path_samples, path_returns, n_samples, iteratio
     return rays
 
 
-def nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, iterations=100, permutations=1):
+def nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, iterations=100):
     # calculate expected points and varience
     # MOVE PARAMETERS TO PASSED VARIABLE
     ratio = .05  # ratio of voxel area weight of prior
@@ -292,7 +288,7 @@ def nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples,
 
     # gamma prior hyperparameters
     prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
-    prior_a = prior_b * 1  # prior_b * K / N
+    prior_a = prior_b * 0.001  # prior_b * K / N
 
     returns_mean = np.full(len(path_samples), np.nan)
     returns_med = np.full(len(path_samples), np.nan)
@@ -316,14 +312,10 @@ def nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples,
         # correct for agg sample length
         nb_samples = nb_samples * agg_sample_length
 
-        # take sum as first permutation
-        return_sums = np.full([iterations, permutations], np.nan)
-        return_sums[:, 0] = np.sum(nb_samples, axis=1)
-        # permutate sums for resultant distribution
-        for jj in range(1, permutations):
-            # return_sums[:, jj] = np.sum(np.random.permutation(nb_samples), axis=1)  # does nothing
-            return_sums[:, jj] = np.sum(shuffle_within_cols(nb_samples), axis=1)
+        # sum modeled values along ray
+        return_sums = np.sum(nb_samples, axis=1)
 
+        # calculate stats
         returns_mean[ii] = np.mean(return_sums)
         returns_med[ii] = np.median(return_sums)
         returns_var[ii] = np.var(return_sums)
@@ -598,12 +590,12 @@ def aggregate_voxels_over_rays(vox, rays, agg_sample_length):
 
 
     # start = time.time()
-    # rays_2 = nb_sample_explicit_sum(rays, path_samples, path_returns, n_samples, iterations=10, permutations=1)
+    # rays_2 = nb_sample_explicit_sum(rays, path_samples, path_returns, n_samples, iterations=10)
     # end = time.time()
     # print((end - start)/len(rays))
     #
     # start = time.time()
-    # rays_2 = nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, iterations=10, permutations=1)
+    # rays_2 = nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, iterations=10)
     # end = time.time()
     # print((end - start)/len(rays))
     #
@@ -618,7 +610,7 @@ def aggregate_voxels_over_rays(vox, rays, agg_sample_length):
     # print((end - start) / len(rays))
 
 
-    rays = nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, iterations=100, permutations=1)
+    rays = nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, iterations=50)
 
 
     return rays
@@ -784,6 +776,7 @@ rastools.raster_save(ras, ras_out)
 
 
 # sample voxel space as hemisphere
+# import from hemi_grid_points
 hemi_pts = pd.read_csv('C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uf_1m_pr_.15_os_10\\1m_dem_points.csv')
 hemi_pts = hemi_pts[hemi_pts.uf == 1]
 hemi_pts = hemi_pts[hemi_pts.id == 20426]
@@ -791,18 +784,36 @@ pts = pd.DataFrame({'x0': hemi_pts.x_utm11n,
                     'y0': hemi_pts.y_utm11n,
                     'z0': hemi_pts.z_m})
 
+# import from hemi-photo lookup
+lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
+max_quality = 4
+las_day = "19_149"
+# import hemi_lookup
+lookup = pd.read_csv(lookup_in)
+# filter lookup by quality
+lookup = lookup[lookup.quality_code <= max_quality]
+# filter lookup by las_day
+lookup = lookup[lookup.folder == las_day]
+
+pts = pd.DataFrame({'x0': lookup.xcoordUTM1,
+                    'y0': lookup.ycoordUTM1,
+                    'z0': lookup.elevation})
+
+
 # for each point
-origin = (pts.iloc[0].x0, pts.iloc[0].y0, pts.iloc[0].z0)
+ii = 0
+origin = (pts.iloc[ii].x0, pts.iloc[ii].y0, pts.iloc[ii].z0)
 img_size = 1000
 agg_sample_length = vox.sample_length
 rays_in = point_to_hemi_rays(origin, img_size, vox, max_dist=50)
 start = time.time()
+prior = []
 rays_out = aggregate_voxels_over_rays(vox, rays_in, agg_sample_length)
 end = time.time()
 print(end - start)
 
 
-area_factor = .01
+area_factor = .1
 # cosine correction
 # rays_out = rays_out.assign(transmittance=np.exp(-1 * area_factor * rays_out.returns_median / np.cos(rays_out.phi)))
 # no cosine correction
@@ -813,7 +824,7 @@ template[(rays_out.y_index.values, rays_out.x_index.values)] = rays_out.transmit
 from scipy import misc
 import imageio
 img = np.rint(template * 255).astype(np.uint8)
-img_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RSM\\ray_sampling_transmittance_20426_af' + str(area_factor) + '.png'
+img_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RSM\\ray_sampling_transmittance_' + str(lookup.index[ii]) + '_af' + str(area_factor) + '.png'
 imageio.imsave(img_out, img)
 
 

@@ -37,6 +37,9 @@ dswe_file_template = 'dswe_<DDI>-<DDJ>_r<RES>m_q<QUANT>.tif'
 int_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\DEM\\interpolated\\'
 int_file_template = '<DATE>_dem_r<RES>m_q<QUANT>_interpolated_t<ITN>.tif'
 
+chm_dir_template = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\CHM\\"
+chm_raw_in_template = "<DATE>_spike_free_chm_r<RES>m.bil"
+chm_filled_out_template = "<DATE>_spike_free_chm_r<RES>m_filled.tif"
 
 def path_sub(path, dd=None, rr=None, qq=None, ddi=None, ddj=None, itn=None, mm=None, bb=None):
     if isinstance(path, str):
@@ -171,17 +174,39 @@ for dd in snow_off:
         print(' -- ' + rr, end='')
     print('\n')
 
-# point sample HS products to merge with snow surveys
-initial_pts_file = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\surveys\\all_ground_points_UTM11N_uid_flagged_cover.csv"
-for rr in resolution:
-    pts_file_in = initial_pts_file
-    pts_file_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\dhs\\all_ground_points_dhs_r" + rr + ".csv"
-    for ii in range(0, date.__len__()):
-        ddi = date[ii]
-        for jj in range(ii + 1, date.__len__()):
-            ddj = date[jj]
+# fill chm with zeros where dem in not nan
+# only for dates and resolutions where chm exists
+for dd in all_dates:
+    for rr in resolution:
+        # update file paths with resolution
+        chm_in = path_sub([chm_dir_template, chm_raw_in_template], dd=dd, rr=rr)
+        if os.path.exists(chm_in):
+            # update file paths
+            count_file = path_sub([dem_dir_template, count_file_template], dd=dd, rr=rr)
+            chm_out = path_sub([chm_dir_template, chm_filled_out_template], dd=dd, rr=rr)
 
-            ras_sample = path_sub([dhs_dir_template, dhs_file_template], ddi=ddi, ddj=ddj, rr=rr)
-            colname = str(ddi) + '-' + str(ddj)
-            rastools.csv_sample_raster(ras_sample, pts_file_in, pts_file_out, "xcoordUTM11", "ycoordUTM11", colname, sample_no_data_value='')
-            pts_file_in = pts_file_out
+            # load rasters
+            chm = rastools.raster_load(chm_in)
+            counts = rastools.gdal_raster_reproject(count_file, chm_in)[:, :, 0]
+
+            # fill in chm nan values with 0 where dem count > 0
+            chm.data[(chm.data == chm.no_data) & (counts > 0)] = 0
+
+            # save to chm_out
+            rastools.raster_save(chm, chm_out)
+
+
+# # point sample HS products to merge with snow surveys
+# initial_pts_file = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\surveys\\all_ground_points_UTM11N_uid_flagged_cover.csv"
+# for rr in resolution:
+#     pts_file_in = initial_pts_file
+#     pts_file_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\dhs\\all_ground_points_dhs_r" + rr + ".csv"
+#     for ii in range(0, date.__len__()):
+#         ddi = date[ii]
+#         for jj in range(ii + 1, date.__len__()):
+#             ddj = date[jj]
+#
+#             ras_sample = path_sub([dhs_dir_template, dhs_file_template], ddi=ddi, ddj=ddj, rr=rr)
+#             colname = str(ddi) + '-' + str(ddj)
+#             rastools.csv_sample_raster(ras_sample, pts_file_in, pts_file_out, "xcoordUTM11", "ycoordUTM11", colname, sample_no_data_value='')
+#             pts_file_in = pts_file_out

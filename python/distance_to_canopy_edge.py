@@ -4,7 +4,7 @@ import rastools
 import os
 
 # config
-ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\CHM\\19_149_snow_off_627975_5646450_spike_free_chm_.10m.bil"
+ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\CHM\\19_149_spike_free_chm_r.10m.bil"
 step_size = 0.10  # in m
 canopy_min_elev = 2
 kernel_dim = 3  # step size = (kernel_dim - 1)/2

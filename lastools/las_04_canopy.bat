@@ -36,4 +36,4 @@ lasgrid -i TEMP_FILES\13_chm\res_%CHM_RESOLUTION%\*.bil ^
       -step %CHM_RESOLUTION% ^
       -epsg %EPSG% ^
       -ll %GRID_ORIGIN% ^
-      -odir OUTPUT_FILES\CHM\ -obil
+      -o OUTPUT_FILES\CHM\%DATE%_spike_free_chm_r%CHM_RESOLUTION%m.bil -obil

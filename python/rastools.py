@@ -1,5 +1,6 @@
 # import rasterio
 # import ogr
+import numpy as np
 
 #define class rasterObj
 class rasterObj(object):
@@ -108,6 +109,9 @@ def raster_save(ras_object, file_path, file_format="GTiff", data_format="float32
     for ii in range(0, ras_object.band_count):
         outdata.GetRasterBand(ii + 1).WriteArray(ras_object.data[ii])
         outdata.GetRasterBand(ii + 1).SetNoDataValue(ras_object.no_data)
+
+    del outdata  # Flush
+
 
 
 def raster_dif(ras_1_in, ras_2_in, inherit_from=1, dif_out=None):
@@ -237,61 +241,57 @@ def raster_to_hdf5(ras_in, hdf5_out, data_col_name="data"):
     df = vaex.from_arrays(index_x=index_x, index_y=index_y, UTM11N_x=coords[0], UTM11N_y=coords[1])
     df.add_column(data_col_name, np.reshape(ras.data, [ras.rows * ras.cols]), dtype=None)
 
-    # does not seem to work...
-    # df.add_variable("no_data", ras.no_data, overwrite=True, unique=True)
-    # df.set_variable("no_data", ras.no_data)
-
     # export to file
     df.export_hdf5(hdf5_out)
 
 
 # something fishy here... it seems that the values are coming out in flipped coordinates
-def hdf5_sample_raster(hdf5_in, hdf5_out, ras_in, sample_col_name="sample"):
-    # can be single ras_in/sample_col_name or list of both
-    import numpy as np
-    import vaex
-
-    if (type(ras_in) == str) & (type(sample_col_name) == str):
-        # convert to list of length 1
-        ras_in = [ras_in]
-        sample_col_name = [sample_col_name]
-    elif (type(ras_in) == list) & (type(sample_col_name) == list):
-        if len(ras_in) != len(sample_col_name):
-            raise Exception('Lists of "ras_in" and "sample_col_name" are not the same length.')
-    else:
-        raise Exception('"ras_in" and "sample_col_name" are not consistent in length or format.')
-
-    # load hdf5_in
-    #df = vaex.open(hdf5_in, 'r+')
-    df = vaex.open(hdf5_in)
-
-    for ii in range(0, len(ras_in)):
-        # load raster
-        ras = raster_load(ras_in[ii])
-
-        # convert sample points to index reference
-        row_col_pts = np.floor(~ras.T0 * (df.UTM11N_x.values, df.UTM11N_y.values)).astype(int)
-
-        # flag samples out of raster bounds
-        outbound_x = (row_col_pts[0] < 0) | (row_col_pts[0] > (ras.rows - 1))
-        outbound_y = (row_col_pts[1] < 0) | (row_col_pts[1] > (ras.cols - 1))
-        outbound = outbound_x | outbound_y
-
-        # list of points in bounds
-        sample_pts = (row_col_pts[0][~outbound], row_col_pts[1][~outbound])
-
-        # read raster values of sample_points
-        samples = np.full(outbound.shape, ras.no_data)
-        samples[~outbound] = ras.data[sample_pts]
-
-        # add column to df
-        df.add_column(sample_col_name[ii], samples, dtype=None)
-
-        ras = None
-
-    # save to hdf5_out
-    df.export_hdf5(hdf5_out)
-    df.close()
+# def hdf5_sample_raster(hdf5_in, hdf5_out, ras_in, sample_col_name="sample"):
+#     # can be single ras_in/sample_col_name or list of both
+#     import numpy as np
+#     import vaex
+#
+#     if (type(ras_in) == str) & (type(sample_col_name) == str):
+#         # convert to list of length 1
+#         ras_in = [ras_in]
+#         sample_col_name = [sample_col_name]
+#     elif (type(ras_in) == list) & (type(sample_col_name) == list):
+#         if len(ras_in) != len(sample_col_name):
+#             raise Exception('Lists of "ras_in" and "sample_col_name" are not the same length.')
+#     else:
+#         raise Exception('"ras_in" and "sample_col_name" are not consistent in length or format.')
+#
+#     # load hdf5_in
+#     #df = vaex.open(hdf5_in, 'r+')
+#     df = vaex.open(hdf5_in)
+#
+#     for ii in range(0, len(ras_in)):
+#         # load raster
+#         ras = raster_load(ras_in[ii])
+#
+#         # convert sample points to index reference
+#         row_col_pts = np.floor(~ras.T0 * (df.UTM11N_x.values, df.UTM11N_y.values)).astype(int)
+#
+#         # flag samples out of raster bounds
+#         outbound_x = (row_col_pts[0] < 0) | (row_col_pts[0] > (ras.rows - 1))
+#         outbound_y = (row_col_pts[1] < 0) | (row_col_pts[1] > (ras.cols - 1))
+#         outbound = outbound_x | outbound_y
+#
+#         # list of points in bounds
+#         sample_pts = (row_col_pts[0][~outbound], row_col_pts[1][~outbound])
+#
+#         # read raster values of sample_points
+#         samples = np.full(outbound.shape, ras.no_data)
+#         samples[~outbound] = ras.data[sample_pts]
+#
+#         # add column to df
+#         df.add_column(sample_col_name[ii], samples, dtype=None)
+#
+#         ras = None
+#
+#     # save to hdf5_out
+#     df.export_hdf5(hdf5_out)
+#     df.close()
 
 
 # could clean up for time using KDTrees if desired. Currently takes +/- 100s for .25 res
@@ -312,7 +312,7 @@ def raster_nearest_neighbor(points, ras):
     return index_map, distance_map
 
 
-def raster_to_pd(ras, colnames):
+def raster_to_pd(ras, colnames, include_nans=False):
     import numpy as np
     import pandas as pd
 
@@ -336,57 +336,204 @@ def raster_to_pd(ras, colnames):
     if ras.band_count != len(colnames):
         raise Exception('length of colname does not match band_count, raster_to_pd() aborted.')
 
+    all_vals = np.full([ras.rows, ras.cols], True)
 
-    has_value = np.full([ras.rows, ras.cols, ras.band_count], False)
+    nan_vals = np.full([ras.rows, ras.cols, ras.band_count], False)
     for ii in range(0, ras.band_count):
-        has_value[:, :, ii] = (ras.data[ii] != ras.no_data)
-    has_value = np.any(has_value, axis=2)
+        nan_vals[:, :, ii] = (ras.data[ii] == ras.no_data)
+    nan_vals = np.any(nan_vals, axis=2)
 
+    if include_nans:
+        pts_index = np.where(all_vals)
+    else:
+        # only non nans
+        pts_index = np.where(~nan_vals)
 
-    pts_index = np.where(has_value)
     pts_coords = ras.T1 * pts_index
-    pts = pd.DataFrame({'x_coord': pts_coords[0],
+    pts = pd.DataFrame({'x_coord': pts_coords[0],  # affine transform output returns [x, y]
                         'y_coord': pts_coords[1],
-                        'x_index': pts_index[0],
-                        'y_index': pts_index[1]})
+                        'x_index': pts_index[1],  # numpy output from np.where() returns [y, x]
+                        'y_index': pts_index[0]})
 
     for ii in range(0, ras.band_count):
-        pts.loc[:, colnames[ii]] = ras.data[ii][has_value]
+        pts.loc[:, colnames[ii]] = ras.data[ii][pts.y_index, pts.x_index]
+        # sub in np.nan for no_data values
+        pts.loc[pts.loc[:, colnames[ii]] == ras.no_data, colnames[ii]] = np.nan
 
     return pts
 
 
-def pd_sample_raster(parent, ras, colnames):
+def gdal_raster_reproject(src, match, nodatavalue=np.nan):
+    from osgeo import gdal, gdalconst
     import numpy as np
 
-    # sample child in child coords
-    child = raster_to_pd(ras, colnames)
+    # Source
+    if isinstance(src, str):
+        src_filename = src
+        src = gdal.Open(src_filename, gdalconst.GA_ReadOnly)
+    elif ~isinstance(src, gdal.Dataset):
+        raise Exception('src is not either a file path or osgeo.gdal.Dataset')
 
-    if parent is None:
-        # default to raster_to_pd output
-        return child
-    else:
-        # import if ras is file path, move on if ras is raster object
-        if not isinstance(ras, rasterObj):
-            if isinstance(ras, str):
-                ras_in = ras
-                ras = raster_load(ras_in)
-            else:
-                raise Exception('ras is not an instance of rasterObj or str (filepath), raster_to_pd() aborted.')
+    src_proj = src.GetProjection()
+    src_geotrans = src.GetGeoTransform()
+    band_count = src.RasterCount
 
-        # convert parent coords to child index
-        parent_in_child_index = ~ras.T1 * (parent.x_coord.values, parent.y_coord.values)
-        parent.loc[:, 'child_x_index'] = np.rint(parent_in_child_index[0])
-        parent.loc[:, 'child_y_index'] = np.rint(parent_in_child_index[1])
+    # Match
+    if isinstance(match, str):
+        match_filename = match
+        match = gdal.Open(match_filename, gdalconst.GA_ReadOnly)
+    elif ~isinstance(match, gdal.Dataset):
+        raise Exception('match is not either a file path or osgeo.gdal.Dataset')
 
-        # drop unnecessary columns befor merge
-        child = child.drop(columns=['x_coord', 'y_coord'])
-        # merge along child index
-        pc = parent.merge(child, how='left', left_on=['child_x_index', 'child_y_index'], right_on=['x_index', 'y_index'], suffixes=['', '_child'])
-        # drop child index
-        pc = pc.drop(columns=['child_x_index', 'child_y_index', 'x_index_child', 'y_index_child'])
+    # We want a section of source that matches this:
+    match_proj = match.GetProjection()
+    match_geotrans = match.GetGeoTransform()
+    wide = match.RasterXSize
+    high = match.RasterYSize
 
-        return pc
+    # create memory destination
+    mem_drv = gdal.GetDriverByName('MEM')
+    dest = mem_drv.Create('', wide, high, band_count, gdal.GDT_Float32)
+    # pad with nodatavalue
+    for ii in range(1, band_count + 1):
+        dest.GetRasterBand(ii).WriteArray(np.full((high, wide), nodatavalue), 0, 0)
+
+    # Set the geotransform
+    dest.SetGeoTransform(match_geotrans)
+    dest.SetProjection(match_proj)
+    # Perform the projection/resampling
+    # res = gdal.ReprojectImage(src, dest, src_proj, match_proj, gdal.GRA_Bilinear)
+    res = gdal.ReprojectImage(src, dest, src_proj, match_proj, gdal.GRA_NearestNeighbour)
+
+    rp_array = np.full((high, wide, band_count), nodatavalue)
+    for ii in range(1, band_count + 1):
+        rp_array[:, :, ii - 1] = np.array(dest.GetRasterBand(ii).ReadAsArray())
+
+    del dest  # Flush
+
+    return rp_array
+
+
+def pd_sample_raster_gdal(data_dict, include_nans=False, nodatavalue=np.nan):
+    files = list(data_dict.values())
+    colnames = list(data_dict.keys())
+
+    # take first item in files as parent
+    print('Loading ' + str(colnames[0]) + "... ", end='')
+    df = raster_to_pd(files[0], colnames[0], include_nans=include_nans)
+    print('done')
+
+    # for remaining items in files
+    for ii in range(1, len(files)):
+        print('Loading ' + colnames[ii] + "... ", end='')
+        rs_array = gdal_raster_reproject(files[ii], files[0], nodatavalue=nodatavalue)
+
+        band_count = rs_array.shape[2]
+        if band_count == 1:
+            df.loc[:, colnames[ii]] = rs_array[df.y_index, df.x_index, 0]
+        elif band_count > 1:
+            if len(colnames[ii]) != band_count:
+                raise Exception('colnames key ' + str(colnames[ii]) + ' does not agree with number of bands in image.')
+            for jj in range(0, band_count):
+                df.loc[:, colnames[ii][jj]] = rs_array[df.y_index, df.x_index, jj]
+
+        print('done')
+    return df
+
+# def pd_sample_raster(parent, ras_parent, ras_child, colnames, include_nans=False):
+#     import numpy as np
+#
+#     # sample child in child coords
+#     child = raster_to_pd(ras_child, colnames, include_nans)
+#
+#     if parent is None:
+#         # default to raster_to_pd output
+#         return child
+#     else:
+#         # import if ras is file path, move on if ras is raster object
+#         if not isinstance(ras_child, rasterObj):
+#             if isinstance(ras_child, str):
+#                 ras_child_in = ras_child
+#                 ras_child = raster_load(ras_child_in)
+#             else:
+#                 raise Exception('ras is not an instance of rasterObj or str (filepath), raster_to_pd() aborted.')
+#
+#         if not isinstance(ras_parent, rasterObj):
+#             if isinstance(ras_parent, str):
+#                 ras_parent_in = ras_parent
+#                 ras_parent = raster_load(ras_parent_in)
+#             else:
+#                 raise Exception('ras is not an instance of rasterObj or str (filepath), raster_to_pd() aborted.')
+#
+#         # confirmation transforms
+#         # [y_index, x_index] = ~T * [x_coord, y_coord]
+#         train = ~ras_parent.T1 * (parent.x_coord, parent.y_coord)
+#         np.max(np.array(parent.x_index) - np.array(train[1]))
+#         np.max(np.array(parent.y_index) - np.array(train[0]))
+#
+#         # [x_coord, y_coord] = T * [y_index, x_index]
+#         peace = ras_parent.T1 * (parent.y_index, parent.x_index)
+#         np.all(np.array(parent.x_coord) == np.array(peace[0]))
+#         np.all(np.array(parent.y_coord) == np.array(peace[1]))
+#
+#         # [y_index, x_index] = ~T * [x_coord, y_coord]
+#         train = ~ras_child.T1 * (child.x_coord, child.y_coord)
+#         np.max(np.array(child.x_index) - np.array(train[1]))
+#         np.max(np.array(child.y_index) - np.array(train[0]))
+#
+#         # [x_coord, y_coord] = T * [y_index, x_index]
+#         peace = ras_child.T1 * (child.y_index, child.x_index)
+#         np.all(np.array(child.x_coord) == np.array(peace[0]))
+#         np.all(np.array(child.y_coord) == np.array(peace[1]))
+#
+#         # parent coord into child and back
+#         # [y_index, x_index] = ~T * [x_coord, y_coord]
+#         train = ~ras_child.T0 * (parent.x_coord, parent.y_coord)
+#         peace = ras_child.T0 * train
+#         np.max(np.array(parent.x_coord) - np.array(peace[0]))
+#         np.max(np.array(parent.y_coord) - np.array(peace[1]))
+#
+#         # parent coords into child and back
+#         # [x_coord, y_coord] = T * [y_index, x_index]
+#         peace = ras_child.T0 * (parent.y_index, parent.x_index)
+#         train = ~ras_child.T0 * peace
+#         np.max(np.array(parent.x_index) - np.array(train[1]))
+#         np.max(np.array(parent.y_index) - np.array(train[0]))
+#
+#
+#
+#         # convert parent coords to child index
+#         parent_in_child_index = ~ras_child.T0 * (parent.x_coord, parent.y_coord)
+#         parent.loc[:, 'child_x_index'] = np.floor(parent_in_child_index[1]).astype(int)
+#         parent.loc[:, 'child_y_index'] = np.floor(parent_in_child_index[0]).astype(int)
+#
+#         parent.loc[parent.child_x_index < 0, 'child_x_index'] = np.nan
+#         parent.loc[parent.child_x_index >= ras_child.cols, 'child_x_index'] = np.nan
+#         parent.loc[parent.child_y_index < 0, 'child_x_index'] = np.nan
+#         parent.loc[parent.child_y_index >= ras_child.rows, 'child_x_index'] = np.nan
+#
+#
+#         # # convert child coords to parent index
+#         # child_in_parent_index = ~ras_parent.T0 * (child.x_coord, child.y_coord)
+#         # child.loc[:, 'parent_x_index'] = np.floor(child_in_parent_index[1]).astype(int)
+#         # child.loc[:, 'parent_y_index'] = np.floor(child_in_parent_index[0]).astype(int)
+#
+#         # instead of merge, can we try just logical indexing?
+#         valid = ~np.isnan(parent.child_y_index) & ~np.isnan(parent.child_x_index)
+#         parent.loc[:, 'child_values'] = np.nan
+#         parent.loc[valid, 'child_values'] = ras_child.data[parent.child_x_index.loc[valid].astype(int), parent.child_y_index.loc[valid].astype(int)]
+#
+#         # drop unnecessary columns before merge
+#         # child = child.drop(columns=['x_coord', 'y_coord'])
+#         # merge along child index
+#         # both give same results, but values still disagree
+#         pc = parent.merge(child, how='left', left_on=['child_x_index', 'child_y_index'], right_on=['x_index', 'y_index'], suffixes=['', '_child'])
+#         # pc2 = parent.merge(child, how='left', left_on=['x_index', 'y_index'], right_on=['parent_x_index', 'parent_y_index'], suffixes=['', '_child'])  # neither of these methods produce results that agree. Issues need to be resolved.
+#
+#         # drop child index
+#         # pc = pc.drop(columns=['child_x_index', 'child_y_index', 'x_index_child', 'y_index_child'])
+#
+#         return pc
 
 
 def delauney_fill(values, values_out, ras_template, n_count=None, n_threshold=0):

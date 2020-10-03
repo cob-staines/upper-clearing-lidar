@@ -9,11 +9,15 @@ gd = 'C:/Users/Cob/index/educational/usask/research/masters/graphics/automated/'
 data = read.csv(data_in, header=TRUE, na.strings = c("NA",""), sep=",")
 data$cc = 1 - data$openness
 
+# filter to upper forest
+# data = data[data$uf == 1,]
+
 # gather snow deptswe  
 data_swe = data %>%
   gather("date", "swe", c(8, 10, 12, 14, 16))
 data_swe$date = as.factor(data_swe$date)
 levels(data_swe$date) = c("19_045", "19_050", "19_052", "19_107", "19_123")
+
 
 # plot params
 bincount = 50
@@ -86,7 +90,7 @@ p_lpmc = ggplot(data_swe, aes(x=swe, y=lpmc15)) +
   labs(x='SWE (mm)', y='LPM canopy') +
   theme_minimal()
 
-p_lpm = grid.arrange(p_lpmf, p_lpml, p_lpmc, nrow=3, top = textGrob("SWE vs. laser penetration metrics (LPMs)",gp=gpar(fontsize=20,font=3)))
+p_lpm = grid.arrange(p_lpmf, p_lpml, p_lpmc, nrow=3, top = textGrob("SWE vs. laser penetration metrics (LPMs), scan angles +/- 15 deg",gp=gpar(fontsize=20,font=3)))
 ggsave(paste0(gd, "swe_vs_lpms.pdf"), p_lpm, width = plot_w, height = plot_h, units = "cm")
 
 ########## Expected returns
@@ -165,16 +169,10 @@ ggplot(data, aes(x=swe_19_045, y=swe_19_052)) +
   geom_abline(slope=1, intercept=0) +
   theme_minimal()
 
-ggplot(data, aes(x=hs_19_045, y=count_19_045 + count_19_149)) +
+ggplot(data, aes(x=swe_19_045, y=count_19_045 + count_19_149)) +
   geom_point() +
   theme_minimal() +
   scale_y_log10()
-
-
-ggplot(data, aes(x=hs_19_045, y=hs_19_052)) +
-  geom_bin2d(bins = bincount) +
-  geom_abline(slope=1, intercept=0) +
-  theme_minimal()
 
 
 data$low_counts = 'no'
@@ -202,14 +200,29 @@ ggplot(data, aes(x=er_001_median)) +
   geom_density() +
   geom_density(data = df2, color = "red")
 
-ggplot(data, aes(x=er_001_median, y=count)) +
+ggplot(data, aes(x=er_001_median, y=count_19_149)) +
   geom_bin2d()
 
 ggplot(data, aes(x=chm, y=er_001_median)) +
+  geom_bin2d()
+
+ggplot(data, aes(x=dnt, y=er_001_median)) +
+  geom_bin2d()
+
+ggplot(data, aes(x=dce, y=er_001_median)) +
+  geom_bin2d()
+
+ggplot(data, aes(x=dnt, y=dce)) +
+  geom_bin2d()
+
+ggplot(data, aes(x=chm, y=er_001_median)) +
+  geom_bin2d()
+
+ggplot(data, aes(x=lpmf15, y=er_001_median)) +
   geom_point()
 
-ggplot(data, aes(x=lpmf, y=er_001_median)) +
-  geom_point()
+ggplot(data, aes(x=lpmf30, y=lpmf15)) +
+  geom_bin2d()
 
 ggplot(data, aes(x=lpml, y=er_001_median)) +
   geom_point()

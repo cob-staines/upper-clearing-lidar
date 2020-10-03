@@ -132,7 +132,6 @@ def hemigen(hdf5_path, hemimeta, initial_index=0):
     import pandas as pd
     import numpy as np
     import matplotlib
-    import h5py
     matplotlib.use('Agg')
     # matplotlib.use('TkAgg')  # use for interactive plotting
     import matplotlib.pyplot as plt
@@ -498,8 +497,6 @@ def las_quantile_dem(las_in, ras_template, q, q_out=None, n_out=None, las_ground
         rastools.raster_save(n_ras, n_out, data_format='float32')
 
     return stat_q, stat_n
-
-
 
 
 # import matplotlib

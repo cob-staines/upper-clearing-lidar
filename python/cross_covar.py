@@ -15,9 +15,11 @@ swe = rastools.raster_to_pd(swe_in, 'swe')
 hemi_swe = pd.merge(hemimeta, swe, left_on=('x_utm11n', 'y_utm11n'), right_on=('x_coord', 'y_coord'), how='left')
 
 # stack binary canopy data
+threshold = 128
+
 imstack = np.full([imsize, imsize, len(hemi_swe)], False)
 for ii in range(0, len(hemimeta)):
-    imstack[:, :, ii] = np.array(Image.open(batch_dir + hemi_swe.file_name[ii]))[:, :, 0] > 127
+    imstack[:, :, ii] = np.array(Image.open(batch_dir + hemi_swe.file_name[ii]))[:, :, 0] > (threshold - 1)
     print(ii)
 
 covar = np.full((imsize, imsize), np.nan)
