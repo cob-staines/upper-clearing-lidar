@@ -435,7 +435,9 @@ def las_quantile_dem(las_in, ras_template, q, q_out=None, n_out=None, las_ground
     ras = rastools.raster_load(ras_template)
 
     # calculate bins
-    ras_bins = list(ras.T0 * (np.linspace(0, ras.rows, ras.rows + 1), np.linspace(0, ras.rows, ras.rows + 1)))
+    x_bins = (ras.T0 * (np.linspace(0, ras.cols, ras.cols + 1), 0))[0]
+    y_bins = (ras.T0 * (0, np.linspace(0, ras.rows, ras.rows + 1)))[1]
+    ras_bins = [y_bins, x_bins]
 
     # rectify bins
     rectified = [False, False]
@@ -445,7 +447,7 @@ def las_quantile_dem(las_in, ras_template, q, q_out=None, n_out=None, las_ground
             rectified[ii] = True
 
     print('Computing counts... ', end='')
-    stat_n, xEdges, yEdges, binnumber = scipy.stats.binned_statistic_2d(las[:, 0], las[:, 1], las[:, 2], statistic='count', bins=ras_bins)
+    stat_n, xEdges, yEdges, binnumber = scipy.stats.binned_statistic_2d(las[:, 1], las[:, 0], las[:, 2], statistic='count', bins=ras_bins)
     print('done')
 
     print('Computing quantile... ')
@@ -458,13 +460,13 @@ def las_quantile_dem(las_in, ras_template, q, q_out=None, n_out=None, las_ground
 
     # for each column
     for ii in range(0, ras.cols):
-        # select points in column
-        stripe_points = (las[:, 1] > ras_bins[1][ii]) & (las[:, 1] < ras_bins[1][ii + 1])
+        # select all points in column
+        stripe_points = (las[:, 0] > ras_bins[1][ii]) & (las[:, 0] < ras_bins[1][ii + 1])  # all y values, within x value range
         las_sub = las[stripe_points, :]
 
         if las_sub.size > 0:
             # calculate quantile
-            stat_q_col, xEdges, binnumber = scipy.stats.binned_statistic(las_sub[:, 0], las_sub[:, 2], statistic=quantile_q, bins=ras_bins[0])
+            stat_q_col, yEdges, binnumber = scipy.stats.binned_statistic(las_sub[:, 1], las_sub[:, 2], statistic=quantile_q, bins=ras_bins[0])
             # save to composite output
             stat_q[:, ii] = stat_q_col
 
@@ -476,10 +478,6 @@ def las_quantile_dem(las_in, ras_template, q, q_out=None, n_out=None, las_ground
         if rectified[ii]:
             stat_n = np.flip(stat_n, ii)
             stat_q = np.flip(stat_q, ii)
-
-    # swap axes
-    stat_n = stat_n.swapaxes(0, 1)
-    stat_q = stat_q.swapaxes(0, 1)
 
     # save outputs to file
     if q_out is not None:

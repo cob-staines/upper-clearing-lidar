@@ -7,7 +7,7 @@ snow_on = ["19_045", "19_050", "19_052", "19_107", "19_123"]
 snow_off = ["19_149"]
 all_dates = snow_on + snow_off
 
-resolution = [".04", ".10", ".25", ".50", "1.00"]
+resolution = [".10", ".25", ".50", "1.00"]
 
 depth_to_density_intercept = dict(zip(snow_on, [0, 0, 0, 0, 0]))
 depth_to_density_slope = dict(zip(snow_on, 100*np.array([2.695, 2.7394, 3.0604, 3.1913, 2.5946])))
@@ -17,21 +17,21 @@ depth_to_swe_slope = dict(zip(snow_on, 100*np.array([2.695, 2.7394, 3.0604, 3.19
 depth_regression = 'swe'
 
 dem_quantile = .25
-interpolation_threshold = 0
+interpolation_threshold = 1
 
 las_in_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\LAS\\<DATE>_las_proc_classified_merged.las'
-dem_ref_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\raster_templates\\hs_19_045_res_<RES>m.tif'
+dem_ref_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\TEMPLATES\\19_149_all_point_density_r<RES>m.bil'
 dem_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\DEM\\'
 dem_file_template = '<DATE>_dem_r<RES>m_q<QUANT>.tif'
 count_file_template = '<DATE>_dem_r<RES>m_count.tif'
 
-hs_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\hs\\<DDI>-<DDJ>\\'
+hs_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\hs\\<DDI>-<DDJ>\\'
 hs_file_template = 'hs_<DDI>-<DDJ>_r<RES>_q<QUANT>.tif'
 
-swe_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\SWE\\<DATE>\\'
+swe_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\SWE\\<DATE>\\'
 swe_file_template = 'swe_<DATE>_r<RES>m_q<QUANT>.tif'
 
-dswe_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\dSWE\\<DDI>-<DDJ>\\'
+dswe_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\<DDI>-<DDJ>\\'
 dswe_file_template = 'dswe_<DDI>-<DDJ>_r<RES>m_q<QUANT>.tif'
 
 int_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\DEM\\interpolated\\'

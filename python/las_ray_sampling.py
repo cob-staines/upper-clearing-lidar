@@ -292,7 +292,7 @@ def nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples,
 
     returns_mean = np.full(len(path_samples), np.nan)
     returns_med = np.full(len(path_samples), np.nan)
-    returns_var = np.full(len(path_samples), np.nan)
+    returns_std = np.full(len(path_samples), np.nan)
     print('Aggregating samples over each ray...')
     for ii in range(0, len(path_samples)):
         kk = path_returns[ii, 0:n_samples[ii]]
@@ -318,13 +318,13 @@ def nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples,
         # calculate stats
         returns_mean[ii] = np.mean(return_sums)
         returns_med[ii] = np.median(return_sums)
-        returns_var[ii] = np.var(return_sums)
+        returns_std[ii] = np.std(return_sums)
 
         print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
 
     rays = rays.assign(returns_mean=returns_mean)
     rays = rays.assign(returns_median=returns_med)
-    rays = rays.assign(returns_var=returns_var)
+    rays = rays.assign(returns_std=returns_std)
 
     return rays
 
@@ -464,7 +464,74 @@ def nb_sample_explicit_sum_combined_trunc(rays, path_samples, path_returns, n_sa
     return rays
 
 
-# needs work, not functional
+def nb_sample_explicit_sum_lookup_global(rays, path_samples, path_returns, n_samples, lookup_iterations=1000, ray_iterations=100, permutations=1):
+    # calculate expected points and varience
+    # MOVE PARAMETERS TO PASSED VARIABLE
+    ratio = .05  # ratio of voxel area weight of prior
+    F = .16 * 0.05  # expected footprint area
+    V = np.prod(vox.step)  # volume of each voxel
+    K = np.sum(vox.return_data)  # total number of returns in set
+    N = np.sum(vox.sample_data)  # total number of meters sampled in set
+
+    # gamma prior hyperparameters
+    prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
+    prior_a = prior_b * 1  # prior_b * K / N
+
+    returns_mean = np.full(len(path_samples), np.nan)
+    returns_med = np.full(len(path_samples), np.nan)
+    returns_std = np.full(len(path_samples), np.nan)
+    print('Aggregating samples over each ray...')
+
+    print('Building dictionary...', end='')
+    # lookup for unique pairs of post_a and post_b
+    post_a = prior_a + path_returns
+    post_b = 1 - 1 / (1 + prior_b + path_samples)
+
+    allem = np.array((np.reshape(post_a, post_a.size), np.reshape(post_b, post_b.size))).swapaxes(0, 1)
+    allem = allem[~np.any(np.isnan(allem), axis=1), :]
+    peace = np.unique(allem, axis=0)
+    peace = list(zip(peace[:, 0], peace[:, 1]))
+
+
+    # calculate all possible values
+    lookup = {}
+    for dd in range(0, len(peace)):
+        lookup[peace[dd]] = np.random.negative_binomial(peace[dd][0], peace[dd][1], lookup_iterations)
+    print('done')
+
+
+    # for each ray
+    for ii in range(0, len(path_samples)):
+        aa = post_a[ii, 0:n_samples[ii]]
+        bb = post_b[ii, 0:n_samples[ii]]
+
+        keys = np.array((aa, bb)).swapaxes(0, 1)
+
+        nb_samples = np.full([ray_iterations, n_samples[ii]], 0)
+        seed = np.random.randint(low=0, high=lookup_iterations - ray_iterations, size=n_samples[ii])
+        for kk in range(0, n_samples[ii]):
+            nb_samples[:, kk] = lookup[keys[kk]][seed[kk]:seed[kk] + ray_iterations]
+
+
+        # correct for agg sample length
+        nb_samples = nb_samples * agg_sample_length
+
+        # sum samples along ray
+        return_sums = np.sum(nb_samples, axis=1)
+
+        returns_mean[ii] = np.mean(return_sums)
+        returns_med[ii] = np.median(return_sums)
+        returns_std[ii] = np.std(return_sums)
+
+        print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
+
+    rays = rays.assign(returns_mean=returns_mean)
+    rays = rays.assign(returns_median=returns_med)
+    rays = rays.assign(returns_std=returns_std)
+
+    return rays
+
+# needs work, not functional nonconvergent
 def nb_sum_sample(rays, path_samples, path_returns, n_samples, k_max=10000, iterations=100, permutations=1):
     # calculate expected points and varience
     # MOVE PARAMETERS TO PASSED VARIABLE
@@ -682,7 +749,7 @@ def ray_stats_to_dem(rays, dem_in):
     ras.data[1][ground_dem] = rays.returns_median
     ras.data[1][np.isnan(ras.data[1])] = ras.no_data
 
-    ras.data[2][ground_dem] = rays.returns_var
+    ras.data[2][ground_dem] = rays.returns_std
     ras.data[2][np.isnan(ras.data[2])] = ras.no_data
 
     ras.band_count = 3
@@ -690,7 +757,7 @@ def ray_stats_to_dem(rays, dem_in):
     return ras
 
 
-def point_to_hemi_rays(origin, img_size, vox, max_dist=50):
+def point_to_hemi_rays(origin, img_size, vox, max_phi=np.pi/2, max_dist=50):
 
     # convert img index to phi/theta
     img_origin = (img_size - 1) / 2
@@ -704,11 +771,11 @@ def point_to_hemi_rays(origin, img_size, vox, max_dist=50):
                          'y0': origin[1],
                          'z0': origin[2]})
     # calculate phi and theta
-    rays = rays.assign(phi=np.sqrt((rays.x_index - img_origin) ** 2 + (rays.y_index - img_origin) ** 2) * (np.pi / 2) / img_origin)
+    rays = rays.assign(phi=np.sqrt((rays.x_index - img_origin) ** 2 + (rays.y_index - img_origin) ** 2) * max_phi / img_origin)
     rays = rays.assign(theta=np.arctan2((rays.x_index - img_origin), (rays.y_index - img_origin)) + np.pi)
 
-    # remove rays which exceed hemisphere
-    rays = rays[rays.phi <= np.pi / 2]
+    # remove rays which exceed max_phi (circle
+    rays = rays[rays.phi <= max_phi]
 
     # calculate cartesian coords of point at r = max_dist along ray
     rr = max_dist
@@ -726,16 +793,25 @@ def point_to_hemi_rays(origin, img_size, vox, max_dist=50):
     return rays
 
 
-def shuffle_within_cols(mask):
-    xx, yy = mask.shape
-    mapping = np.stack([list(np.random.permutation(np.arange(xx))) for _ in range(yy)])
-    return mask[mapping.T, np.arange(yy)]
+def hemi_rays_to_img(rays_out, img_path, img_size, area_factor):
+    import imageio
 
+    rays_out = rays_out.assign(transmittance=np.exp(-1 * area_factor * rays_out.returns_median))
+    template = np.full([img_size, img_size], 0.0)
+    template[(rays_out.y_index.values, rays_out.x_index.values)] = rays_out.transmittance
 
-def shuffle_within_rows(mask):
-    xx, yy = mask.shape
-    mapping = np.stack([list(np.random.permutation(np.arange(yy))) for _ in range(xx)])
-    return mask[np.arange(xx), mapping.T].T
+    img = np.rint(template * 255).astype(np.uint8)
+    imageio.imsave(img_path, img)
+# def shuffle_within_cols(mask):
+#     xx, yy = mask.shape
+#     mapping = np.stack([list(np.random.permutation(np.arange(xx))) for _ in range(yy)])
+#     return mask[mapping.T, np.arange(yy)]
+#
+#
+# def shuffle_within_rows(mask):
+#     xx, yy = mask.shape
+#     mapping = np.stack([list(np.random.permutation(np.arange(yy))) for _ in range(xx)])
+#     return mask[np.arange(xx), mapping.T].T
 
 # las file
 las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las'
@@ -803,29 +879,20 @@ pts = pd.DataFrame({'x0': lookup.xcoordUTM1,
 # for each point
 ii = 0
 origin = (pts.iloc[ii].x0, pts.iloc[ii].y0, pts.iloc[ii].z0)
-img_size = 1000
+img_size = 100
 agg_sample_length = vox.sample_length
-rays_in = point_to_hemi_rays(origin, img_size, vox, max_dist=50)
+rays_in = point_to_hemi_rays(origin, img_size, vox, max_phi=np.pi/2, max_dist=50)
 start = time.time()
-prior = []
 rays_out = aggregate_voxels_over_rays(vox, rays_in, agg_sample_length)
 end = time.time()
 print(end - start)
 
 
 area_factor = .1
-# cosine correction
-# rays_out = rays_out.assign(transmittance=np.exp(-1 * area_factor * rays_out.returns_median / np.cos(rays_out.phi)))
-# no cosine correction
-rays_out = rays_out.assign(transmittance=np.exp(-1 * area_factor * rays_out.returns_median))
-template = np.full([img_size, img_size], 0.0)
-template[(rays_out.y_index.values, rays_out.x_index.values)] = rays_out.transmittance
+img_path = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RSM\\ray_sampling_transmittance_' + str(
+    lookup.index[ii]) + '_af' + str(area_factor) + '.png'
+hemi_rays_to_img(rays_out, img_path, img_size, area_factor)
 
-from scipy import misc
-import imageio
-img = np.rint(template * 255).astype(np.uint8)
-img_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RSM\\ray_sampling_transmittance_' + str(lookup.index[ii]) + '_af' + str(area_factor) + '.png'
-imageio.imsave(img_out, img)
 
 
 ### SANDBOX

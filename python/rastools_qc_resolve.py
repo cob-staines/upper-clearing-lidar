@@ -56,12 +56,14 @@ plt.imshow(img, interpolation='nearest')
 ras = rastools.raster_load(ras_1_in)
 
 # [y_index, x_index] = ~T * [x_coord, y_coord]
+data_1 = rastools.raster_to_pd(ras_1_in, 'count_1')
+
 train = ~ras.T1 * (data_1.x_coord, data_1.y_coord)
 np.max(np.array(data_1.x_index) - np.array(train[1]))
 np.max(np.array(data_1.y_index) - np.array(train[0]))
 
 # [x_coord, y_coord] = T * [y_index, x_index]
-peace = ras.T1 * (data_1.y_index, data_1.x_index)
+peace = ras.T1 * (data_1.x_index, data_1.y_index)
 np.all(np.array(data_1.x_coord) == np.array(peace[0]))
 np.all(np.array(data_1.y_coord) == np.array(peace[1]))
 

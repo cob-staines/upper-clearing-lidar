@@ -349,7 +349,8 @@ def raster_to_pd(ras, colnames, include_nans=False):
         # only non nans
         pts_index = np.where(~nan_vals)
 
-    pts_coords = ras.T1 * pts_index
+    pts_flop = (pts_index[1], pts_index[0])
+    pts_coords = ras.T1 * pts_flop  # flop from numpy (y, x) to affine (x, y)
     pts = pd.DataFrame({'x_coord': pts_coords[0],  # affine transform output returns [x, y]
                         'y_coord': pts_coords[1],
                         'x_index': pts_index[1],  # numpy output from np.where() returns [y, x]
@@ -535,7 +536,6 @@ def pd_sample_raster_gdal(data_dict, include_nans=False, nodatavalue=np.nan):
 #
 #         return pc
 
-
 def delauney_fill(values, values_out, ras_template, n_count=None, n_threshold=0):
     import numpy as np
     from scipy.interpolate import LinearNDInterpolator
@@ -556,11 +556,13 @@ def delauney_fill(values, values_out, ras_template, n_count=None, n_threshold=0)
 
     # delauney triangulation between cells where n > min_n
     if n_threshold > 0:
+        # ignoring nan values...
         valid_cells = np.where(n_count > n_threshold)
         invalid_cells = np.where(n_count <= n_threshold)
     else:
-        valid_cells = np.where(np.isnan(values))
-        invalid_cells = np.where(~np.isnan(values))
+        valid = ~np.isnan(values)
+        valid_cells = np.where(valid)
+        invalid_cells = np.where(~valid)
 
     # unzip to coords
     valid_coords = list(zip(valid_cells[0], valid_cells[1]))

@@ -4,9 +4,9 @@ import laslib
 import os
 
 
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\lfp_1m_3m_subgrid_pr_.15_os_10\\'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\mb_15_1m_pr_.15_os_10\\'
 las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las"
-pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\19_149_dem_r1.00m_q0.25_interpolated_min1\\1m_dem_points_3m_subgrid_lfp.csv"
+pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\1m_dem_points_mb_15.csv"
 
 
 # batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\lfp_not-uls_1m_3m_subgrid_pr_.15_os_10\\'
@@ -54,14 +54,14 @@ else:
     if hemimeta.poisson_sampling_radius > 0:
         # poisson sampling
         las_poisson_path = hemimeta.src_las_file.replace('.las', '_poisson_' + str(hemimeta.poisson_sampling_radius) + '.las')
-        # laslib.las_poisson_sample(hemimeta.src_las_file, hemimeta.poisson_sampling_radius, classification=hemimeta.src_keep_class, las_out=las_poisson_path)  # takes 10 minutes
+        laslib.las_poisson_sample(hemimeta.src_las_file, hemimeta.poisson_sampling_radius, classification=hemimeta.src_keep_class, las_out=las_poisson_path)  # takes 10 minutes
     else:
         raise Exception('hemimeta.poisson_sampling_radius should be a numeric >= 0 or None.')
 
 # export las to hdf5
 print("-------- Exporting to HDF5 --------")
 hdf5_path = las_poisson_path.replace('.las', '.hdf5')
-# laslib.las_xyz_to_hdf5(las_poisson_path, hdf5_path, keep_class=hemimeta.src_keep_class)
+laslib.las_xyz_to_hdf5(las_poisson_path, hdf5_path, keep_class=hemimeta.src_keep_class)
 
 hemimeta.id = pts.id
 hemimeta.origin = np.array([pts.x_utm11n,

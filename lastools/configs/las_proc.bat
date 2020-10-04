@@ -10,13 +10,14 @@ SET DIR_WORKING=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR
 :: initial las file
 SET FILE_IN=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\%DATE%\%DATE%_all_WGS84_utm11N.las
 :: site polygon
-SET SITE_MASK=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\site_library\50_site_poly.shp
+SET SITE_MASK=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR\site_library\mb_65_poly.shp
 
 
 :: _____PARAMETER CONFIG_____
 :: PROJECTION
 SET EPSG=32611
-SET GRID_ORIGIN=628004 5646470
+:: SET GRID_ORIGIN=628004 5646470  (50_site)
+SET GRID_ORIGIN=627991 5646454
 
 :: CLASSES
 SET CLASS_GROUND=2
@@ -35,7 +36,7 @@ SET NUM_CORES=3
 SET TILE_SIZE=75
 SET TILE_BUFFER=5
 
-::call %DIR_BAT%\las_01_quality_control.bat
+call %DIR_BAT%\las_01_quality_control.bat
 
 
 :: _____CLASSIFICATION [2]_____
@@ -55,34 +56,45 @@ SET NOISE_HEIGHT_THRESHOLD_LOW=-1
 SET NOISE_HEIGHT_THRESHOLD_HIGH=35
 SET VEGETATION_HEIGHT_THRESHOLD_LOW=2
 
-:: call %DIR_BAT%\las_02_classification.bat
+call %DIR_BAT%\las_02_classification.bat
 
 
 :: _____DEM [3]_____
 
 
 :: _____CANOPY [4]_____
-SET CHM_RESOLUTION=.10
-SET CHM_MAX_TIN_EDGE=.30
-call %DIR_BAT%\las_04_canopy.bat
+::SET CHM_RESOLUTION=.10
+::SET CHM_MAX_TIN_EDGE=.30
+::call %DIR_BAT%\las_04_canopy.bat
 
-SET CHM_RESOLUTION=.25
-SET CHM_MAX_TIN_EDGE=.75
-call %DIR_BAT%\las_04_canopy.bat
+::SET CHM_RESOLUTION=.25
+::SET CHM_MAX_TIN_EDGE=.75
+::call %DIR_BAT%\las_04_canopy.bat
 
 
 :: _____COMPILE [5]_____
-::call %DIR_BAT%\las_05_compile.bat
+call %DIR_BAT%\las_05_compile.bat
 
 :: _____RASTER PRODUCTS [6]_____
+::SET RAS_RESOLUTION=.25
 
-SET RAS_RESOLUTION=.25
+::SET RAS_MAX_ANGLE=5
+::call %DIR_BAT%\las_06_raster_products.bat
+::SET RAS_MAX_ANGLE=10
+::call %DIR_BAT%\las_06_raster_products.bat
+::SET RAS_MAX_ANGLE=15
+::call %DIR_BAT%\las_06_raster_products.bat
+::SET RAS_MAX_ANGLE=30
+::call %DIR_BAT%\las_06_raster_products.bat
 
-SET RAS_MAX_ANGLE=5
-call %DIR_BAT%\las_06_raster_products.bat
-SET RAS_MAX_ANGLE=10
-call %DIR_BAT%\las_06_raster_products.bat
-SET RAS_MAX_ANGLE=15
-call %DIR_BAT%\las_06_raster_products.bat
-SET RAS_MAX_ANGLE=30
-call %DIR_BAT%\las_06_raster_products.bat
+:: Build templates
+::SET RAS_RESOLUTION=.04
+::call %DIR_BAT%\las_07_raster_templates.bat
+::SET RAS_RESOLUTION=.10
+::call %DIR_BAT%\las_07_raster_templates.bat
+::SET RAS_RESOLUTION=.25
+::call %DIR_BAT%\las_07_raster_templates.bat
+::SET RAS_RESOLUTION=.50
+::call %DIR_BAT%\las_07_raster_templates.bat
+::SET RAS_RESOLUTION=1.00
+::call %DIR_BAT%\las_07_raster_templates.bat
