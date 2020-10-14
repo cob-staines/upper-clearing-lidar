@@ -101,21 +101,29 @@ pts_uf = pts[pts.uf]
 pts_dir = batch_dir + '1m_dem_points_uf.csv'
 pts_uf.to_csv(pts_dir, index=False)
 
+# create cookie cutters of sites at different resolutions
+nodata = 0
+resolution = ['.10', '.25', '.50', '1.00']
+for rr in resolution:
+    template_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\TEMPLATES\\19_149_all_point_density_r' + rr + 'm.bil'
+    uf_rp = rastools.raster_load(template_in)
+    uf_rp.data = rastools.gdal_raster_reproject(uf_plot_dir, template_in, nodatavalue=nodata)[:, :, 0]
+    uf_rp.no_data = nodata
+    cc_out = uf_plot_dir.replace('.tiff', '_cookiecutter_r' + rr + 'm.tiff')
+    rastools.raster_save(uf_rp, cc_out, data_format='byte')
 
+for rr in resolution:
+    template_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\TEMPLATES\\19_149_all_point_density_r' + rr + 'm.bil'
+    mb_15_rp = rastools.raster_load(template_in)
+    mb_15_rp.data = rastools.gdal_raster_reproject(mb_15_plot_dir, template_in, nodatavalue=nodata)[:, :, 0]
+    mb_15_rp.no_data = nodata
+    cc_out = mb_15_plot_dir.replace('.tiff', '_cookiecutter_r' + rr + 'm.tiff')
+    rastools.raster_save(mb_15_rp, cc_out, data_format='byte')
 
-# # 3-m grid over uls
-# # load 3-m template
-# temp_3m_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\raster_templates\\dummy_template_3m.tif"
-# pts_3m = rastools.raster_to_pd(temp_3m_in, 'dummy_3m')
-#
-# # merge with pts along x_coors, y_coords
-# merged_3m = pd.merge(pts, pts_3m, left_on=['x_utm11n', 'y_utm11n'], right_on=['x_coord', 'y_coord'], how='left', suffixes=('', '_3m'))
-#
-# # filter to 3m points
-# subset_3m = merged_3m[~np.isnan(merged_3m.x_coord)]
-# subset_3m = subset_3m[['id', 'x_utm11n', 'y_utm11n', 'x_index', 'y_index', 'z_m', 'uf', 'lfp', 'x_index_3m', 'y_index_3m']]
-#
-# # 3m lfp points
-# lfp_3m = subset_3m[subset_3m.lfp]
-# pts_dir = batch_dir + '1m_dem_points_3m_subgrid_lfp.csv'
-# lfp_3m.to_csv(pts_dir, index=False)
+for rr in resolution:
+    template_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\TEMPLATES\\19_149_all_point_density_r' + rr + 'm.bil'
+    mb_65_rp = rastools.raster_load(template_in)
+    mb_65_rp.data = rastools.gdal_raster_reproject(mb_65_plot_dir, template_in, nodatavalue=nodata)[:, :, 0]
+    mb_65_rp.no_data = nodata
+    cc_out = mb_65_plot_dir.replace('.tiff', '_cookiecutter_r' + rr + 'm.tiff')
+    rastools.raster_save(mb_65_rp, cc_out, data_format='byte')

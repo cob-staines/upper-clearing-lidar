@@ -131,14 +131,12 @@ def parse_file(file_in, file_out, hemimeta_in=None):
 
     return data
 
-# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uf_1m_pr_.15_os_10\\outputs\\LAI.dat"
-# file_out = file_in.replace('LAI.dat', 'LAI_parsed.dat')
-
-file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_149\\clean\\sized\\LAI_rc.dat"
+file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\mb_15_1m_pr.15_os10\\outputs\\LAI.dat"
+hemimeta_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\mb_15_1m_pr.15_os10\\outputs\\hemimetalog.dat'
 file_out = file_in.replace('.dat', '_parsed.dat')
 
 # with open(file_in) as file:
 #     file_contents = file.read()
 #     print(file_contents)
 
-lai_parsed = parse_file(file_in, file_out, hemimeta_in=None)
+lai_parsed = parse_file(file_in, file_out, hemimeta_in=hemimeta_in)

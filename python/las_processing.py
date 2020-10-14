@@ -11,7 +11,8 @@ import hs_swe_data_products
 # hemi_optimization.py (optimizing synthetics)
 # hemisfer (photos/optimizing synthetics)
 # hemisfer_parse.py (photos/optimizing synthetics)
-# hemi_ptimization_2.r (select optimization parameters)
+# hemi_optimization_2.r (select optimization parameters)
+# hemi_grid_points.py (establish grid for hemispheres and
 # hemi_from_pts.py (synthetics)
 # hemisfer (synthetics)
 # hemisfer_parse.py (synthetics)

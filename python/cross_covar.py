@@ -14,13 +14,18 @@ swe_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\li
 swe = rastools.raster_to_pd(swe_in, 'swe')
 hemi_swe = pd.merge(hemimeta, swe, left_on=('x_utm11n', 'y_utm11n'), right_on=('x_coord', 'y_coord'), how='left')
 
+# covar type
+
 # stack binary canopy data
 threshold = 128
 
 imstack = np.full([imsize, imsize, len(hemi_swe)], False)
 for ii in range(0, len(hemimeta)):
-    imstack[:, :, ii] = np.array(Image.open(batch_dir + hemi_swe.file_name[ii]))[:, :, 0] > (threshold - 1)
+    imstack[:, :, ii] = np.array(Image.open(batch_dir + hemi_swe.file_name[ii]))[:, :, 0] >= (threshold - 1)  # > or >= to threshold?
     print(ii)
+
+# may be of interest to save imstack as file (binary or hdf5?), considering the time it takes to read all the above files and apply the threshold.
+# should be written to file in a way that the results, when reloaded, can be subsequently filtered by a merge with hemimeta
 
 covar = np.full((imsize, imsize), np.nan)
 

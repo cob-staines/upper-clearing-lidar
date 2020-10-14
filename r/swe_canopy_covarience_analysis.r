@@ -4,7 +4,7 @@ library('ggplot2')
 library('grid')
 library('gridExtra')
 
-data_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/swe_uf_.25m_canopy_19_149.csv'
+data_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/uf_merged_.25m_canopy_19_149.csv'
 gd = 'C:/Users/Cob/index/educational/usask/research/masters/graphics/automated/'
 data = read.csv(data_in, header=TRUE, na.strings = c("NA",""), sep=",")
 data$cc = 1 - data$openness
@@ -14,9 +14,9 @@ data$cc = 1 - data$openness
 
 # gather snow deptswe  
 data_swe = data %>%
-  gather("date", "swe", c(8, 10, 12, 14, 16))
+  gather("date", "swe", c(6, 7, 8, 9, 10))
 data_swe$date = as.factor(data_swe$date)
-levels(data_swe$date) = c("19_045", "19_050", "19_052", "19_107", "19_123")
+# levels(data_swe$date) = c("19_045", "19_050", "19_052", "19_107", "19_123")
 
 
 # plot params
@@ -64,7 +64,7 @@ ggsave(paste0(gd, "swe_vs_canopy_distance.pdf"), p_dist, width = plot_w, height 
 ########## LPMs
 
 # lpmf
-p_lpmf = ggplot(data_swe, aes(x=swe, y=lpmf15)) +
+p_lpmf = ggplot(data_swe, aes(x=swe, y=lpmf5)) +
   facet_grid(. ~ date) +
   geom_bin2d(bins = bincount) +
   xlim(xmin, xmax) +
@@ -73,7 +73,7 @@ p_lpmf = ggplot(data_swe, aes(x=swe, y=lpmf15)) +
   theme_minimal()
 
 # lpml
-p_lpml = ggplot(data_swe, aes(x=swe, y=lpml15)) +
+p_lpml = ggplot(data_swe, aes(x=swe, y=lpml5)) +
   facet_grid(. ~ date) +
   geom_bin2d(bins = bincount) +
   xlim(xmin, xmax) +
@@ -82,7 +82,7 @@ p_lpml = ggplot(data_swe, aes(x=swe, y=lpml15)) +
   theme_minimal()
 
 # lpmc
-p_lpmc = ggplot(data_swe, aes(x=swe, y=lpmc15)) +
+p_lpmc = ggplot(data_swe, aes(x=swe, y=lpmc5)) +
   facet_grid(. ~ date) +
   geom_bin2d(bins = bincount) +
   xlim(xmin, xmax) +
