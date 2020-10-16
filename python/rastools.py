@@ -205,6 +205,10 @@ def raster_burn(ras_in, shp_in, burn_val):
     subprocess.call(cmd, shell=True)
 
 
+ras_in_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\TEMP_FILES\\12_dem\\res_.10'
+ras_in_ext = '.bil'
+ras_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\DEM\\19_045_dem_r.10.tif'
+
 def raster_merge(ras_in_dir, ras_in_ext, ras_out, no_data="-9999"):
     # merges all raster files in directory "ras_in_dir" with extention "ras_in_ext" and saves them as a merged output "ras_out"
 
@@ -217,7 +221,7 @@ def raster_merge(ras_in_dir, ras_in_ext, ras_out, no_data="-9999"):
     file_str = ' '.join(file_list)
 
     # make gdal_rasterize command - will burn value to raster where polygon intersects
-    cd_cmd = "Set-Location -Path " + ras_in_dir
+    #cd_cmd = "Set-Location -Path " + ras_in_dir
     cmd = 'gdal_merge.py -init ' + no_data + ' -n ' + no_data + ' -a_nodata ' + no_data + ' -o ' + ras_out + ' ' + file_str
 
     chdir(ras_in_dir)
@@ -255,30 +259,30 @@ def csv_sample_raster(ras_in, pts_in, pts_out, pts_xcoord_name, pts_ycoord_name,
     # write to file
     pts.to_csv(pts_out, index=False, na_rep=sample_no_data_value)
 
-
-def raster_to_hdf5(ras_in, hdf5_out, data_col_name="data"):
-    import numpy as np
-    import vaex
-
-    ras = raster_load(ras_in)
-
-    row_map = np.full_like(ras.data, 0).astype(int)
-    for ii in range(0, ras.rows):
-        row_map[ii, :] = ii
-    col_map = np.full_like(ras.data, 0).astype(int)
-    for ii in range(0, ras.cols):
-        col_map[:, ii] = ii
-
-    index_x = np.reshape(row_map, [ras.rows * ras.cols])
-    index_y = np.reshape(col_map, [ras.rows * ras.cols])
-    coords = ras.T1 * (index_x, index_y)
-
-    # add to vaex_df
-    df = vaex.from_arrays(index_x=index_x, index_y=index_y, UTM11N_x=coords[0], UTM11N_y=coords[1])
-    df.add_column(data_col_name, np.reshape(ras.data, [ras.rows * ras.cols]), dtype=None)
-
-    # export to file
-    df.export_hdf5(hdf5_out)
+# rewrite if needed using raster to pd, opd to hdf5, no vaex dependence
+# def raster_to_hdf5(ras_in, hdf5_out, data_col_name="data"):
+#     import numpy as np
+#     import vaex
+#
+#     ras = raster_load(ras_in)
+#
+#     row_map = np.full_like(ras.data, 0).astype(int)
+#     for ii in range(0, ras.rows):
+#         row_map[ii, :] = ii
+#     col_map = np.full_like(ras.data, 0).astype(int)
+#     for ii in range(0, ras.cols):
+#         col_map[:, ii] = ii
+#
+#     index_x = np.reshape(col_map, [ras.rows * ras.cols])
+#     index_y = np.reshape(row_map, [ras.rows * ras.cols])
+#     coords = ras.T1 * (index_x, index_y)
+#
+#     # add to vaex_df
+#     df = vaex.from_arrays(index_x=index_x, index_y=index_y, UTM11N_x=coords[0], UTM11N_y=coords[1])
+#     df.add_column(data_col_name, np.reshape(ras.data, [ras.rows * ras.cols]), dtype=None)
+#
+#     # export to file
+#     df.export_hdf5(hdf5_out)
 
 
 def raster_nearest_neighbor(points, ras):
