@@ -38,7 +38,7 @@ for angle in angle_set:
     num = (LG.data + FG.data)
     denom = (LG.data + FG.data + FC.data)
     denom[denom == 0] = np.nan
-    lpml.data.data = num/denom
+    lpml.data = num/denom
 
     lpmc = rastools.raster_load(dir_in + FG_in)
     num = LG.data

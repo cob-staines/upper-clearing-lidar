@@ -22,6 +22,8 @@ hemi_swe = pd.merge(hemimeta, swe, left_on=('x_utm11n', 'y_utm11n'), right_on=('
 # filter to desited images
 hemiList = hemi_swe.loc[(hemi_swe.swe.values >= 0) & (hemi_swe.swe.values <= 150), :]
 
+# covar type
+
 # stack binary canopy data
 threshold = 128
 

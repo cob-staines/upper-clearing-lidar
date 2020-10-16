@@ -77,18 +77,19 @@ regional_max = maximum_position(chm, labels=labels, index=list(range(1, nfeature
 
 peak_xy = np.array(list(zip(*regional_max)))
 
-peaklist = pd.DataFrame({"peak_x": peak_xy[0],
-                         "peak_y": peak_xy[1],
+peaklist = pd.DataFrame({"peak_x": peak_xy[1],
+                         "peak_y": peak_xy[0],
                          "peak_z": ras.data[peak_xy[0], peak_xy[1]],
                          "area_pix": area_pixels,
                          "area_m2": area_pixels*(ras.T0[0]**2)})
 
 
+# use kmeans clustering to distringuish noise from true peaks. Alternatively, could simple threshold peaks to neighborhood area of 1m2 (seems to agree well with kmeans)
 kmeans = KMeans(n_clusters=2, random_state=0, n_init=10).fit(np.array(peaklist.area_m2).reshape(-1, 1))
-
 peaklist.loc[:, "true_peak"] = kmeans.labels_
-
 cluster_break = np.mean(kmeans.cluster_centers_)  # currently unused, could be recorded if useful
+
+peaklist.loc[:, "true_peak"] = peaklist.area_m2 >= min_obj_rad_m
 
 # add subpix noise
 if subpix_noise:
@@ -97,7 +98,7 @@ if subpix_noise:
 
 print("Writing peaks to file")
 # calculate geo-coords
-UTM_coords = ras.T1 * [peaklist.peak_y, peaklist.peak_x]
+UTM_coords = ras.T1 * [peaklist.peak_x, peaklist.peak_y]
 peaklist.loc[:, "UTM11N_x"] = UTM_coords[0]
 peaklist.loc[:, "UTM11N_y"] = UTM_coords[1]
 peaklist.loc[:, "tree_id"] = peaklist.index
@@ -110,6 +111,7 @@ output.to_csv(treetops_out, index=False)
 # reload peaklist if wishing to skip above calculations
 # peaklist = pd.read_csv(treetops_out)
 
+print("Calculating distance and index maps")
 # filter to true peaks
 peaks_filtered = peaklist.loc[peaklist.true_peak == 1, ['UTM11N_x', 'UTM11N_y']]
 # load raster template for outputs
@@ -118,11 +120,13 @@ ras_map = rastools.raster_load(ras_template_in)
 # calculate distance and index maps
 index_map, distance_map = rastools.raster_nearest_neighbor(peaks_filtered, ras_map)
 
+print("Writing index map to file")
 # export index_map to raster file
 ras_index = ras_map
 ras_index.data = index_map
 rastools.raster_save(ras_index, index_out, data_format="uint32")
 
+print("Writing distance map to file")
 # export distance_map to raster file
 ras_distance = ras_map
 ras_distance.data = distance_map
@@ -131,4 +135,4 @@ rastools.raster_save(ras_distance, distance_out, data_format="float32")
 # import matplotlib
 # matplotlib.use('TkAgg')
 # import matplotlib.pyplot as plt
-# plt.imshow(reconstructed, interpolation='nearest')
+# plt.imshow(uf_rp.data, interpolation='nearest')
