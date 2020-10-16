@@ -814,20 +814,23 @@ def hemi_rays_to_img(rays_out, img_path, img_size, area_factor):
 #     return mask[np.arange(xx), mapping.T].T
 
 # las file
-las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las'
-# las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_snow_off_classified_merged.las'
+# las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las'
+las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_las_proc_classified_merged.las'
 # trajectory file
-traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
-# traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
+# traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
+traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
+
+voxel_length = 0.25
+
 # working hdf5 file
-hdf5_path = las_in.replace('.las', '_ray_sampling_0.25.hdf5')
+hdf5_path = las_in.replace('.las', '_ray_sampling_' + str(voxel_length) + '.hdf5')
 
 # # write las to hdf5
 laslib.las_to_hdf5(las_in, hdf5_path)
 # # interpolate trajectory
 laslib.las_traj(hdf5_path, traj_in)
 
-voxel_length = 0.25
+
 vox_sample_length = voxel_length/np.pi
 vox = las_ray_sample(hdf5_path, vox_sample_length, voxel_length, return_set='first')
 vox_save(vox, hdf5_path)
@@ -861,7 +864,8 @@ pts = pd.DataFrame({'x0': hemi_pts.x_utm11n,
                     'z0': hemi_pts.z_m})
 
 # import from hemi-photo lookup
-lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
+# lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
+lookup_in = 'C:\\Users\\jas600\\workzone\\data\\las\\hemi_lookup_cleaned.csv'
 max_quality = 4
 las_day = "19_149"
 # import hemi_lookup
@@ -879,7 +883,7 @@ pts = pd.DataFrame({'x0': lookup.xcoordUTM1,
 # for each point
 ii = 0
 origin = (pts.iloc[ii].x0, pts.iloc[ii].y0, pts.iloc[ii].z0)
-img_size = 100
+img_size = 400
 agg_sample_length = vox.sample_length
 rays_in = point_to_hemi_rays(origin, img_size, vox, max_phi=np.pi/2, max_dist=50)
 start = time.time()
@@ -889,7 +893,9 @@ print(end - start)
 
 
 area_factor = .1
-img_path = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RSM\\ray_sampling_transmittance_' + str(
+#img_path = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RSM\\ray_sampling_transmittance_' + str(
+#    lookup.index[ii]) + '_af' + str(area_factor) + '.png'
+img_path = 'C:\\Users\\jas600\\workzone\\data\\las\\' + str(
     lookup.index[ii]) + '_af' + str(area_factor) + '.png'
 hemi_rays_to_img(rays_out, img_path, img_size, area_factor)
 
