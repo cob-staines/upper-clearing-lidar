@@ -102,28 +102,39 @@ pts_dir = batch_dir + '1m_dem_points_uf.csv'
 pts_uf.to_csv(pts_dir, index=False)
 
 # create cookie cutters of sites at different resolutions
-nodata = 0
+
 resolution = ['.10', '.25', '.50', '1.00']
 for rr in resolution:
+    file_out = 'uf_plot_r' + rr + 'm.tif'
+    site_poly = uf_poly
     template_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\TEMPLATES\\19_149_all_point_density_r' + rr + 'm.bil'
-    uf_rp = rastools.raster_load(template_in)
-    uf_rp.data = rastools.gdal_raster_reproject(uf_plot_dir, template_in, nodatavalue=nodata)[:, :, 0]
-    uf_rp.no_data = nodata
-    cc_out = uf_plot_dir.replace('.tiff', '_cookiecutter_r' + rr + 'm.tiff')
-    rastools.raster_save(uf_rp, cc_out, data_format='byte')
+    ras = rastools.raster_load(template_in)
+    ras.data = np.full((ras.rows, ras.cols), 0)
+    ras.no_data = 0
+    ras_out = batch_dir + file_out
+    rastools.raster_save(ras, ras_out, data_format='byte')
+    rastools.raster_burn(ras_out, site_poly, 1)
 
+resolution = ['.10', '.25', '.50', '1.00']
 for rr in resolution:
+    file_out = 'mb_15_plot_r' + rr + 'm.tif'
+    site_poly = mb_15_poly
     template_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\TEMPLATES\\19_149_all_point_density_r' + rr + 'm.bil'
-    mb_15_rp = rastools.raster_load(template_in)
-    mb_15_rp.data = rastools.gdal_raster_reproject(mb_15_plot_dir, template_in, nodatavalue=nodata)[:, :, 0]
-    mb_15_rp.no_data = nodata
-    cc_out = mb_15_plot_dir.replace('.tiff', '_cookiecutter_r' + rr + 'm.tiff')
-    rastools.raster_save(mb_15_rp, cc_out, data_format='byte')
+    ras = rastools.raster_load(template_in)
+    ras.data = np.full((ras.rows, ras.cols), 0)
+    ras.no_data = 0
+    ras_out = batch_dir + file_out
+    rastools.raster_save(ras, ras_out, data_format='byte')
+    rastools.raster_burn(ras_out, site_poly, 1)
 
+resolution = ['.10', '.25', '.50', '1.00']
 for rr in resolution:
+    file_out = 'mb_65_plot_r' + rr + 'm.tif'
+    site_poly = mb_65_poly
     template_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\TEMPLATES\\19_149_all_point_density_r' + rr + 'm.bil'
-    mb_65_rp = rastools.raster_load(template_in)
-    mb_65_rp.data = rastools.gdal_raster_reproject(mb_65_plot_dir, template_in, nodatavalue=nodata)[:, :, 0]
-    mb_65_rp.no_data = nodata
-    cc_out = mb_65_plot_dir.replace('.tiff', '_cookiecutter_r' + rr + 'm.tiff')
-    rastools.raster_save(mb_65_rp, cc_out, data_format='byte')
+    ras = rastools.raster_load(template_in)
+    ras.data = np.full((ras.rows, ras.cols), 0)
+    ras.no_data = 0
+    ras_out = batch_dir + file_out
+    rastools.raster_save(ras, ras_out, data_format='byte')
+    rastools.raster_burn(ras_out, site_poly, 1)

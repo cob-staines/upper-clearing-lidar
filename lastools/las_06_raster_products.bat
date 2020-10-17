@@ -2,7 +2,7 @@ mkdir .\OUTPUT_FILES\RAS
 
 :: all return point density
 lasgrid -i TEMP_FILES\11_no_buffer\*.laz ^
-            -drop_class %CLASS_NOISE_GROUND% %CLASS_NOISE_CANOPY% ^
+            -drop_class %CLASS_NOISE% ^
             -keep_scan_angle -%RAS_MAX_ANGLE% %RAS_MAX_ANGLE% ^
             -merged ^
             -step %RAS_RESOLUTION% ^

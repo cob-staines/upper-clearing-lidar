@@ -19,8 +19,8 @@ depth_regression = 'swe'
 dem_quantile = .25
 interpolation_threshold = 1
 
-las_in_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\LAS\\<DATE>_las_proc_classified_merged.las'
-dem_ref_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\TEMPLATES\\19_149_all_point_density_r<RES>m.bil'
+las_in_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\LAS\\<DATE>_las_proc_classified_merged_ground.las'
+dem_ref_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc_xx\\OUTPUT_FILES\\TEMPLATES\\19_149_all_point_density_r<RES>m.bil'
 dem_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\DEM\\'
 dem_file_template = '<DATE>_dem_r<RES>m_q<QUANT>.tif'
 count_file_template = '<DATE>_dem_r<RES>m_count.tif'
