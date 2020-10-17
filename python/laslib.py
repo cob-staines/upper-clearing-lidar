@@ -1,4 +1,4 @@
-def las_to_hdf5(las_in, hdf5_out, drop_columns=None):
+def las_to_hdf5(las_in, hdf5_out, keep_columns=None, drop_columns=None):
     """
     Loads xyz data from .las (point cloud) file "las_in" dropping classes in "drop_class"
     :param las_in: file path to .las file
@@ -27,12 +27,20 @@ def las_to_hdf5(las_in, hdf5_out, drop_columns=None):
     # close las_in
     inFile.close()
 
+    if (drop_columns is not None) and (keep_columns is not None):
+        raise Exception('drop_columns and keep columns cannot both be defined. Process aborted.')
+
+    if isinstance(keep_columns, (str, list)):
+        p0 = p0.loc[:, keep_columns]
+    elif keep_columns is not None:
+        raise Exception('"keep_columns" instance of unexpected class: ' + str(type(keep_columns)))
+
     # create class_filter for drop_class in classification
-    if type(drop_columns) == str:
+    if isinstance(drop_columns, str):
         p0 = p0.drop(columns=[drop_columns])
-    elif type(drop_columns) == list:
+    elif isinstance(drop_columns, list):
         p0 = p0.drop(columns=drop_columns)
-    elif type(drop_columns) != type(None):
+    elif drop_columns is not None:
         raise Exception('"drop_columns" instance of unexpected class: ' + str(type(drop_columns)))
 
     print('done.')
@@ -257,10 +265,10 @@ class HemiMetaObj(object):
         self.point_size_scalar = None
 
 
-def las_traj(hdf5_path, traj_in):
+def las_traj(hdf5_path, las_in, traj_in, chunksize=10000000):
     """
 
-    :param hdf5_path: path to existing hdf5 file created using las_to hdf5
+    :param file_path: path to existing .hdf5/.h5 file created using las_to hdf5
     :param traj_in: path to trajectory file corresponding to original las file
     :return:
     """
@@ -270,8 +278,8 @@ def las_traj(hdf5_path, traj_in):
     import numpy as np
     import pandas as pd
 
-    # load data from hdf5 file (written using
     point_data = pd.read_hdf(hdf5_path, key='las_data', columns=['gps_time', 'x', 'y', 'z'])
+
     # add las key (True)
     las_data = point_data.assign(las=True)
 
