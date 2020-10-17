@@ -825,13 +825,13 @@ las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_las_proc_classified_mer
 # traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
 traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
 
-voxel_length = 0.25
+voxel_length = 0.5
 
 # working hdf5 file
 hdf5_path = las_in.replace('.las', '_ray_sampling_' + str(voxel_length) + '.hdf5')
 
 # # write las to hdf5
-laslib.las_to_hdf5(las_in, hdf5_path)
+laslib.las_to_hdf5(las_in, hdf5_path, keep_columns=['gps_time', 'x', 'y', 'z'])
 # # interpolate trajectory
 laslib.las_traj(hdf5_path, traj_in)
 
