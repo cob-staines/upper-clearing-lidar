@@ -40,13 +40,25 @@ call %DIR_BAT%\las_01_quality_control.bat
 
 :: _____GROUND CLASSIFICATION [2]_____
 SET GROUND_STEP=.5
-SET GROUND_OFFSET=.025
-SET GROUND_SPIKE=.05
-SET GROUND_THIN_STEP=.03
+SET GROUND_OFFSET=.1
+SET GROUND_SPIKE=.1
+SET GROUND_THIN_STEP=.05
 SET GROUND_THIN_PERCENTILE=50
 
 call %DIR_BAT%\las_02_ground_classification.bat
 
+
+:: _____HS DSM [2]_____
+SET GROUND_POINTS_FILE=C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_ground_thinned_merged.las
+call %DIR_BAT%\las_09_snow_depth_normalization.bat
+
+SET DEM_RESOLUTION=.10
+SET DEM_MAX_TIN_EDGE=.30
+call %DIR_BAT%\las_10_snow_dsm.bat
+
+SET DEM_RESOLUTION=.25
+SET DEM_MAX_TIN_EDGE=.75
+call %DIR_BAT%\las_10_snow_dsm.bat
 
 :::: _____DEM [3]_____
 ::SET DEM_RESOLUTION=.05

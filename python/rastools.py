@@ -204,11 +204,6 @@ def raster_burn(ras_in, shp_in, burn_val):
     # run command
     subprocess.call(cmd, shell=True)
 
-
-ras_in_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\TEMP_FILES\\12_dem\\res_.10'
-ras_in_ext = '.bil'
-ras_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\DEM\\19_045_dem_r.10.tif'
-
 def raster_merge(ras_in_dir, ras_in_ext, ras_out, no_data="-9999"):
     # merges all raster files in directory "ras_in_dir" with extention "ras_in_ext" and saves them as a merged output "ras_out"
 
