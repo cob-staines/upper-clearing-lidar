@@ -1,4 +1,4 @@
-def las_to_hdf5(las_in, hdf5_out, keep_columns=None, drop_columns=None):
+def las_to_hdf5(las_in, hdf5_out, keep_columns=None, drop_columns=None, sort_by=None):
     """
     Loads xyz data from .las (point cloud) file "las_in" dropping classes in "drop_class"
     :param las_in: file path to .las file
@@ -7,14 +7,14 @@ def las_to_hdf5(las_in, hdf5_out, keep_columns=None, drop_columns=None):
     :return: None
     """
 
-    print('Writing LAS file to hdf5... ', end='')
+    print('Reading LAS file... ', end='')
 
     import laspy
     import pandas as pd
 
-    # load las_in
+    # open las_in
     inFile = laspy.file.File(las_in, mode="r")
-    # pull in xyz and classification
+    # load data
     p0 = pd.DataFrame({"gps_time": inFile.gps_time,
                        "x": inFile.x,
                        "y": inFile.y,
@@ -45,8 +45,15 @@ def las_to_hdf5(las_in, hdf5_out, keep_columns=None, drop_columns=None):
 
     print('done.')
 
+    if sort_by is not None:
+        print('Sorting values... ', end='')
+        p0 = p0.sort_values(by=sort_by)
+        print('done.')
+
+    print('Writing to HDF5 file... ', end='')
     # save to file
-    p0.to_hdf(hdf5_out, key='las_data', mode='w', format='table')
+    p0.to_hdf(hdf5_out, key='las_data', mode='w', format='fixed')
+    print('done.')
 
 
 def las_xyz_load(las_path, drop_class=None, keep_class=None):
@@ -265,24 +272,78 @@ class HemiMetaObj(object):
         self.point_size_scalar = None
 
 
-def las_traj(hdf5_path, las_in, traj_in, chunksize=10000000):
+def las_traj(las_in, traj_in, hdf5_path, chunksize=10000000, keep_return='all', drop_class=None):
     """
+    For each point in las_in (after filtering for return and class), las_traj interpolates trajectory coordinates.
+    distance_from_sensor_m, angle_from_nadir_deg, and angle_cw_from_north_deg are then calculated and stored in the
+    hdf5 file along with the corresponding las and trajectory xyz data.
 
-    :param file_path: path to existing .hdf5/.h5 file created using las_to hdf5
+    :param las_in: path to las_file
     :param traj_in: path to trajectory file corresponding to original las file
+    :param hdf5_path: name of hdf5 file which will be created to store las_traj output
+    :param chunksize: max size of chunks to be written into hdf5 file
+    :param keep_return: speacify 'all', 'first' or 'last' to keep all returns, first returns or last returns only,
+    respectively, prior to interpolation
+    :param drop_class: integer of single class to be dropped from las prior to interpolation
     :return:
     """
 
-    print('Interpolating point cloud to trajectory... ', end='')
-
+    import laspy
     import numpy as np
     import pandas as pd
+    import h5py
 
-    point_data = pd.read_hdf(hdf5_path, key='las_data', columns=['gps_time', 'x', 'y', 'z'])
 
-    # add las key (True)
-    las_data = point_data.assign(las=True)
+    print('Loading LAS file... ', end='')
+    # load las_in
+    inFile = laspy.file.File(las_in, mode="r")
+    # load data
+    p0 = pd.DataFrame({"gps_time": inFile.gps_time,
+                       "x": inFile.x,
+                       "y": inFile.y,
+                       "z": inFile.z,
+                       "classification": inFile.classification,
+                       "num_returns": inFile.num_returns,
+                       "return_num": inFile.return_num})
+    # close las_in
+    inFile.close()
+    print('done')
 
+    # filter points
+
+    # drop noise
+    if drop_class is not None:
+        print('Filtering points by class... ', end='')
+        if not isinstance(drop_class, int):
+            raise Exception('drop_class only set to handle single classes. More development required to handle multiple classes')
+        p0 = p0.loc[p0.classification != drop_class, :]
+        print('done')
+    # keep returns
+    if keep_return != 'all':
+        print('Filtering points by return... ', end='')
+        if keep_return == 'first':
+            p0 = p0.loc[p0.return_num == 1, :]
+        elif keep_return == 'last':
+            p0 = p0.loc[p0.return_num == p0.num_returns, :]
+        else:
+            raise Exception('Return sets other than "all", "first" and "last" have yet to be programmed. Will you do the honors?')
+        print('done')
+
+    print('Sorting values... ', end='')
+    p0 = p0.sort_values(by="gps_time")
+    print('done')
+
+    n_rows = len(p0)
+    las_cols = p0.columns
+
+    print('Writing LAS data to HDF5... ', end='')
+    with h5py.File(hdf5_path, 'w') as hf:
+        hf.create_dataset('lasData', p0.shape, data=p0.values, chunks=(chunksize, 1))
+        hf.create_dataset('lasData_cols', data=las_cols, dtype=h5py.string_dtype(encoding='utf-8'))
+    p0 = None
+    print('done')
+
+    print('Loading trajectory... ', end='')
     # load trajectory from csv
     traj = pd.read_csv(traj_in)
     # rename columns for consistency
@@ -292,59 +353,95 @@ def las_traj(hdf5_path, las_in, traj_in, chunksize=10000000):
                                 'Height[m]': "traj_z"})
     # drop pitch, roll, yaw
     traj = traj[['gps_time', 'traj_x', 'traj_y', 'traj_z']]
+    traj = traj.sort_values(by="gps_time").reset_index(drop=True)
+
     # add las key (False)
     traj = traj.assign(las=False)
+    print('done')
 
-    # append traj to las, keeping track of las index
-    outer = las_data[['gps_time', 'las']].append(traj, sort=False)
-    outer = outer.reset_index()
-    outer = outer.rename(columns={"index": "index_las"})
+    # preallocate output
+    traj_interpolated = pd.DataFrame(columns=["gps_time", "traj_x", "traj_y", "traj_z", "distance_from_sensor_m", "angle_from_nadir_deg", "angle_cw_from_north_deg"])
 
-    # order by gps time
-    outer = outer.sort_values(by="gps_time")
+    if chunksize is None:
+        chunksize = n_rows
 
-    # QC: check first and last entries are traj
-    if (outer.las.iloc[0] | outer.las.iloc[-1]):
-        raise Exception('LAS data exists outside trajectory time frame -- Suspect LAS/trajectory file mismatch')
+    n_chunks = np.ceil(n_rows / chunksize).astype(int)
 
-    # set index as gps_time
-    outer = outer.set_index('gps_time')
+    for ii in range(0, n_chunks):
 
-    # forward fill nan values
-    interpolated = outer.fillna(method='ffill')
+        # chunk start and end
+        las_start = ii * chunksize
+        if ii != (n_chunks - 1):
+            las_end = (ii + 1) * chunksize
+        else:
+            las_end = n_rows
 
-    # drop traj entries
-    interpolated = interpolated[interpolated['las']]
-    # reset to las index
-    interpolated = interpolated.set_index("index_las")
-    # drop las key column
-    interpolated = interpolated[['traj_x', 'traj_y', 'traj_z']]
+        # take chunk of las data
+        with h5py.File(hdf5_path, 'r') as hf:
+            las_data = pd.DataFrame(hf['lasData'][las_start:las_end, 0:4], columns=['gps_time', 'x', 'y', 'z'])
 
-    # concatenate with las_data horizontally by index
-    merged = pd.concat([point_data, interpolated], axis=1, ignore_index=False)
+        # add las key (True)
+        las_data = las_data.assign(las=True)
 
-    # distance from sensor
-    p1 = np.array([merged.traj_x, merged.traj_y, merged.traj_z])
-    p2 = np.array([merged.x, merged.y, merged.z])
-    squared_dist = np.sum((p1 - p2) ** 2, axis=0)
-    merged = merged.assign(distance_from_sensor_m=np.sqrt(squared_dist))
+        # only pull in relevant traj
+        traj_start = np.max(traj.index[traj.gps_time < np.min(las_data.gps_time)])
+        traj_end = np.min(traj.index[traj.gps_time > np.max(las_data.gps_time)])
 
-    # angle from nadir
-    dp = p1 - p2
-    phi = np.arctan(np.sqrt(dp[0] ** 2 + dp[1] ** 2) / dp[2]) * 180 / np.pi  # in degrees
-    merged = merged.assign(angle_from_nadir_deg=phi)
+        # append traj to las, keeping track of las index
+        outer = las_data[['gps_time', 'las']].append(traj.loc[traj_start:traj_end, :], sort=False)
+        outer = outer.reset_index()
+        outer = outer.rename(columns={"index": "index_las"})
 
-    # angle cw from north
-    theta = np.arctan2(dp[0], (dp[1])) * 180 / np.pi
-    merged = merged.assign(angle_cw_from_north_deg=theta)
+        # order by gps time
+        outer = outer.sort_values(by="gps_time")
 
-    # select columns for output
-    output = merged[["gps_time", "traj_x", "traj_y", "traj_z", "distance_from_sensor_m", "angle_from_nadir_deg", "angle_cw_from_north_deg"]]
+        # QC: check first and last entries are traj
+        if (outer.las.iloc[0] | outer.las.iloc[-1]):
+            raise Exception('LAS data exists outside trajectory time frame -- Suspect LAS/trajectory file mismatch')
 
-    print('done.')
+        # set index as gps_time
+        outer = outer.set_index('gps_time')
+
+        # forward fill nan values
+        interpolated = outer.fillna(method='ffill')
+
+        # drop traj entries
+        interpolated = interpolated[interpolated['las']]
+        # reset to las index
+        interpolated = interpolated.set_index("index_las")
+        # drop las key column
+        interpolated = interpolated[['traj_x', 'traj_y', 'traj_z']]
+
+        # concatenate with las_data horizontally by index
+        merged = pd.concat([las_data, interpolated], axis=1, ignore_index=False)
+
+        # distance from sensor
+        p1 = np.array([merged.traj_x, merged.traj_y, merged.traj_z])
+        p2 = np.array([merged.x, merged.y, merged.z])
+        squared_dist = np.sum((p1 - p2) ** 2, axis=0)
+        merged = merged.assign(distance_from_sensor_m=np.sqrt(squared_dist))
+
+        # angle from nadir
+        dp = p1 - p2
+        phi = np.arctan(np.sqrt(dp[0] ** 2 + dp[1] ** 2) / dp[2]) * 180 / np.pi  # in degrees
+        merged = merged.assign(angle_from_nadir_deg=phi)
+
+        # angle cw from north
+        theta = np.arctan2(dp[0], (dp[1])) * 180 / np.pi
+        merged = merged.assign(angle_cw_from_north_deg=theta)
+
+        traj_interpolated = traj_interpolated.append(merged.loc[:, ["gps_time", "traj_x", "traj_y", "traj_z", "distance_from_sensor_m", "angle_from_nadir_deg", "angle_cw_from_north_deg"]])
+
+        print('Interpolated ' + str(ii + 1) + ' of ' + str(n_chunks) + ' chunks')
+
 
     # save to hdf5 file
-    output.to_hdf(hdf5_path, key='las_traj', mode='r+', format='table')
+    print('Writing interpolated_traj data to HDF5... ', end='')
+    with h5py.File(hdf5_path, 'r+') as hf:
+        hf.create_dataset('trajData', traj_interpolated.shape, data=traj_interpolated.values, chunks=(chunksize, 1))
+        hf.create_dataset('trajData_cols', data=traj_interpolated.columns, dtype=h5py.string_dtype(encoding='utf-8'))
+    traj_interpolated = None
+    print('done')
 
 
 def las_poisson_sample(las_in, poisson_radius, classification=None, las_out=None):

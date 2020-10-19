@@ -124,103 +124,106 @@ def interpolate_to_bounding_box(fixed_points, flex_points, bb=None):
     return bb_points
 
 
-def las_ray_sample(hdf5_path, sample_length, voxel_length, return_set='all'):
+def las_ray_sample(hdf5_path,  voxel_length, sample_length, return_set='all', chunksize=10000000):
 
     print('----- LAS Ray Sampling -----')
 
     start = time.time()
+
+    if sample_length > voxel_length:
+        import warnings
+        warnings.warn("sample_length is greater than voxel_length, some voxels will be stepped over in sampling. Was this intentional?", UserWarning)
+
+    print('Loading data descriptors... ', end='')
+    with h5py.File(hdf5_path, 'r') as hf:
+        las_time = hf['lasData'][:, 0]
+        traj_time = hf['trajData'][:, 0]
+        n_rows = len(las_time)
+        x_min = np.min(hf['lasData'][:, 1])
+        y_min = np.min(hf['lasData'][:, 2])
+        z_min = np.min(hf['lasData'][:, 3])
+        x_max = np.max(hf['lasData'][:, 1])
+        y_max = np.max(hf['lasData'][:, 2])
+        z_max = np.max(hf['lasData'][:, 3])
+    print('done')
+
+    # check that gps_times align
+    if np.all(las_time == traj_time):
+        las_time = None
+        traj_time = None
+    else:
+        raise Exception('gps_times do not align between las and traj dfs, process aborted.')
 
     # define voxel object
     vox = VoxelObj()
     vox.desc = "ray sampling of " + hdf5_path
     vox.sample_length = sample_length
     vox.return_set = return_set
-
-
-    print('Loading data...')
-    # load returns
-    returns_df = pd.read_hdf(hdf5_path, key='las_data', columns=['gps_time', 'x', 'y', 'z', 'classification', 'return_num', 'num_returns'])
-    # load trajectory
-    traj_df = pd.read_hdf(hdf5_path, key='las_traj', columns=['traj_x', 'traj_y', 'traj_z'])
-
-    # concatenate rays
-    rays = pd.concat([returns_df, traj_df], axis=1)
-    # filter by class (should be moved to input...)
-    rays = rays[(rays.classification == 2) | (rays.classification == 5)]
-
-    # filter rays according to return_set
-    if vox.return_set == "all":
-        # use last returns for ray sampling
-        vox.sample_set = "last"
-        ray_set = rays[rays.return_num == rays.num_returns]
-
-        # use all returns for return sampling
-        return_points = np.array(rays.loc[:, ['x', 'y', 'z']])
-    elif vox.return_set == "first":
-        # use first returns for ray sampling
-        vox.sample_set = "first"
-        ray_set = rays[rays.return_num == 1]
-
-        # use first returns for return sampling
-        return_points = np.array(ray_set.loc[:, ['x', 'y', 'z']])
-    else:
-        raise Exception("Expected 'first' or 'all' for return_set, encountered:" + str(return_set))
-
-    # trajectory/sensor
-    ray_0 = np.array(ray_set.loc[:, ['traj_x', 'traj_y', 'traj_z']])
-    # return points
-    ray_1 = np.array(ray_set.loc[:, ['x', 'y', 'z']])
-
-    # calculate voxel space secifications
-    vox.step = np.full(3, voxel_length)  # allow to be specified independently
-    vox.origin = np.min(ray_1, axis=0)
-    vox.max = np.max(ray_1, axis=0)
-    vox.ncells = ((np.max(ray_1, axis=0) - vox.origin) / vox.step).astype(int) + 1
+    vox.step = np.full(3, voxel_length)  # only cubic voxels permitted for now
+    vox.origin = np.array([x_min, y_min, z_min])
+    vox.max = np.array([x_max, y_max, z_max])
+    vox.ncells = np.ceil((vox.max - vox.origin) / vox.step).astype(int)
     # preallocate voxels
-    vox.sample_data = np.zeros(vox.ncells)
-    vox.return_data = np.zeros(vox.ncells)
+    vox.sample_data = np.zeros(vox.ncells).astype(np.uint32)
+    vox.return_data = np.zeros(vox.ncells).astype(np.uint32)
 
-    # interpolate rays to bounding box
-    ray_bb = interpolate_to_bounding_box(ray_1, ray_0)
+    if chunksize is None:
+        chunksize = n_rows
+    n_chunks = np.ceil(n_rows / chunksize).astype(int)
 
-    print('Voxel sampling of ' + vox.sample_set + ' return rays ...')
-    # calculate distance between ray start (p0) and end (p1)
-    dist = np.sqrt(np.sum((ray_1 - ray_bb) ** 2, axis=1))
+    # chunk las ray_sample
+    for ii in range(0, n_chunks):
 
-    # calc unit step along ray in x, y, z dims (avoid edge cases where dist == 0)
-    xyz_step = np.full([len(dist), 3], np.nan)
-    xyz_step[dist > 0, :] = (ray_1[dist > 0] - ray_bb[dist > 0]) / dist[dist > 0, np.newaxis]
+        print('Voxel sampling of ' + vox.return_set + ' return rays: Chunk ' + str(ii + 1))
 
-    # random offset for each ray sample series
-    offset = np.random.random(len(ray_1))
+        # chunk start and end
+        idx_start = ii * chunksize
+        if ii != (n_chunks - 1):
+            idx_end = (ii + 1) * chunksize
+        else:
+            idx_end = n_rows
 
-    # initiate while loop
-    ii = 0
-    max_dist = np.max(dist)
+        print('Loading data chunk... ', end='')
+        with h5py.File(hdf5_path, 'r') as hf:
+            ray_1 = hf['lasData'][idx_start:idx_end, 1:4]
+            ray_0 = hf['trajData'][idx_start:idx_end, 1:4]
+        print('done')
 
-    # iterate until longest ray length is surpassed
-    while (ii * vox.sample_length) < max_dist:
-        print(str(ii + 1) + ' of ' + str(int(max_dist / vox.sample_length) + 1))
-        # distance from p0 along ray
-        sample_dist = (ii + offset) * vox.sample_length
+        # interpolate rays to bounding box
+        ray_bb = interpolate_to_bounding_box(ray_1, ray_0)
 
-        # select rays where t_dist is in range
-        in_range = (dist > sample_dist)
+        # calculate length of ray
+        dist = np.sqrt(np.sum((ray_1 - ray_bb) ** 2, axis=1))
 
-        # calculate tracer point coords for step
-        sample_points = xyz_step[in_range, :] * sample_dist[in_range, np.newaxis] + ray_bb[in_range]
+        # calc unit step along ray in x, y, z dims (avoid edge cases where dist == 0)
+        xyz_step = np.full([len(dist), 3], np.nan)
+        xyz_step[dist > 0, :] = (ray_1[dist > 0] - ray_bb[dist > 0]) / dist[dist > 0, np.newaxis]
 
-        if np.size(sample_points) != 0:
-            # add counts to voxel_samples
-            vox = add_points_to_voxels(vox, "samples", sample_points)
-        # advance step
-        ii = ii + 1
+        # random offset for each ray sample series
+        offset = np.random.random(len(ray_1))
 
-    # correct sample_data to unit length (ex. meters)
-    vox.sample_data = vox.sample_data * vox.sample_length
+        # iterate until longest ray length is surpassed
+        max_step = np.ceil(np.max(dist) / vox.sample_length).astype(int)
+        for jj in range(0, max_step):
+            print(str(jj + 1) + ' of ' + str(max_step))
+            # distance from p0 along ray
+            sample_dist = (jj + offset) * vox.sample_length
 
-    # voxel sample returns
-    vox = add_points_to_voxels(vox, "returns", return_points)
+            # select rays where t_dist is in range
+            in_range = (dist > sample_dist)
+
+            # calculate tracer point coords for step
+            sample_points = xyz_step[in_range, :] * sample_dist[in_range, np.newaxis] + ray_bb[in_range]
+
+            if np.size(sample_points) != 0:
+                # add counts to voxel_samples
+                vox = add_points_to_voxels(vox, "samples", sample_points)
+
+        # voxel sample returns
+        vox = add_points_to_voxels(vox, "returns", ray_1)
+
+        # correct sample_data to unit length (ie. "meters sampled within voxel")
+        vox.sample_data = vox.sample_data * vox.sample_length
 
     end = time.time()
     print('Ray sampling done in ' + str(end - start) + ' seconds.')
@@ -479,6 +482,7 @@ def nb_sample_lookup_global_resample(rays, path_samples, path_returns, n_samples
     rays = rays.assign(returns_std=returns_std)
 
     return rays
+
 
 def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, prior, ray_iterations=100):
     print('Aggregating samples over each ray')
@@ -817,27 +821,27 @@ def hemi_rays_to_img(rays_out, img_path, img_size, area_factor):
     imageio.imsave(img_path, img)
 
 # las file
-
-# las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las'
-las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_las_proc_classified_merged.las'
+las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las'
+# las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_las_proc_classified_merged.las'
 
 # trajectory file
-# traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
-traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
+traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
+# traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
 
+
+
+# interpolate trajectory
+return_set = 'first'
+drop_class = 7
+chunksize = 10000000
+# working hdf5 file path
+hdf5_path = las_in.replace('.las', '_ray_sampling_' + return_set + '_returns_drop_' + str(drop_class) + '.h5')
+laslib.las_traj(las_in, traj_in, hdf5_path, chunksize, return_set, drop_class)
+
+# sample voxel space from las_traj hdf5
 voxel_length = 0.5
-
-# working hdf5 file
-hdf5_path = las_in.replace('.las', '_ray_sampling_' + str(voxel_length) + '.hdf5')
-
-# # write las to hdf5
-laslib.las_to_hdf5(las_in, hdf5_path, keep_columns=['gps_time', 'x', 'y', 'z'])
-# # interpolate trajectory
-laslib.las_traj(hdf5_path, traj_in)
-
-
 vox_sample_length = voxel_length/np.pi
-vox = las_ray_sample(hdf5_path, vox_sample_length, voxel_length, return_set='first')
+vox = las_ray_sample(hdf5_path, voxel_length, vox_sample_length, return_set, chunksize)
 vox_save(vox, hdf5_path)
 
 
