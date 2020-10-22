@@ -114,43 +114,43 @@ def raster_save(ras_object, file_path, file_format="GTiff", data_format="float32
 
 
 
-def raster_dif(ras_1_in, ras_2_in, inherit_from=1, dif_out=None):
-    # Returns raster object as follows:
-        # ras_dif.data = ras_1. data - ras_2.data
-        # metadata inherited from "inherit_from" (1 or 2).
-    # Rasters must be identical in location, scale, and size
-
-    # Dependencies
-    import numpy as np
-
-    if inherit_from == 1:
-        ras_A = ras = raster_load(ras_1_in)
-        ras_B = ras = raster_load(ras_2_in)
-        flip_factor = 1
-    elif inherit_from == 2:
-        ras_A = ras = raster_load(ras_2_in)
-        ras_B = ras = raster_load(ras_1_in)
-        flip_factor = -1
-    else:
-        raise Exception('"inherit_from" must be either "1" or "2."')
-
-    # check if identical origins and scales
-    aff_dif = np.array(ras_A.T1) - np.array(ras_B.T1)
-
-    if np.sum(np.abs(aff_dif)) != 0:
-        raise Exception('Rasters are of different scales or origins, no difference was taken. Cell shifting may be needed!')
-
-    ras_dif = ras_A
-    # handle nas!
-    mask = (ras_A.data == ras_A.no_data) | (ras_B.data == ras_B.no_data)
-    ras_dif.data = (ras_A.data - ras_B.data) * flip_factor
-    ras_dif.data[mask] = ras_A.no_data
-
-    if dif_out is not None:
-        # output dif
-        raster_save(ras_dif, dif_out, data_format='float32')
-
-    return ras_dif
+# def raster_dif(ras_1_in, ras_2_in, inherit_from=1, dif_out=None):
+#     # Returns raster object as follows:
+#         # ras_dif.data = ras_1. data - ras_2.data
+#         # metadata inherited from "inherit_from" (1 or 2).
+#     # Rasters must be identical in location, scale, and size
+#
+#     # Dependencies
+#     import numpy as np
+#
+#     if inherit_from == 1:
+#         ras_A = ras = raster_load(ras_1_in)
+#         ras_B = ras = raster_load(ras_2_in)
+#         flip_factor = 1
+#     elif inherit_from == 2:
+#         ras_A = ras = raster_load(ras_2_in)
+#         ras_B = ras = raster_load(ras_1_in)
+#         flip_factor = -1
+#     else:
+#         raise Exception('"inherit_from" must be either "1" or "2."')
+#
+#     # check if identical origins and scales
+#     aff_dif = np.array(ras_A.T1) - np.array(ras_B.T1)
+#
+#     if np.sum(np.abs(aff_dif)) != 0:
+#         raise Exception('Rasters are of different scales or origins, no difference was taken. Cell shifting may be needed!')
+#
+#     ras_dif = ras_A
+#     # handle nas!
+#     mask = (ras_A.data == ras_A.no_data) | (ras_B.data == ras_B.no_data)
+#     ras_dif.data = (ras_A.data - ras_B.data) * flip_factor
+#     ras_dif.data[mask] = ras_A.no_data
+#
+#     if dif_out is not None:
+#         # output dif
+#         raster_save(ras_dif, dif_out, data_format='float32')
+#
+#     return ras_dif
 
 
 def raster_dif_gdal(ras_1_in, ras_2_in, dif_out=None, inherit_from=1):
@@ -170,14 +170,21 @@ def raster_dif_gdal(ras_1_in, ras_2_in, dif_out=None, inherit_from=1):
         raise Exception('inherit_from must take values 1 or 2 only.')
 
     # load ras_a
-    ras_dif = raster_load(ras_a_in)
-
+    ras_a = raster_load(ras_a_in)
     # load ras_b reprojected to ras_a
-    data_a = ras_dif.data.copy()
-    data_b = gdal_raster_reproject(ras_b_in, ras_a_in)
+    data_a = ras_a.data
+    data_a[data_a == ras_a.no_data] = np.nan
+
+    # load ras_b
+    ras_b = raster_load(ras_b_in)
+    data_b = gdal_raster_reproject(ras_b_in, ras_a_in)[:, :, 0]
+    data_b[data_b == ras_b.no_data] = np.nan
 
     # take difference
+    ras_dif = raster_load(ras_a_in)
     ras_dif.data = (data_a - data_b) * flip_factor
+
+    ras_dif.data[np.isnan(ras_dif.data)] = ras_dif.no_data
 
     if dif_out is not None:
         # export to file
@@ -203,6 +210,7 @@ def raster_burn(ras_in, shp_in, burn_val):
 
     # run command
     subprocess.call(cmd, shell=True)
+
 
 def raster_merge(ras_in_dir, ras_in_ext, ras_out, no_data="-9999"):
     # merges all raster files in directory "ras_in_dir" with extention "ras_in_ext" and saves them as a merged output "ras_out"
@@ -427,12 +435,9 @@ def pd_sample_raster_gdal(data_dict, include_nans=False, nodatavalue=np.nan):
     return df
 
 
-def delauney_fill(values, values_out, ras_template, n_count=None, n_threshold=0):
+def delauney_fill(values, values_out, ras_template):
     import numpy as np
     from scipy.interpolate import LinearNDInterpolator
-
-    if (n_threshold > 0) & (n_count is None):
-        raise Exception('no n_count provided, could not threshold to min_n')
 
     if isinstance(values, str):
         values_in = values
@@ -440,20 +445,10 @@ def delauney_fill(values, values_out, ras_template, n_count=None, n_threshold=0)
         values = ras.data
         values[values == ras.no_data] = np.nan
 
-    if isinstance(n_count, str):
-        n_count_in = n_count
-        ras = raster_load(n_count_in)
-        n_count = ras.data
-
-    # delauney triangulation between cells where n > min_n
-    if n_threshold > 0:
-        # ignoring nan values...
-        valid_cells = np.where(n_count > n_threshold)
-        invalid_cells = np.where(n_count <= n_threshold)
-    else:
-        valid = ~np.isnan(values)
-        valid_cells = np.where(valid)
-        invalid_cells = np.where(~valid)
+    # delauney triangulation between cells are valid
+    valid = ~np.isnan(values)
+    valid_cells = np.where(valid)
+    invalid_cells = np.where(~valid)
 
     # unzip to coords
     valid_coords = list(zip(valid_cells[0], valid_cells[1]))

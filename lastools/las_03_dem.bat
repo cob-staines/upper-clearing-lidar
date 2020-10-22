@@ -9,6 +9,7 @@
 
 
 mkdir .\TEMP_FILES\12_dem\res_%DEM_RESOLUTION%\
+mkdir .\TEMP_FILES\12_dem\interpolated_res_%DEM_RESOLUTION%\
 mkdir .\OUTPUT_FILES\DEM
 
 :: build dem
@@ -21,6 +22,16 @@ blast2dem -i TEMP_FILES\06_ground_thinned\*.laz ^
         -ll %GRID_ORIGIN% ^
         -cores %NUM_CORES% ^
         -odir  TEMP_FILES\12_dem\res_%DEM_RESOLUTION%\ -obil -ocut 3 -odix _12
+
+:: build dem
+blast2dem -i TEMP_FILES\06_ground_thinned\*.laz ^
+        -keep_class %CLASS_GROUND% ^
+        -use_tile_bb ^
+        -step %DEM_RESOLUTION% ^
+        -float_precision %ORIGINAL_SCALE_FACTOR% ^
+        -ll %GRID_ORIGIN% ^
+        -cores %NUM_CORES% ^
+        -odir  TEMP_FILES\12_dem\interpolated_res_%DEM_RESOLUTION%\ -obil -ocut 3 -odix _12
 
 
 ::lasgrid -i TEMP_FILES\10_dem\res_%DEM_RESOLUTION%\*.bil ^

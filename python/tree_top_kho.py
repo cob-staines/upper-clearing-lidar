@@ -7,8 +7,10 @@ from sklearn.cluster import KMeans
 import os
 
 # config
-# raster chm for identifying treetops
-ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\CHM\\19_149_spike_free_chm_r.10m.bil"
+# raster DSM for identifying treetops
+ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\CAN\\19_149_spike_free_dsm_can_r.10m.bil"
+# raster CHM in (used to determine peak heights)
+chm_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\CHM\\19_149_spike_free_chm_r.10m.tif"
 # raster template for output nearest and distance maps
 ras_template_in = ras_in
 # output file naming conventions
@@ -26,17 +28,18 @@ if not os.path.exists(output_dir):
 
 # parameters
 z_min = 2
-min_obj_rad_m = 1  # in meters
+min_obj_diam_m = .7  # in meters
 subpix_noise = True  # when true, peaks are randomly shifted at the subpixel scale (relative to CHM) to eliminate lattice effects in subsequent raster products
 
 # load CHM
 ras = rastools.raster_load(ras_in)
 
 # define mask of valid data above  z_min
-mask = (ras.data != ras.no_data) & (ras.data >= z_min)
+# mask = (ras.data != ras.no_data) & (ras.data >= z_min)
+mask = (ras.data != ras.no_data)
 
 # build opening structure
-min_obj_rad_pix = min_obj_rad_m/ras.T0[0]
+min_obj_diam_pix = min_obj_diam_m/ras.T0[0]
 
 def mask_gen(size):
     # generates circular mask of diameter mask_size (expected crown domain)
@@ -52,18 +55,18 @@ def mask_gen(size):
     mask = np.array(x * x + y * y <= r * r)
     return mask
 
-struct = mask_gen(min_obj_rad_pix)
-chm = ras.data.copy()
-chm[~mask] = 0
+struct = mask_gen(min_obj_diam_pix)
+can = ras.data.copy()
+can[~mask] = 0
 
-# morphologically open the CHM using the target minimum element struct
-opened = opening(chm, struct)
+# morphologically open the CAN using the target minimum element struct
+opened = opening(can, struct)
 
-# reconstruct the image using the opened image as the marker and the CHM as the mask
-reconstructed = reconstruction(opened, chm)
+# reconstruct the image using the opened image as the marker and the CAN as the mask
+reconstructed = reconstruction(opened, can)
 
-# subtract the reconstructed image from the CHM to return all isolated elements above reconstructed image
-neighborhoods = chm - reconstructed
+# subtract the reconstructed image from the CAN to return all isolated elements above reconstructed image
+neighborhoods = can - reconstructed
 
 # label neighborhoods
 labels, nfeatures = label(neighborhoods, np.ones((3, 3)))
@@ -72,24 +75,27 @@ labels, nfeatures = label(neighborhoods, np.ones((3, 3)))
 area_pixels = np.bincount(labels.reshape([1, ras.rows*ras.cols])[0])[1:]
 
 #identify regional maxima
-regional_max = maximum_position(chm, labels=labels, index=list(range(1, nfeatures + 1)))
+regional_max = maximum_position(can, labels=labels, index=list(range(1, nfeatures + 1)))
 
 
 peak_xy = np.array(list(zip(*regional_max)))
 
+chm = rastools.gdal_raster_reproject(chm_in, ras_in)[:, :, 0]
+
 peaklist = pd.DataFrame({"peak_x": peak_xy[1],
                          "peak_y": peak_xy[0],
                          "peak_z": ras.data[peak_xy[0], peak_xy[1]],
+                         "peak_height": chm[(peak_xy[0], peak_xy[1])],
                          "area_pix": area_pixels,
                          "area_m2": area_pixels*(ras.T0[0]**2)})
 
 
-# use kmeans clustering to distringuish noise from true peaks. Alternatively, could simple threshold peaks to neighborhood area of 1m2 (seems to agree well with kmeans)
+# use kmeans clustering to distinguish noise from true peaks. Alternatively, could simple threshold peaks to neighborhood area of 1m2 (seems to agree well with kmeans)
 kmeans = KMeans(n_clusters=2, random_state=0, n_init=10).fit(np.array(peaklist.area_m2).reshape(-1, 1))
-peaklist.loc[:, "true_peak"] = kmeans.labels_
+# peaklist.loc[:, "true_peak"] = kmeans.labels_
 cluster_break = np.mean(kmeans.cluster_centers_)  # currently unused, could be recorded if useful
 
-peaklist.loc[:, "true_peak"] = peaklist.area_m2 >= min_obj_rad_m
+peaklist.loc[:, "true_peak"] = (peaklist.area_m2 >= cluster_break) & (peaklist.peak_height >= z_min)
 
 # add subpix noise
 if subpix_noise:
@@ -135,4 +141,6 @@ rastools.raster_save(ras_distance, distance_out, data_format="float32")
 # import matplotlib
 # matplotlib.use('TkAgg')
 # import matplotlib.pyplot as plt
-# plt.imshow(uf_rp.data, interpolation='nearest')
+# peace = neighborhoods.copy()
+# peace[peace == 0] = np.nan
+# plt.imshow(peace, interpolation='nearest')
