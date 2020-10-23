@@ -10,7 +10,13 @@ import h5py
 class VoxelObj(object):
     def __init__(self):
         # voxel object metadata
-        self.desc = None
+        self.id = None
+        self.las_in = None
+        self.traj_in = None
+        self.hdf5_path = None
+        self.return_set = None
+        self.drop_class = None
+        self.chunksize = None
         self.origin = None
         self.max = None
         self.step = None
@@ -27,29 +33,40 @@ class VoxelObj(object):
         vox_save(self, hdf5_path)
 
 
-def vox_save(vox, hdf5_path, vox_id):
-    with h5py.File(hdf5_path, 'r+') as h5f:
-        h5f.create_dataset('vox_desc_' + vox_id, data=vox.desc)
-        h5f.create_dataset('vox_origin_' + vox_id, data=vox.origin)
-        h5f.create_dataset('vox_max_' + vox_id, data=vox.max)
-        h5f.create_dataset('vox_step_' + vox_id, data=vox.step)
-        h5f.create_dataset('vox_ncells_' + vox_id, data=vox.ncells)
-        h5f.create_dataset('vox_sample_length_' + vox_id, data=vox.sample_length)
-        h5f.create_dataset('vox_sample_data_' + vox_id, data=vox.sample_data)
-        h5f.create_dataset('vox_return_data_' + vox_id, data=vox.return_data)
+def vox_save(vox):
+    with h5py.File(vox.hdf5_path, 'r+') as h5f:
+        h5f.create_dataset(vox.id + '_las_in', data=vox.las_in)
+        h5f.create_dataset(vox.id + '_traj_in', data=vox.traj_in)
+        h5f.create_dataset(vox.id + '_return_set', data=vox.return_set)
+        h5f.create_dataset(vox.id + '_drop_class', data=vox.drop_class)
+        h5f.create_dataset(vox.id + '_chunksize', data=vox.chunksize)
+        h5f.create_dataset(vox.id + '_vox_origin', data=vox.origin)
+        h5f.create_dataset(vox.id + '_vox_max', data=vox.max)
+        h5f.create_dataset(vox.id + '_vox_step', data=vox.step)
+        h5f.create_dataset(vox.id + '_vox_ncells', data=vox.ncells)
+        h5f.create_dataset(vox.id + '_vox_sample_length', data=vox.sample_length)
+        h5f.create_dataset(vox.id + '_vox_sample_data', data=vox.sample_data)
+        h5f.create_dataset(vox.id + '_vox_return_data', data=vox.return_data)
 
 
 def vox_load(hdf5_path, vox_id):
     vox = VoxelObj()
+    vox.id = vox_id
+    vox.hdf5_path = hdf5_path
+
     with h5py.File(hdf5_path, 'r') as h5f:
-        vox.desc = h5f.get('vox_desc_' + vox_id)[()]
-        vox.origin = h5f.get('vox_origin_' + vox_id)[()]
-        vox.max = h5f.get('vox_max_' + vox_id)[()]
-        vox.step = h5f.get('vox_step_' + vox_id)[()]
-        vox.ncells = h5f.get('vox_ncells_' + vox_id)[()]
-        vox.sample_length = h5f.get('vox_sample_length_' + vox_id)[()]
-        vox.sample_data = h5f.get('vox_sample_data_' + vox_id)[()]
-        vox.return_data = h5f.get('vox_return_data_' + vox_id)[()]
+        vox.las_in = h5f.get(vox_id + '_las_in')[()]
+        vox.traj_in = h5f.get(vox_id + '_traj_in')[()]
+        vox.return_set = h5f.get(vox_id + '_return_set')[()]
+        vox.drop_class = h5f.get(vox_id + '_drop_class')[()]
+        vox.chunksize = h5f.get(vox_id + '_chunksize')[()]
+        vox.origin = h5f.get(vox_id + '_vox_origin')[()]
+        vox.max = h5f.get(vox_id + '_vox_max')[()]
+        vox.step = h5f.get(vox_id + '_vox_step')[()]
+        vox.ncells = h5f.get(vox_id + '_vox_ncells')[()]
+        vox.sample_length = h5f.get(vox_id + '_vox_sample_length')[()]
+        vox.sample_data = h5f.get(vox_id + '_vox_sample_data')[()]
+        vox.return_data = h5f.get(vox_id + '_vox_return_data')[()]
     return vox
 
 
@@ -86,7 +103,7 @@ def add_points_to_voxels(voxel_object, dataset, points):
 
 
 def interpolate_to_bounding_box(fixed_points, flex_points, bb=None):
-    print('Interpolating rays to bounding box... ', end='')
+    # print('Interpolating rays to bounding box... ', end='')
 
     if fixed_points.shape != flex_points.shape:
         raise Exception('fixed_points and flex_points have different shapes!')
@@ -113,23 +130,23 @@ def interpolate_to_bounding_box(fixed_points, flex_points, bb=None):
             bb_points[highs, jj] = (ub[ii] - flex_points[highs, ii]) * (flex_points[highs, jj] - fixed_points[highs, jj]) / (
                         flex_points[highs, ii] - fixed_points[highs, ii]) + flex_points[highs, jj]
 
-    print('done.')
+    # print('done.')
 
     return bb_points
 
 
-def las_ray_sample(hdf5_path,  voxel_length, sample_length, return_set='all', chunksize=10000000):
+def las_ray_sample(vox):
 
     print('----- LAS Ray Sampling -----')
 
     start = time.time()
 
-    if sample_length > voxel_length:
+    if vox.sample_length > vox.step[0]:
         import warnings
-        warnings.warn("sample_length is greater than voxel_length, some voxels will be stepped over in sampling. Was this intentional?", UserWarning)
+        warnings.warn("vox.sample_length is greater than vox.step, some voxels will be stepped over in sampling. Was this intentional?", UserWarning)
 
     print('Loading data descriptors... ', end='')
-    with h5py.File(hdf5_path, 'r') as hf:
+    with h5py.File(vox.hdf5_path, 'r') as hf:
         las_time = hf['lasData'][:, 0]
         traj_time = hf['trajData'][:, 0]
         n_rows = len(las_time)
@@ -148,22 +165,18 @@ def las_ray_sample(hdf5_path,  voxel_length, sample_length, return_set='all', ch
     else:
         raise Exception('gps_times do not align between las and traj dfs, process aborted.')
 
-    # define voxel object
-    vox = VoxelObj()
-    vox.desc = "ray sampling of " + hdf5_path
-    vox.sample_length = sample_length
-    vox.return_set = return_set
-    vox.step = np.full(3, voxel_length)  # only cubic voxels permitted for now
+    # define voxel parameters
     vox.origin = np.array([x_min, y_min, z_min])
     vox.max = np.array([x_max, y_max, z_max])
     vox.ncells = np.ceil((vox.max - vox.origin) / vox.step).astype(int)
-    # preallocate voxels
     vox.sample_data = np.zeros(vox.ncells).astype(np.uint32)
     vox.return_data = np.zeros(vox.ncells).astype(np.uint32)
 
-    if chunksize is None:
+    if vox.chunksize is None:
         chunksize = n_rows
-    n_chunks = np.ceil(n_rows / chunksize).astype(int)
+    else:
+        chunksize = vox.chunksize
+    n_chunks = np.ceil(n_rows / vox.chunksize).astype(int)
 
     # chunk las ray_sample
     for ii in range(0, n_chunks):
@@ -178,7 +191,7 @@ def las_ray_sample(hdf5_path,  voxel_length, sample_length, return_set='all', ch
             idx_end = n_rows
 
         print('Loading data chunk... ', end='')
-        with h5py.File(hdf5_path, 'r') as hf:
+        with h5py.File(vox.hdf5_path, 'r') as hf:
             ray_1 = hf['lasData'][idx_start:idx_end, 1:4]
             ray_0 = hf['trajData'][idx_start:idx_end, 1:4]
         print('done')
@@ -478,8 +491,8 @@ def nb_sample_lookup_global_resample(rays, path_samples, path_returns, n_samples
     return rays
 
 
-def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, prior, ray_iterations=100):
-    print('Aggregating samples over each ray')
+def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations):
+    #print('Aggregating samples over each ray')
 
     # preallocate
     returns_mean = np.full(len(path_samples), np.nan)
@@ -490,7 +503,7 @@ def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, prior, 
     post_a = prior[0] + path_returns
     post_b = 1 - 1 / (1 + prior[1] + path_samples)
 
-    print('Building dictionary...', end='')
+    #print('Building dictionary...', end='')
     all_par = np.array((post_a.reshape(post_a.size), post_b.reshape(post_b.size))).swapaxes(0, 1)
     unique_par = np.unique(all_par, axis=0)
     unique_par = unique_par[~np.any(np.isnan(unique_par), axis=1)]
@@ -500,7 +513,7 @@ def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, prior, 
     lookup = {}
     for dd in range(0, len(unique_par)):
         lookup[unique_par[dd]] = np.random.negative_binomial(unique_par[dd][0], unique_par[dd][1], ray_iterations)
-    print('done')
+    # print('done')
 
     # for each ray
     for ii in range(0, len(path_samples)):
@@ -523,7 +536,7 @@ def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, prior, 
         returns_med[ii] = np.median(return_sums)
         returns_std[ii] = np.std(return_sums)
 
-        print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
+        # print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
 
     rays = rays.assign(returns_mean=returns_mean)
     rays = rays.assign(returns_median=returns_med)
@@ -676,8 +689,8 @@ def nb_sum_sample(rays, path_samples, path_returns, n_samples, k_max=10000, iter
     return rays
 
 
-def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior):
-    print('Aggregating voxels over rays:')
+def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior, ray_iterations):
+    # print('Aggregating voxels over rays:')
 
     # pull points
     p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
@@ -703,7 +716,7 @@ def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior):
     path_returns = np.full([len(p0), max_steps], np.nan)
 
     # for each sample step
-    print('Sampling voxels...')
+    # print('Sampling voxels...')
     for ii in range(0, max_steps):
         # distance from p0 along ray
         sample_dist = (ii + offset) * agg_sample_length
@@ -722,56 +735,21 @@ def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior):
             path_samples[in_range, ii] = vox.sample_data[sample_address]
             path_returns[in_range, ii] = vox.return_data[sample_address]
 
-        print(str(ii + 1) + ' of ' + str(max_steps) + ' steps')
-
+        # print(str(ii + 1) + ' of ' + str(max_steps) + ' steps')
 
 
     # start = time.time()
-    # rays_1 = nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, prior, iterations=1000)
-    # end = time.time()
-    # print((end - start)/len(rays))
-    #
-    # start = time.time()
-    # rays_2 = nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, prior, ray_iterations=100)
+    rays_out = nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations)
     # end = time.time()
     # print((end - start) / len(rays))
     #
-    # # performance is only slightly enhanced with increase of random mixing from greater lookup iterations....
     # start = time.time()
-    # rays_3 = nb_sample_lookup_global_resample(rays, path_samples, path_returns, n_samples, prior, lookup_iterations=1000, ray_iterations=100)
-    # end = time.time()
-    # print((end - start)/len(rays))
-
-
-
-    # works well around .5, start to see lag for higher quantiles. results consistently around .0013s/ray
-    # start = time.time()
-    # rays_5 = nb_sample_explicit_sum_combined_trunc(rays, path_samples, path_returns, n_samples, prior, iterations=100, q=.75)
+    # nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, prior, ray_iterations=100)
     # end = time.time()
     # print((end - start) / len(rays))
 
 
-
-
-    #rays = nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, prior, iterations=50)
-
-    start = time.time()
-    rays = nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, prior, ray_iterations=100)
-    end = time.time()
-    print((end - start) / len(rays))
-
-    start = time.time()
-    nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, prior, ray_iterations=100)
-    end = time.time()
-    print((end - start) / len(rays))
-
-    start = time.time()
-    rays, gc_lookup = nb_sample_lookup_global_combined(rays, path_samples, path_returns, n_samples, prior, gc_lookup, ray_iterations=100)
-    end = time.time()
-    print((end - start) / len(rays))
-
-
-    return rays, nb_lookup
+    return rays_out
 
 
 def dem_to_vox_rays(dem_in, vec, vox):
@@ -848,7 +826,7 @@ def ray_stats_to_dem(rays, dem_in):
     return ras
 
 
-def point_to_hemi_rays(origin, img_size, vox, max_phi=np.pi/2, max_dist=50):
+def point_to_hemi_rays(origin, img_size, vox, max_phi=np.pi/2, max_dist=50, min_dist=0):
 
     # convert img index to phi/theta
     img_origin = (img_size - 1) / 2
@@ -869,13 +847,18 @@ def point_to_hemi_rays(origin, img_size, vox, max_phi=np.pi/2, max_dist=50):
     rays = rays[rays.phi <= max_phi]
 
     # calculate cartesian coords of point at r = max_dist along ray
-    rr = max_dist
-    x1 = rr * np.sin(rays.theta) * np.sin(rays.phi)
-    y1 = rr * np.cos(rays.theta) * np.sin(rays.phi)
-    z1 = rr * np.cos(rays.phi)
+    rr0 = min_dist
+    x0 = rr0 * np.sin(rays.theta) * np.sin(rays.phi)
+    y0 = rr0 * np.cos(rays.theta) * np.sin(rays.phi)
+    z0 = rr0 * np.cos(rays.phi)
 
-    p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
-    p1 = np.swapaxes(np.array([x1, y1, z1]), 0, 1) + p0
+    rr1 = max_dist
+    x1 = rr1 * np.sin(rays.theta) * np.sin(rays.phi)
+    y1 = rr1 * np.cos(rays.theta) * np.sin(rays.phi)
+    z1 = rr1 * np.cos(rays.phi)
+
+    p0 = np.swapaxes(np.array([x0, y0, z0]), 0, 1) + origin
+    p1 = np.swapaxes(np.array([x1, y1, z1]), 0, 1) + origin
 
     # interpolate p1 to bounding box
     p1_bb = interpolate_to_bounding_box(p0, p1, bb=[vox.origin, vox.max])
@@ -894,224 +877,354 @@ def hemi_rays_to_img(rays_out, img_path, img_size, area_factor):
     img = np.rint(template * 255).astype(np.uint8)
     imageio.imsave(img_path, img)
 
-# las file
-las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las'
-# las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_las_proc_classified_merged.las'
 
-# trajectory file
-traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
-# traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
+def rs_hemigen(hdf5_path, rs_hemimeta, initial_index=0):
+
+    print("-------- Running rs_Hemigen --------")
+
+    import pandas as pd
+    import numpy as np
+
+
+    # convert to list of 1 if only one entry
+    if rs_hemimeta.origin.shape.__len__() == 1:
+        hemimeta.origin = np.array([hemimeta.origin])
+    if type(hemimeta.file_name) == str:
+        hemimeta.file_dir = [hemimeta.file_dir]
+
+    # QC: ensure origins and file_names have same length
+    if hemimeta.origin.shape[0] != hemimeta.file_name.__len__():
+        raise Exception('origin_coords and img_out_path have different lengths, execution halted.')
+
+    # load data
+    p0 = pd.read_hdf(hdf5_path, key='las_data', columns=["x", "y", "z"])
+
+    # pre-plot
+    fig = plt.figure(figsize=(hemimeta.img_size, hemimeta.img_size), dpi=hemimeta.img_resolution, frameon=True)
+    ax = plt.axes([0., 0., 1., 1.], projection="polar")
+    sp1 = ax.scatter([], [], s=[], c="black")
+    ax.set_rmax(np.pi / 2)
+    ax.set_axis_off()
+    fig.add_axes(ax)
+
+    hm = pd.DataFrame({"id": hemimeta.id,
+                       "file_name": hemimeta.file_name,
+                       "file_dir": hemimeta.file_dir,
+                       "x_utm11n": hemimeta.origin[:, 0],
+                       "y_utm11n": hemimeta.origin[:, 1],
+                       "elevation_m": hemimeta.origin[:, 2],
+                       "src_las_file": hemimeta.src_las_file,
+                       "las_class_range": " to ".join([str(cl) for cl in hemimeta.src_keep_class]),
+                       "poisson_radius_m": hemimeta.poisson_sampling_radius,
+                       "optimization_scalar": hemimeta.optimization_scalar,
+                       "point_size_scalar": hemimeta.point_size_scalar,
+                       "max_distance_m": hemimeta.max_distance,
+                       "img_size_in": hemimeta.img_size,
+                       "img_res_dpi": hemimeta.img_resolution,
+                       "created_datetime": None,
+                       "point_count": None,
+                       "computation_time_s": None})
+
+
+    # preallocate log file
+    log_path = hemimeta.file_dir + "hemimetalog.csv"
+    if not os.path.exists(log_path):
+        with open(log_path, mode='w', encoding='utf-8') as log:
+            log.write(",".join(hm.columns) + '\n')
+        log.close()
+
+    for ii in range(initial_index, hemimeta.origin.shape[0]):
+        start = time.time()
+        print("Generating " + hemimeta.file_name[ii] + " ...")
+
+        p1 = p0.values - hemimeta.origin[ii]
+
+        # if no max_radius, set to +inf
+        if hemimeta.max_distance is None:
+            hemimeta.max_distance = float("inf")
+
+        # if no min_radius, set to 0
+        if hemimeta.min_distance is None:
+            hemimeta.min_distance = float(0)
+
+        # calculate r
+        r = np.sqrt(np.sum(p1 ** 2, axis=1))
+        # subset to within max_radius
+        subset_f = (r < hemimeta.max_distance) & (r > hemimeta.min_distance)
+        r = r[subset_f]
+        p1 = p1[subset_f]
+
+        # flip over x axis for upward-looking perspective
+        p1[:, 0] = -p1[:, 0]
+
+        # calculate plot vars
+        data = pd.DataFrame({'theta': np.arccos(p1[:, 2] / r),
+                             'phi': np.arctan2(p1[:, 1], p1[:, 0]),
+                             'area': ((1 / r) ** 2) * hemimeta.point_size_scalar})
+
+        # plot
+        sp1.set_offsets(np.c_[np.flip(data.phi), np.flip(data.theta)])
+        sp1.set_sizes(data.area)
+
+        # save figure to file
+        fig.savefig(hemimeta.file_dir + hemimeta.file_name[ii], facecolor='white')
+
+        # log meta
+        hm.loc[ii, "created_datetime"] = time.strftime('%Y-%m-%d %H:%M:%S')
+        hm.loc[ii, "point_count"] = data.shape[0]
+        hm.loc[ii, "computation_time_s"] = int(time.time() - start)
+
+        # write to log file
+        hm.iloc[ii:ii + 1].to_csv(log_path, encoding='utf-8', mode='a', header=False, index=False)
+
+        print(str(ii + 1) + " of " + str(hemimeta.origin.shape[0]) + " complete: " + str(hm.computation_time_s[ii]) + " seconds")
+
+    print("-------- Hemigen completed--------")
+    print(str(hemimeta.origin.shape[0] - initial_index) + " images generated in " + str(int(time.time() - tot_time)) + " seconds")
+
+    return hm
+
+
+#####
 
 
 
-# interpolate trajectory
-return_set = 'first'
-drop_class = 7
-chunksize = 10000000
-# working hdf5 file path
-hdf5_path = las_in.replace('.las', '_ray_sampling_' + return_set + '_returns_drop_' + str(drop_class) + '.h5')
-# laslib.las_traj(las_in, traj_in, hdf5_path, chunksize, return_set, drop_class)
+def ray_sample_las(vox, create_new_hdf5=True):
+    if create_new_hdf5:
+        # interpolate trajectory
+        laslib.las_traj(vox.las_in, vox.traj_in, vox.hdf5_path, vox.chunksize, vox.return_set, vox.drop_class)
 
-# sample voxel space from las_traj hdf5
-voxel_length = 0.5
-vox_sample_length = voxel_length/np.pi
-vox_id = 'rs_vl' + str(voxel_length)
-# vox = las_ray_sample(hdf5_path, voxel_length, vox_sample_length, return_set, chunksize)
-# vox_save(vox, hdf5_path, vox_id)
+    # sample voxel space from las_traj hdf5
+    vox = las_ray_sample(vox)
+    vox_save(vox)
+
+    return vox
 
 
 # LOAD VOX
-vox = vox_load(hdf5_path, vox_id)
+# vox = vox_load(hdf5_path, vox_id)
 
-# calculate expected points and varience
-# MOVE PARAMETERS TO PASSED VARIABLE
-ratio = .05  # ratio of voxel area weight of prior
-F = .16 * 0.05  # expected footprint area
-V = np.prod(vox.step)  # volume of each voxel
-# K = np.sum(vox.return_data)  # total number of returns in set
-# N = np.sum(vox.sample_data)  # total number of meters sampled in set
+class RaySampleHemiMetaObj(object):
+    def __init__(self):
+        # preload metadata
+        self.id = None
+        self.file_name = None
+        self.file_dir = None
+        self.origin = None
+        self.ray_sample_length = None
+        self.ray_iterations = None
+        self.max_phi_rad = None
+        self.max_distance = None
+        self.min_distance = None
+        self.img_size = None
+        self.prior = None
 
-# gamma prior hyperparameters
-prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
-prior_a = prior_b * 0.001  # prior_b * K / N
+def rs_hemigen(rshmeta, vox, initial_index=0):
+    import os
+    import tifffile as tiff
 
-prior = [prior_a, prior_b]
+    tot_time = time.time()
 
+    # handle case with only one output
+    if rshmeta.origin.shape.__len__() == 1:
+        rshmeta.origin = np.array([rshmeta.origin])
+    if type(rshmeta.file_name) == str:
+        rshmeta.file_dir = [rshmeta.file_dir]
 
-# sample voxel space from dem
-dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\DEM\\interpolated\\19_149_dem_r1.00m_q0.25_interpolated_min1.tif"
-#dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.10m.bil"
-ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\19_149_expected_first_returns_res_.25m_0-0_t_1.tif"
-# ras_out = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_expected_returns_res_.10m.tif"
-phi = 0
-theta = 0
-agg_sample_length = vox.sample_length
-vec = [phi, theta]
-rays_in = dem_to_vox_rays(dem_in, vec, vox)
-rays_out = aggregate_voxels_over_rays(vox, rays_in, agg_sample_length)
-ras = ray_stats_to_dem(rays_out, dem_in)
-rastools.raster_save(ras, ras_out)
+    # QC: ensure origins and file_names have same length
+    if rshmeta.origin.shape[0] != rshmeta.file_name.__len__():
+        raise Exception('origin_coords and img_out_path have different lengths, execution halted.')
 
+    rshm = pd.DataFrame({"id": rshmeta.id,
+                        "file_name": rshmeta.file_name,
+                        "file_dir": rshmeta.file_dir,
+                        "x_utm11n": rshmeta.origin[:, 0],
+                        "y_utm11n": rshmeta.origin[:, 1],
+                        "elevation_m": rshmeta.origin[:, 2],
+                        "vox_id": vox.id,
+                        "src_las_file": vox.las_in,
+                        "vox_step": vox.step[0],
+                        "vox_sample_length": vox.sample_length,
+                        "src_return_set": vox.return_set,
+                        "src_drop_class": vox.drop_class,
+                        "ray_sample_length": rshmeta.ray_sample_length,
+                        "ray_iterations": rshmeta.ray_iterations,
+                        "img_size_px": rshmeta.img_size,
+                        "max_phi_rad": rshmeta.max_phi_rad,
+                        "min_distance_m": rshmeta.min_distance,
+                        "max_distance_m": rshmeta.max_distance,
+                        "prior_a": rshmeta.prior[0],
+                        "prior_b": rshmeta.prior[1],
+                        "created_datetime": None,
+                        "computation_time_s": None})
 
-# sample voxel space as hemisphere
-# import from hemi_grid_points
-hemi_pts = pd.read_csv('C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uf_1m_pr_.15_os_10\\1m_dem_points.csv')
-hemi_pts = hemi_pts[hemi_pts.uf == 1]
-hemi_pts = hemi_pts[hemi_pts.id == 20426]
-pts = pd.DataFrame({'x0': hemi_pts.x_utm11n,
-                    'y0': hemi_pts.y_utm11n,
-                    'z0': hemi_pts.z_m})
+    # preallocate log file
+    log_path = rshmeta.file_dir + "rshmetalog.csv"
+    if not os.path.exists(log_path):
+        with open(log_path, mode='w', encoding='utf-8') as log:
+            log.write(",".join(rshm.columns) + '\n')
+        log.close()
 
-# import from hemi-photo lookup
+    # export table of rays in grid
+    ii = 0
+    origin = (rshm.x_utm11n[ii], rshm.y_utm11n[ii], rshm.elevation_m[ii])
+    # calculate rays
+    rays_in = point_to_hemi_rays(origin, rshmeta.img_size, vox, max_phi=rshmeta.max_phi_rad,
+                                 max_dist=rshmeta.max_distance, min_dist=rshmeta.min_distance)
+    phi_theta_lookup = rays_in.loc[:, ['x_index', 'y_index', 'phi', 'theta']]
+    phi_theta_lookup.to_csv(rshm.file_dir[ii] + "phi_theta_lookup.csv", index=False)
 
-img_lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
-# img_lookup_in = 'C:\\Users\\jas600\\workzone\\data\\las\\hemi_lookup_cleaned.csv'
-max_quality = 4
-las_day = "19_149"
-# import hemi_lookup
-img_lookup = pd.read_csv(img_lookup_in)
-# filter lookup by quality
-img_lookup = img_lookup[img_lookup.quality_code <= max_quality]
-# filter lookup by las_day
-img_lookup = img_lookup[img_lookup.folder == las_day]
+    for ii in range(initial_index, rshmeta.origin.shape[0]):
+        it_time = time.time()
 
-pts = pd.DataFrame({'x0': img_lookup.xcoordUTM1,
-                    'y0': img_lookup.ycoordUTM1,
-                    'z0': img_lookup.elevation})
+        origin = (rshm.x_utm11n[ii], rshm.y_utm11n[ii], rshm.elevation_m[ii])
+        # calculate rays
+        rays_in = point_to_hemi_rays(origin, rshmeta.img_size, vox, max_phi=rshmeta.max_phi_rad, max_dist=rshmeta.max_distance, min_dist=rshmeta.min_distance)
 
+        # sample rays
+        rays_out = aggregate_voxels_over_rays(vox, rays_in, rshmeta.ray_sample_length, rshmeta.prior, rshmeta.ray_iterations)
 
-# for each point
-ii = 0
-origin = (pts.iloc[ii].x0, pts.iloc[ii].y0, pts.iloc[ii].z0)
-img_size = 200
-agg_sample_length = vox.sample_length
-rays_in = point_to_hemi_rays(origin, img_size, vox, max_phi=np.pi/2, max_dist=50)
-start = time.time()
-rays_out, nb_lookup = aggregate_voxels_over_rays(vox, rays_in, agg_sample_length, prior)
-end = time.time()
-print(end - start)
+        output = rays_out.loc[:, ['x_index', 'y_index', 'phi', 'theta', 'returns_mean', 'returns_median', 'returns_std']]
 
-
-area_factor = .005
-img_path = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RSM\\ray_sampling_transmittance_' + str(img_lookup.index[ii]) + '_af' + str(area_factor) + '.png'
-#img_path = 'C:\\Users\\jas600\\workzone\\data\\las\\' + str(img_lookup.index[ii]) + '_af' + str(area_factor) + '.png'
-hemi_rays_to_img(rays_out, img_path, img_size, area_factor)
-
-
-
-### SANDBOX
-
-
-cProfile.run('rays_out = aggregate_voxels_over_dem(vox, rays_in, agg_sample_length)')
-
-peace = rastools.raster_load(ras_out)
-
-
-# convert voxel counts to path length units [m]
-voxS.data = voxS.data * voxS.sample_length
-# turn 0 samples to nans
-voxS.data[voxS.data == 0] = np.nan
-# calculate transmission
-transmission = voxR.data / voxS.data
-
-# play
-
-vox.step = np.array([2, 2, 2])
-vox.sample_length = 1
-ii = 1
-
-# original points
-p0 = source_utm[in_range]
-p1 = p0 + np.array([1, 1, 1])
-
-# calculate a sample
-norm = np.sqrt(np.sum((p0 - p1) ** 2, axis=1))
-xyz_step = (p0 - p1)/norm[:, np.newaxis]
-ps = p0 + xyz_step * ii * vox.sample_length
-# convert to voxel coordinates
-vs_1 = utm_to_vox(vox, ps)
-
-# convert to voxel coordinates
-us = 1/vox.step
-v0 = utm_to_vox(vox, p0)
-v1 = utm_to_vox(vox, p1)
-# calculate a sample
-norm = np.sqrt(np.sum(((v0 - v1) * us) ** 2, axis=1))
-xyz_step = (v0 - v1)/norm[:, np.newaxis]
-
-vs_2 = v0 + xyz_step * ii * vox.sample_length
-
-np.max(np.abs(vs_1 - vs_2))
-
-# i don't understand why these do not equal one another. might need to be worked out in mathematica...
-
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
+        # format to image
+        template = np.full((rshmeta.img_size, rshmeta.img_size, 3), np.nan)
+        template[(rays_out.y_index.values, rays_out.x_index.values, 0)] = rays_out.returns_mean
+        template[(rays_out.y_index.values, rays_out.x_index.values, 1)] = rays_out.returns_median
+        template[(rays_out.y_index.values, rays_out.x_index.values, 2)] = rays_out.returns_std
 
 
-peace_1 = peace.data[0]
-peace_1[peace_1 == peace.no_data] = -1
-plt.imshow(peace_1, interpolation='nearest')
+        tiff.imsave(rshm.file_dir[ii] + rshm.file_name[ii], template)
 
-peace_2 = peace.data[1]
-peace_2[peace_2 == peace.no_data] = 1
-plt.imshow(peace_2, interpolation='nearest')
+        # log meta
+        rshm.loc[ii, "created_datetime"] = time.strftime('%Y-%m-%d %H:%M:%S')
+        rshm.loc[ii, "computation_time_s"] = int(time.time() - it_time)
 
-plt.imshow(ras.data[0], interpolation='nearest')
+        # write to log file
+        rshm.iloc[ii:ii + 1].to_csv(log_path, encoding='utf-8', mode='a', header=False, index=False)
 
-### VISUALIZATION
-import rastools
-import numpy as np
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
+        print(str(ii + 1) + " of " + str(rshmeta.origin.shape[0]) + " complete: " + str(rshm.computation_time_s[ii]) + " seconds")
+    print("-------- Ray Sample Hemigen completed--------")
+    print(str(rshmeta.origin.shape[0] - initial_index) + " images generated in " + str(int(time.time() - tot_time)) + " seconds")
+    return rshm
 
-ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\19_149_expected_returns_res_.25m_0-0_t_1.tif"
-ras = rastools.raster_load(ras_in)
+#
+#
+# # sample voxel space from dem
+# dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\DEM\\interpolated\\19_149_dem_r1.00m_q0.25_interpolated_min1.tif"
+# #dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.10m.bil"
+# ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\19_149_expected_first_returns_res_.25m_0-0_t_1.tif"
+# # ras_out = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_expected_returns_res_.10m.tif"
+# phi = 0
+# theta = 0
+# agg_sample_length = vox.sample_length
+# vec = [phi, theta]
+# rays_in = dem_to_vox_rays(dem_in, vec, vox)
+# rays_out = aggregate_voxels_over_rays(vox, rays_in, agg_sample_length)
+# ras = ray_stats_to_dem(rays_out, dem_in)
+# rastools.raster_save(ras, ras_out)
+#
+#
+# # sample voxel space as hemisphere
+# # import from hemi_grid_points
+# hemi_pts = pd.read_csv('C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uf_1m_pr_.15_os_10\\1m_dem_points.csv')
+# hemi_pts = hemi_pts[hemi_pts.uf == 1]
+# hemi_pts = hemi_pts[hemi_pts.id == 20426]
+# pts = pd.DataFrame({'x0': hemi_pts.x_utm11n,
+#                     'y0': hemi_pts.y_utm11n,
+#                     'z0': hemi_pts.z_m})
+#
+# # # import from hemi-photo lookup
+# #
+# img_lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
+# # img_lookup_in = 'C:\\Users\\jas600\\workzone\\data\\las\\hemi_lookup_cleaned.csv'
+# max_quality = 4
+# las_day = "19_149"
+# # import hemi_lookup
+# img_lookup = pd.read_csv(img_lookup_in)
+# # filter lookup by quality
+# img_lookup = img_lookup[img_lookup.quality_code <= max_quality]
+# # filter lookup by las_day
+# img_lookup = img_lookup[img_lookup.folder == las_day]
+#
+# pts = pd.DataFrame({'x0': img_lookup.xcoordUTM1,
+#                     'y0': img_lookup.ycoordUTM1,
+#                     'z0': img_lookup.elevation})
+#
+#
+# # for each point
+# ii = 0
+# origin = (pts.iloc[ii].x0, pts.iloc[ii].y0, pts.iloc[ii].z0)
+# img_size = 200
+# agg_sample_length = vox.sample_length
+# rays_in = point_to_hemi_rays(origin, img_size, vox, max_phi=np.pi/2, max_dist=50)
+# start = time.time()
+# rays_out, nb_lookup = aggregate_voxels_over_rays(vox, rays_in, agg_sample_length, prior)
+# end = time.time()
+# print(end - start)
 
-
-plot_data = ras.data[0]
-plot_data[plot_data == ras.no_data] = -10
-fig = plt.imshow(plot_data, interpolation='nearest', cmap='binary_r')
-plt.colorbar()
-plt.title('Upper Forest expected returns from nadir scans with no occlusion\n(ray-sampling method)')
+#
+# area_factor = .005
+# img_path = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RSM\\ray_sampling_transmittance_' + str(img_lookup.index[ii]) + '_af' + str(area_factor) + '.png'
+# #img_path = 'C:\\Users\\jas600\\workzone\\data\\las\\' + str(img_lookup.index[ii]) + '_af' + str(area_factor) + '.png'
+# hemi_rays_to_img(rays_out, img_path, img_size, area_factor)
+#
+#
+#
+#
+# import matplotlib
+# matplotlib.use('TkAgg')
+# import matplotlib.pyplot as plt
+#
+#
+# peace_1 = peace.data[0]
+# peace_1[peace_1 == peace.no_data] = -1
+# plt.imshow(peace_1, interpolation='nearest')
+#
+# peace_2 = peace.data[1]
+# peace_2[peace_2 == peace.no_data] = 1
+# plt.imshow(peace_2, interpolation='nearest')
+#
+# plt.imshow(ras.data[0], interpolation='nearest')
+#
+# ### VISUALIZATION
+# import rastools
+# import numpy as np
+# import matplotlib
+# matplotlib.use('TkAgg')
+# import matplotlib.pyplot as plt
+#
+# ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\19_149_expected_returns_res_.25m_0-0_t_1.tif"
+# ras = rastools.raster_load(ras_in)
+#
+#
+# plot_data = ras.data[0]
+# plot_data[plot_data == ras.no_data] = -10
+# fig = plt.imshow(plot_data, interpolation='nearest', cmap='binary_r')
+# plt.colorbar()
+# plt.title('Upper Forest expected returns from nadir scans with no occlusion\n(ray-sampling method)')
+# # plt.show(fig)
+#
+# plot_data = ras.data[2] / ras.data[0]
+# plot_data[ras.data[2] == ras.no_data] = 0
+# fig = plt.imshow(plot_data, interpolation='nearest', cmap='binary_r')
+# plt.colorbar()
+# plt.title('Upper Forest relative standard deviation of returns\n(ray-sampling method)')
+# # plt.show(fig)
+#
+#
+# plt.scatter(rays_out.x0, rays_out.y0)
+# plt.scatter(ground_dem[0], ground_dem[1])
+# plt.scatter(p0[:, 0], p0[:, 1])
+#
+# import matplotlib
+# matplotlib.use('TkAgg')
+# import matplotlib.pyplot as plt
+# fig = plt.imshow(template, interpolation='nearest')
 # plt.show(fig)
-
-plot_data = ras.data[2] / ras.data[0]
-plot_data[ras.data[2] == ras.no_data] = 0
-fig = plt.imshow(plot_data, interpolation='nearest', cmap='binary_r')
-plt.colorbar()
-plt.title('Upper Forest relative standard deviation of returns\n(ray-sampling method)')
-# plt.show(fig)
-
-
-plt.scatter(rays_out.x0, rays_out.y0)
-plt.scatter(ground_dem[0], ground_dem[1])
-plt.scatter(p0[:, 0], p0[:, 1])
-
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-fig = plt.imshow(template, interpolation='nearest')
-plt.show(fig)
-
-from scipy import misc
-import imageio
-img = np.rint(template * 255).astype(np.uint8)
-img_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\ray_sampling_transmittance.png'
-imageio.imsave(img_out, img)
-
-peace = np.array([[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]]).repeat(10, axis=0).swapaxes(0, 1)
-np.random.permutation(peace)  # outputs permutation of rows
-np.random.shuffle(peace)  # permutates rows in place
-
-# efficient shuffle rows
-
-
-
-
-
-mask = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]])
-shuffle_within_cols(mask)
-shuffle_within_rows(mask)
+#
+# from scipy import misc
+# import imageio
+# img = np.rint(template * 255).astype(np.uint8)
+# img_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\ray_sampling_transmittance.png'
+# imageio.imsave(img_out, img)
+#
