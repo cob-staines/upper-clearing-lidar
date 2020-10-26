@@ -1067,12 +1067,12 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
 
     # export table of rays in grid
     ii = 0
-    origin = (rshm.x_utm11n[ii], rshm.y_utm11n[ii], rshm.elevation_m[ii])
+    origin = (rshm.x_utm11n.iloc[ii], rshm.y_utm11n.iloc[ii], rshm.elevation_m.iloc[ii])
     # calculate rays
     rays_in = point_to_hemi_rays(origin, rshmeta.img_size, vox, max_phi=rshmeta.max_phi_rad,
                                  max_dist=rshmeta.max_distance, min_dist=rshmeta.min_distance)
     phi_theta_lookup = rays_in.loc[:, ['x_index', 'y_index', 'phi', 'theta']]
-    phi_theta_lookup.to_csv(rshm.file_dir[ii] + "phi_theta_lookup.csv", index=False)
+    phi_theta_lookup.to_csv(rshm.file_dir.iloc[ii] + "phi_theta_lookup.csv", index=False)
 
     for ii in range(initial_index, rshmeta.origin.shape[0]):
         it_time = time.time()
