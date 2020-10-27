@@ -37,34 +37,37 @@ pts_in = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\mb_65_1m\\1m_dem_poin
 # load points
 pts = pd.read_csv(pts_in)
 
-# calculate expected points and varience
-ratio = .05  # ratio of voxel area weight of prior
-F = .16 * 0.05  # expected footprint area
-V = np.prod(vox.step)  # volume of each voxel
 
-# gamma prior hyperparameters
-prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
-prior_a = prior_b * 0.001  # prior_b * K / N
-
-# build meta object
 rshmeta = lrs.RaySampleHemiMetaObj()
+
+# ray resampling parameters
+# ratio = .05  # ratio of voxel area weight of prior
+# F = .16 * 0.05  # expected footprint area
+# V = np.prod(vox.step)  # volume of each voxel
+mean_path_length = 2 * np.pi / (6 + np.pi) * voxel_length  # mean path length through a voxel cube across angles (m)
+prior_weight = 5  # in units of scans (1 <=> equivalent weight to 1 expected voxel scan)
+# prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
+prior_b = mean_path_length * prior_weight
+prior_a = prior_b * 0.01
 rshmeta.prior = [prior_a, prior_b]
 rshmeta.ray_sample_length = vox.sample_length
-rshmeta.ray_iterations = 100
-rshmeta.max_phi_rad = np.pi/2
+rshmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
+
+# image dimensions
+phi_step = (np.pi/2) / (180 * 2)
+rshmeta.img_size = 61  # square, in pixels/ray samples
+rshmeta.max_phi_rad = phi_step * rshmeta.img_size
+
+# image geometry
+hemi_m_above_ground = 0  # meters
+rshmeta.max_distance = 50  # meters
+rshmeta.min_distance = voxel_length * np.sqrt(3)  # meters
+
 
 # output file dir
 rshmeta.file_dir = batch_dir + "outputs\\"
 if not os.path.exists(rshmeta.file_dir):
     os.makedirs(rshmeta.file_dir)
-
-# max distance of points considered in image
-rshmeta.max_distance = 50  # meters
-rshmeta.min_distance = .5  # meters
-hemi_m_above_ground = 0  # meters
-
-# image size
-rshmeta.img_size = 100  # square, in pixels/ray samples
 
 
 rshmeta.id = pts.id

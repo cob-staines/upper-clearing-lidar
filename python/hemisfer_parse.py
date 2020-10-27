@@ -1,5 +1,6 @@
 import re
 import pandas as pd
+import rastools
 
 rx_dict = {
     'picture': re.compile(r'picture\s*(?P<picture>.*)\n'),
@@ -140,3 +141,19 @@ file_out = file_in.replace('.dat', '_parsed.dat')
 #     print(file_contents)
 
 lai_parsed = parse_file(file_in, file_out, hemimeta_in=hemimeta_in)
+
+# create raster products
+import numpy as np
+
+point_raster_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\1m_dem_point_ids.tif"
+point_raster = rastools.raster_load(point_raster_in)
+point_raster.data
+
+peace = np.full(point_raster.data.shape, np.nan)
+for ii in range(0, len(lai_parsed)):
+    peace[np.where(point_raster.data == lai_parsed.id[ii])] = lai_parsed.lai_s_cc[ii]
+
+import matplotlib
+matplotlib.use("TkAgg")
+import matplotlib.pyplot as plt
+plt.imshow(peace, interpolation="nearest")
