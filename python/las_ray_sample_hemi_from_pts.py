@@ -15,13 +15,13 @@ vox.drop_class = 7
 hdf5_path = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '.h5')
 vox.hdf5_path = hdf5_path
 vox.chunksize = 10000000
-voxel_length = 1
+voxel_length = .25
 vox.step = np.full(3, voxel_length)
 vox.sample_length = voxel_length/np.pi
 vox_id = 'rs_vl' + str(voxel_length)
 vox.id = vox_id
 
-# vox = lrs.ray_sample_las(vox, create_new_hdf5=True)
+vox = lrs.ray_sample_las(vox, create_new_hdf5=False)
 
 # LOAD VOX
 vox = lrs.vox_load(hdf5_path, vox_id)
