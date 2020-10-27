@@ -15,7 +15,7 @@ vox.drop_class = 7
 hdf5_path = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '.h5')
 vox.hdf5_path = hdf5_path
 vox.chunksize = 10000000
-voxel_length = 1
+voxel_length = .25
 vox.step = np.full(3, voxel_length)
 vox.sample_length = voxel_length/np.pi
 vox_id = 'rs_vl' + str(voxel_length)
@@ -30,7 +30,7 @@ vox = lrs.vox_load(hdf5_path, vox_id)
 
 
 
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\lrs_hemi_optimization_100\\'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\lrs_hemi_optimization_r.25_px361\\'
 
 img_lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
 # img_lookup_in = 'C:\\Users\\jas600\\workzone\\data\\las\\hemi_lookup_cleaned.csv'
@@ -58,35 +58,39 @@ pts = pd.DataFrame({'id': img_lookup.filename,
 # # load points
 # pts = pd.read_csv(pts_in)
 
-
-# calculate expected points and varience
-ratio = .05  # ratio of voxel area weight of prior
-F = .16 * 0.05  # expected footprint area
-V = np.prod(vox.step)  # volume of each voxel
-
-# gamma prior hyperparameters
-prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
-prior_a = prior_b * 0.001  # prior_b * K / N
-
-# build meta object
+# configure hemisphere outputs
 rshmeta = lrs.RaySampleHemiMetaObj()
+
+# ray resampling parameters
+# ratio = .05  # ratio of voxel area weight of prior
+# F = .16 * 0.05  # expected footprint area
+# V = np.prod(vox.step)  # volume of each voxel
+mean_path_length = 2 * np.pi / (6 + np.pi) * voxel_length  # mean path length through a voxel cube across angles (m)
+prior_weight = 5  # in units of scans (1 <=> equivalent weight to 1 expected voxel scan)
+# prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
+prior_b = mean_path_length * prior_weight
+prior_a = prior_b * 0.001
 rshmeta.prior = [prior_a, prior_b]
 rshmeta.ray_sample_length = vox.sample_length
-rshmeta.ray_iterations = 100
+rshmeta.ray_iterations = 361  # model runs for each ray, from which median and std of returns is calculated
+
+# image dimensions
+rshmeta.img_size = 100  # square, in pixels/ray samples
 rshmeta.max_phi_rad = np.pi/2
+
+# image geometry
+hemi_m_above_ground = img_lookup.height_m  # meters
+rshmeta.max_distance = 50  # meters
+rshmeta.min_distance = voxel_length * np.sqrt(3)  # meters
+
 
 # output file dir
 rshmeta.file_dir = batch_dir + "outputs\\"
 if not os.path.exists(rshmeta.file_dir):
     os.makedirs(rshmeta.file_dir)
 
-# max distance of points considered in image
-rshmeta.max_distance = 50  # meters
-rshmeta.min_distance = .5  # meters
-hemi_m_above_ground = img_lookup.height_m  # meters
 
-# image size
-rshmeta.img_size = 100  # square, in pixels/ray samples
+
 
 
 rshmeta.id = pts.id
@@ -111,29 +115,30 @@ phi[(np.array(angle_lookup.x_index), np.array(angle_lookup.y_index))] = angle_lo
 
 phi_bands = [0, 15, 30, 45, 60, 75]
 
-cnlog.loc[:, ["rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5"]] = np.nan
 cnlog.loc[:, ["rsm_med_1", "rsm_med_2", "rsm_med_3", "rsm_med_4", "rsm_med_5"]] = np.nan
+cnlog.loc[:, ["rsm_cv_1", "rsm_cv_2", "rsm_cv_3", "rsm_cv_4", "rsm_cv_5"]] = np.nan
 for ii in range(0, len(cnlog)):
     img = tif.imread(cnlog.file_dir[ii] + cnlog.file_name[ii])
-    mn = img[:, :, 0]
-    med = img[:, :, 1]
-    mn_temp = []
+    med = img[:, :, 0]
+    cv = img[:, :, 1]
     med_temp = []
+    cv_temp = []
     for jj in range(0, 5):
         mask = (phi >= phi_bands[jj]) & (phi < phi_bands[jj + 1])
-        mn_temp.append(np.nanmean(mn[mask]))
         med_temp.append(np.nanmean(med[mask]))
-    cnlog.loc[ii, ["rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5"]] = mn_temp
+        cv_temp.append(np.nanmean(cv[mask]))
     cnlog.loc[ii, ["rsm_med_1", "rsm_med_2", "rsm_med_3", "rsm_med_4", "rsm_med_5"]] = med_temp
+    cnlog.loc[ii, ["rsm_cv_1", "rsm_cv_2", "rsm_cv_3", "rsm_cv_4", "rsm_cv_5"]] = cv_temp
 
 cnlog.to_csv(cnlog.file_dir[0] + "contact_number_optimization.csv")
 
 ###
 
-# import matplotlib
-# matplotlib.use('TkAgg')
-# import matplotlib.pyplot as plt
-# import tifffile as tif
-# ii = 0
-# peace = tif.imread(rshm.file_dir[ii] + rshm.file_name[ii])
-# plt.imshow(peace[:, :, 2], interpolation='nearest')
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+import tifffile as tif
+ii = 0
+peace = tif.imread(rshm.file_dir[ii] + rshm.file_name[ii])[:, :, 0]
+peace[phi > 75] = np.nan
+plt.imshow(peace, interpolation='nearest')

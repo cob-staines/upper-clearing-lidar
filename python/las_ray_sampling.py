@@ -497,7 +497,8 @@ def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, agg_sam
     # preallocate
     # returns_mean = np.full(len(path_samples), np.nan)
     returns_med = np.full(len(path_samples), np.nan)
-    returns_std = np.full(len(path_samples), np.nan)
+    # returns_std = np.full(len(path_samples), np.nan)
+    returns_cv = np.full(len(path_samples), np.nan)
 
     # lookup for unique pairs of post_a and post_b
     post_a = prior[0] + path_returns
@@ -534,13 +535,15 @@ def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, agg_sam
 
         # returns_mean[ii] = np.mean(return_sums)
         returns_med[ii] = np.median(return_sums)
-        returns_std[ii] = np.std(return_sums)
+        returns_cv[ii] = np.std(return_sums)/np.mean(return_sums)
+        # returns_std[ii] = np.std(return_sums)
 
         # print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
 
     # rays = rays.assign(returns_mean=returns_mean)
     rays = rays.assign(returns_median=returns_med)
-    rays = rays.assign(returns_std=returns_std)
+    rays = rays.assign(returns_cv=returns_cv)
+    # rays = rays.assign(returns_std=returns_std)
 
     return rays
 
@@ -981,7 +984,7 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
         # format to image
         template = np.full((rshmeta.img_size, rshmeta.img_size, 2), np.nan)
         template[(rays_out.y_index.values, rays_out.x_index.values, 0)] = rays_out.returns_median
-        template[(rays_out.y_index.values, rays_out.x_index.values, 1)] = rays_out.returns_std
+        template[(rays_out.y_index.values, rays_out.x_index.values, 1)] = rays_out.returns_cv
 
 
         tiff.imsave(rshm.file_dir.iloc[ii] + rshm.file_name.iloc[ii], template)
