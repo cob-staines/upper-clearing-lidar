@@ -46,7 +46,7 @@ img_lookup = img_lookup[img_lookup.folder == las_day]
 [file.replace('.JPG', '') for file in img_lookup.filename]
 
 
-pts = pd.DataFrame({'id': [file.replace('.JPG', '') for file in img_lookup.filename],
+pts = pd.DataFrame({'id': img_lookup.filename,
                     'x_utm11n': img_lookup.xcoordUTM1,
                     'y_utm11n': img_lookup.ycoordUTM1,
                     'z_m': img_lookup.elevation})
@@ -98,12 +98,42 @@ rshmeta.file_name = ["las_19_149_id_" + str(id) + ".tif" for id in pts.id]
 
 rshm = lrs.rs_hemigen(rshmeta, vox, initial_index=0)
 
+
+# parse results
+import tifffile as tif
+
+# contact number log
+cnlog = rshm.copy()
+
+angle_lookup = pd.read_csv(cnlog.file_dir[0] + "phi_theta_lookup.csv")
+phi = np.full((cnlog.img_size_px[0], cnlog.img_size_px[0]), np.nan)
+phi[(np.array(angle_lookup.x_index), np.array(angle_lookup.y_index))] = angle_lookup.phi * 180 / np.pi
+
+phi_bands = [0, 15, 30, 45, 60, 75]
+
+cnlog.loc[:, ["rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5"]] = np.nan
+cnlog.loc[:, ["rsm_med_1", "rsm_med_2", "rsm_med_3", "rsm_med_4", "rsm_med_5"]] = np.nan
+for ii in range(0, len(cnlog)):
+    img = tif.imread(cnlog.file_dir[ii] + cnlog.file_name[ii])
+    mn = img[:, :, 0]
+    med = img[:, :, 1]
+    mn_temp = []
+    med_temp = []
+    for jj in range(0, 5):
+        mask = (phi >= phi_bands[jj]) & (phi < phi_bands[jj + 1])
+        mn_temp.append(np.nanmean(mn[mask]))
+        med_temp.append(np.nanmean(med[mask]))
+    cnlog.loc[ii, ["rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5"]] = mn_temp
+    cnlog.loc[ii, ["rsm_med_1", "rsm_med_2", "rsm_med_3", "rsm_med_4", "rsm_med_5"]] = med_temp
+
+cnlog.to_csv(cnlog.file_dir[0] + "contact_number_optimization.csv")
+
 ###
 
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-import tifffile as tif
-ii = 0
-peace = tif.imread(rshm.file_dir[ii] + rshm.file_name[ii])
-plt.imshow(peace[:, :, 2], interpolation='nearest')
+# import matplotlib
+# matplotlib.use('TkAgg')
+# import matplotlib.pyplot as plt
+# import tifffile as tif
+# ii = 0
+# peace = tif.imread(rshm.file_dir[ii] + rshm.file_name[ii])
+# plt.imshow(peace[:, :, 2], interpolation='nearest')
