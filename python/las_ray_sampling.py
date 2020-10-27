@@ -492,19 +492,18 @@ def nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples,
 
 
 def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations):
-    #print('Aggregating samples over each ray')
+    print('Aggregating samples over each ray')
 
     # preallocate
-    # returns_mean = np.full(len(path_samples), np.nan)
+    returns_mean = np.full(len(path_samples), np.nan)
     returns_med = np.full(len(path_samples), np.nan)
-    # returns_std = np.full(len(path_samples), np.nan)
-    returns_cv = np.full(len(path_samples), np.nan)
+    returns_std = np.full(len(path_samples), np.nan)
 
     # lookup for unique pairs of post_a and post_b
     post_a = prior[0] + path_returns
     post_b = 1 - 1 / (1 + prior[1] + path_samples)
 
-    #print('Building dictionary...', end='')
+    print('Building dictionary...', end='')
     all_par = np.array((post_a.reshape(post_a.size), post_b.reshape(post_b.size))).swapaxes(0, 1)
     unique_par = np.unique(all_par, axis=0)
     unique_par = unique_par[~np.any(np.isnan(unique_par), axis=1)]
@@ -533,17 +532,15 @@ def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, agg_sam
         # sum samples along ray
         return_sums = np.sum(nb_samples, axis=1)
 
-        # returns_mean[ii] = np.mean(return_sums)
+        returns_mean[ii] = np.mean(return_sums)
         returns_med[ii] = np.median(return_sums)
-        returns_cv[ii] = np.std(return_sums)/np.mean(return_sums)
-        # returns_std[ii] = np.std(return_sums)
+        returns_std[ii] = np.std(return_sums)
 
-        # print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
+        print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
 
-    # rays = rays.assign(returns_mean=returns_mean)
+    rays = rays.assign(returns_mean=returns_mean)
     rays = rays.assign(returns_median=returns_med)
-    rays = rays.assign(returns_cv=returns_cv)
-    # rays = rays.assign(returns_std=returns_std)
+    rays = rays.assign(returns_std=returns_std)
 
     return rays
 
@@ -693,7 +690,7 @@ def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, agg_sam
 
 
 def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior, ray_iterations):
-    # print('Aggregating voxels over rays:')
+    print('Aggregating voxels over rays:')
 
     # pull points
     p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
@@ -719,7 +716,7 @@ def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior, ray_iteratio
     path_returns = np.full([len(p0), max_steps], np.nan)
 
     # for each sample step
-    # print('Sampling voxels...')
+    print('Sampling voxels...')
     for ii in range(0, max_steps):
         # distance from p0 along ray
         sample_dist = (ii + offset) * agg_sample_length
@@ -738,7 +735,7 @@ def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior, ray_iteratio
             path_samples[in_range, ii] = vox.sample_data[sample_address]
             path_returns[in_range, ii] = vox.return_data[sample_address]
 
-        # print(str(ii + 1) + ' of ' + str(max_steps) + ' steps')
+        print(str(ii + 1) + ' of ' + str(max_steps) + ' steps')
 
 
     # start = time.time()
@@ -979,12 +976,13 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
         # sample rays
         rays_out = aggregate_voxels_over_rays(vox, rays_in, rshmeta.ray_sample_length, rshmeta.prior, rshmeta.ray_iterations)
 
-        output = rays_out.loc[:, ['x_index', 'y_index', 'phi', 'theta', 'returns_median', 'returns_std']]
+        output = rays_out.loc[:, ['x_index', 'y_index', 'phi', 'theta', 'returns_mean', 'returns_median', 'returns_std']]
 
         # format to image
-        template = np.full((rshmeta.img_size, rshmeta.img_size, 2), np.nan)
-        template[(rays_out.y_index.values, rays_out.x_index.values, 0)] = rays_out.returns_median
-        template[(rays_out.y_index.values, rays_out.x_index.values, 1)] = rays_out.returns_cv
+        template = np.full((rshmeta.img_size, rshmeta.img_size, 3), np.nan)
+        template[(rays_out.y_index.values, rays_out.x_index.values, 0)] = rays_out.returns_mean
+        template[(rays_out.y_index.values, rays_out.x_index.values, 1)] = rays_out.returns_median
+        template[(rays_out.y_index.values, rays_out.x_index.values, 2)] = rays_out.returns_std
 
 
         tiff.imsave(rshm.file_dir.iloc[ii] + rshm.file_name.iloc[ii], template)
@@ -1000,6 +998,137 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
     print("-------- Ray Sample Hemigen completed--------")
     print(str(rshmeta.origin.shape[0] - initial_index) + " images generated in " + str(int(time.time() - tot_time)) + " seconds")
     return rshm
+#
+# def rsm_chunk(args):
+#     import tifffile as tiff
+#     rshm = args[0]
+#     log_path = args[1]
+#     vox = args[2]
+#
+#     # initialize empty log file
+#     with open(log_path, 'w') as input_file:
+#         pass
+#
+#     for ii in range(np.min(rshm.id), np.max(rshm.id) + 1):
+#         it_time = time.time()
+#
+#         origin = (rshm.x_utm11n[ii], rshm.y_utm11n[ii], rshm.elevation_m[ii])
+#         # calculate rays
+#         rays_in = point_to_hemi_rays(origin, rshm.img_size_px[ii], vox, max_phi=rshm.max_phi_rad[ii], max_dist=rshm.max_distance_m[ii], min_dist=rshm.min_distance_m[ii])
+#
+#         # sample rays
+#         rays_out = aggregate_voxels_over_rays(vox, rays_in, rshm.ray_sample_length[ii], [rshm.prior_a[ii], rshm.prior_b[ii]], rshm.ray_iterations[ii])
+#
+#         output = rays_out.loc[:, ['x_index', 'y_index', 'phi', 'theta', 'returns_mean', 'returns_median', 'returns_std']]
+#
+#         # format to image
+#         template = np.full((rshm.img_size_px, rshm.img_size_px, 3), np.nan)
+#         template[(rays_out.y_index.values, rays_out.x_index.values, 0)] = rays_out.returns_mean
+#         template[(rays_out.y_index.values, rays_out.x_index.values, 1)] = rays_out.returns_median
+#         template[(rays_out.y_index.values, rays_out.x_index.values, 2)] = rays_out.returns_std
+#
+#
+#         tiff.imsave(rshm.file_dir.iloc[ii] + rshm.file_name.iloc[ii], template)
+#
+#         # log meta
+#         rshm.loc[ii, "created_datetime"] = time.strftime('%Y-%m-%d %H:%M:%S')
+#         rshm.loc[ii, "computation_time_s"] = int(time.time() - it_time)
+#
+#         # write to log file
+#         rshm.iloc[ii:ii + 1].to_csv(log_path, encoding='utf-8', mode='a', header=False, index=False)
+#
+#         print(str(ii + 1) + " of " + str(len(rshm)) + " complete: " + str(rshm.computation_time_s[ii]) + " seconds")
+#
+# def rs_hemigen_multiproc(rshmeta, vox, initial_index=0, n_cores=4):
+#     import os
+#     import multiprocessing as mp
+#
+#     tot_time = time.time()
+#
+#     # handle case with only one output
+#     if rshmeta.origin.shape.__len__() == 1:
+#         rshmeta.origin = np.array([rshmeta.origin])
+#     if type(rshmeta.file_name) == str:
+#         rshmeta.file_dir = [rshmeta.file_dir]
+#
+#     # QC: ensure origins and file_names have same length
+#     if rshmeta.origin.shape[0] != rshmeta.file_name.__len__():
+#         raise Exception('origin_coords and img_out_path have different lengths, execution halted.')
+#
+#     rshm = pd.DataFrame({"id": rshmeta.id,
+#                         "file_name": rshmeta.file_name,
+#                         "file_dir": rshmeta.file_dir,
+#                         "x_utm11n": rshmeta.origin[:, 0],
+#                         "y_utm11n": rshmeta.origin[:, 1],
+#                         "elevation_m": rshmeta.origin[:, 2],
+#                         "vox_id": vox.id,
+#                         "src_las_file": vox.las_in,
+#                         "vox_step": vox.step[0],
+#                         "vox_sample_length": vox.sample_length,
+#                         "src_return_set": vox.return_set,
+#                         "src_drop_class": vox.drop_class,
+#                         "ray_sample_length": rshmeta.ray_sample_length,
+#                         "ray_iterations": rshmeta.ray_iterations,
+#                         "img_size_px": rshmeta.img_size,
+#                         "max_phi_rad": rshmeta.max_phi_rad,
+#                         "min_distance_m": rshmeta.min_distance,
+#                         "max_distance_m": rshmeta.max_distance,
+#                         "prior_a": rshmeta.prior[0],
+#                         "prior_b": rshmeta.prior[1],
+#                         "created_datetime": None,
+#                         "computation_time_s": None})
+#
+#     # resent index in case of rollover indexing
+#     rshm = rshm.reset_index(drop=True)
+#
+#
+#     # export table of rays in grid
+#     ii = 0
+#     origin = (rshm.x_utm11n[ii], rshm.y_utm11n[ii], rshm.elevation_m[ii])
+#     # calculate rays
+#     rays_in = point_to_hemi_rays(origin, rshmeta.img_size, vox, max_phi=rshmeta.max_phi_rad,
+#                                  max_dist=rshmeta.max_distance, min_dist=rshmeta.min_distance)
+#     phi_theta_lookup = rays_in.loc[:, ['x_index', 'y_index', 'phi', 'theta']]
+#     phi_theta_lookup.to_csv(rshm.file_dir[ii] + "phi_theta_lookup.csv", index=False)
+#
+#
+#     # initial_index = 0
+#
+#
+#
+#
+#     rshm_split = np.array_split(rshm, n_cores)
+#
+#     if not os.path.exists(rshmeta.file_dir + "templog\\"):
+#         os.makedirs(rshmeta.file_dir + "templog\\")
+#
+#     x = range(1, n_cores)
+#     names = [rshmeta.file_dir + "templog\\rshmetalog_temp_" + str(y) + ".csv" for y in x]
+#     voxlist = []
+#     for ii in range(0, n_cores):
+#         voxlist.append(vox)
+#     args = list(zip(rshm_split, names, voxlist))
+#     try:
+#         pool = mp.Pool(n_cores)
+#         pool.map(rsm_chunk, args)
+#     except Exception as e:
+#         pool.close()
+#         raise
+#     pool.close()
+#
+#     # compile temporary files
+#     log_path = rshmeta.file_dir + "rshmetalog.csv"
+#
+#     with open(log_path, mode='w', encoding='utf-8') as log:
+#         log.write(",".join(rshm.columns) + '\n')
+#         for o in rshmeta.file_dir + "templog\\":
+#             with open(o, 'r') as fin:
+#                 for line in fin:
+#                     log.write(line)
+#
+#     print("-------- Ray Sample Hemigen completed--------")
+#     print(str(rshmeta.origin.shape[0] - initial_index) + " images generated in " + str(int(time.time() - tot_time)) + " seconds")
+#     return rshm
 
 #
 #

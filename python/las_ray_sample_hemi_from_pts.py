@@ -56,8 +56,9 @@ rshmeta.ray_sample_length = vox.sample_length
 rshmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
 
 # image dimensions
-rshmeta.img_size = 100  # square, in pixels/ray samples
-rshmeta.max_phi_rad = np.pi/2
+phi_step = (np.pi/2) / (180 * 2)
+rshmeta.img_size = 61  # square, in pixels/ray samples
+rshmeta.max_phi_rad = phi_step * rshmeta.img_size
 
 # image geometry
 hemi_m_above_ground = 0  # meters

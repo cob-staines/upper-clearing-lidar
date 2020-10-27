@@ -72,11 +72,12 @@ prior_b = mean_path_length * prior_weight
 prior_a = prior_b * 0.001
 rshmeta.prior = [prior_a, prior_b]
 rshmeta.ray_sample_length = vox.sample_length
-rshmeta.ray_iterations = 361  # model runs for each ray, from which median and std of returns is calculated
+rshmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
 
 # image dimensions
-rshmeta.img_size = 100  # square, in pixels/ray samples
-rshmeta.max_phi_rad = np.pi/2
+phi_step = (np.pi/2) / (180 * 2)
+rshmeta.img_size = 61  # square, in pixels/ray samples
+rshmeta.max_phi_rad = phi_step * rshmeta.img_size
 
 # image geometry
 hemi_m_above_ground = img_lookup.height_m  # meters
@@ -89,10 +90,6 @@ rshmeta.file_dir = batch_dir + "outputs\\"
 if not os.path.exists(rshmeta.file_dir):
     os.makedirs(rshmeta.file_dir)
 
-
-
-
-
 rshmeta.id = pts.id
 rshmeta.origin = np.array([pts.x_utm11n,
                            pts.y_utm11n,
@@ -101,6 +98,7 @@ rshmeta.origin = np.array([pts.x_utm11n,
 rshmeta.file_name = ["las_19_149_id_" + str(id) + ".tif" for id in pts.id]
 
 rshm = lrs.rs_hemigen(rshmeta, vox, initial_index=0)
+# rshm = lrs.rs_hemigen_multiproc(rshmeta, vox, initial_index=0, n_cores=4)
 
 
 # parse results
@@ -115,24 +113,30 @@ phi[(np.array(angle_lookup.x_index), np.array(angle_lookup.y_index))] = angle_lo
 
 phi_bands = [0, 15, 30, 45, 60, 75]
 
+cnlog.loc[:, ["rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5"]] = np.nan
 cnlog.loc[:, ["rsm_med_1", "rsm_med_2", "rsm_med_3", "rsm_med_4", "rsm_med_5"]] = np.nan
-cnlog.loc[:, ["rsm_cv_1", "rsm_cv_2", "rsm_cv_3", "rsm_cv_4", "rsm_cv_5"]] = np.nan
+cnlog.loc[:, ["rsm_std_1", "rsm_std_2", "rsm_std_3", "rsm_std_4", "rsm_std_5"]] = np.nan
 for ii in range(0, len(cnlog)):
     img = tif.imread(cnlog.file_dir[ii] + cnlog.file_name[ii])
-    med = img[:, :, 0]
-    cv = img[:, :, 1]
+    mean = img[:, :, 0]
+    med = img[:, :, 1]
+    std = img[:, :, 2]
+    mean_temp = []
     med_temp = []
-    cv_temp = []
+    std_temp = []
     for jj in range(0, 5):
         mask = (phi >= phi_bands[jj]) & (phi < phi_bands[jj + 1])
+        mean_temp.append(np.nanmean(mean[mask]))
         med_temp.append(np.nanmean(med[mask]))
-        cv_temp.append(np.nanmean(cv[mask]))
+        std_temp.append(np.nanmean(std[mask]))
+    cnlog.loc[ii, ["rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5"]] = mean_temp
     cnlog.loc[ii, ["rsm_med_1", "rsm_med_2", "rsm_med_3", "rsm_med_4", "rsm_med_5"]] = med_temp
-    cnlog.loc[ii, ["rsm_cv_1", "rsm_cv_2", "rsm_cv_3", "rsm_cv_4", "rsm_cv_5"]] = cv_temp
+    cnlog.loc[ii, ["rsm_std_1", "rsm_std_2", "rsm_std_3", "rsm_std_4", "rsm_std_5"]] = std_temp
 
 cnlog.to_csv(cnlog.file_dir[0] + "contact_number_optimization.csv")
 
 ###
+
 
 import matplotlib
 matplotlib.use('TkAgg')
