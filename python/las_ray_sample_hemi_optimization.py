@@ -30,7 +30,7 @@ vox = lrs.vox_load(hdf5_path, vox_id)
 
 
 
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\lrs_hemi_optimization_r.25_px361\\'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\lrs_hemi_optimization_r.25_px1000\\'
 
 img_lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
 # img_lookup_in = 'C:\\Users\\jas600\\workzone\\data\\las\\hemi_lookup_cleaned.csv'
@@ -75,9 +75,10 @@ rshmeta.ray_sample_length = vox.sample_length
 rshmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
 
 # image dimensions
-phi_step = (np.pi/2) / (180 * 2)
-rshmeta.img_size = 61  # square, in pixels/ray samples
-rshmeta.max_phi_rad = phi_step * rshmeta.img_size
+#phi_step = (np.pi/2) / (180 * 2)
+rshmeta.img_size = 1000  # square, in pixels/ray samples
+#rshmeta.max_phi_rad = phi_step * rshmeta.img_size
+rshmeta.max_phi_rad = np.pi/2
 
 # image geometry
 hemi_m_above_ground = img_lookup.height_m  # meters
@@ -87,6 +88,7 @@ rshmeta.min_distance = voxel_length * np.sqrt(3)  # meters
 
 # output file dir
 rshmeta.file_dir = batch_dir + "outputs\\"
+
 if not os.path.exists(rshmeta.file_dir):
     os.makedirs(rshmeta.file_dir)
 
@@ -137,12 +139,46 @@ cnlog.to_csv(cnlog.file_dir[0] + "contact_number_optimization.csv")
 
 ###
 
-
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import tifffile as tif
 ii = 0
-peace = tif.imread(rshm.file_dir[ii] + rshm.file_name[ii])[:, :, 0]
-peace[phi > 75] = np.nan
-plt.imshow(peace, interpolation='nearest')
+img = tif.imread(rshmeta.file_dir + rshmeta.file_name[ii])
+cn = img[:, :, 1] * 0.02268
+cv = img[:, :, 2] / img[:, :, 0]
+
+
+
+fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+ax1, ax2 = axs.ravel()
+
+im1 = ax1.imshow(cn, interpolation='nearest', cmap='Greys', norm=matplotlib.colors.LogNorm())
+ax1.set_title("Contact number")
+ax1.set_axis_off()
+
+im2 = ax2.imshow(cv, interpolation='nearest', cmap='Greys', norm=matplotlib.colors.LogNorm())
+ax2.set_title("Coefficient of variation")
+ax2.set_axis_off()
+
+##
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+fig, ax = plt.subplots(figsize=(8, 8))
+
+# img = ax.imshow(cn, interpolation='nearest', cmap='Greys')
+img = ax.imshow(cn, interpolation='nearest', cmap='Greys', norm=matplotlib.colors.LogNorm())
+ax.set_title("Contact number over hemisphere, modeled by ray re-sampling")
+
+axins = inset_axes(ax,
+                   width="5%",  # width = 5% of parent_bbox width
+                   height="50%",  # height : 50%
+                   loc='right',
+                   bbox_to_anchor=(.1, 0, 1, 1),
+                   bbox_transform=ax.transAxes,
+                   borderpad=0,
+                   )
+fig.colorbar(img, cax=axins)
+
+ax.set_axis_off()
+fig.savefig(rshmeta.file_dir + 'contact_num_plot_' + rshmeta.file_name[ii] + '.png')

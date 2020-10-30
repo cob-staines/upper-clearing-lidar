@@ -9,7 +9,7 @@ batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\
 # batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\mb_15_1m_pr.15_os10\\outputs\\'
 
 # covar type
-globalBool = True
+globalBool = False
 localBool = True
 
 scaling_coef = 0.02268
@@ -90,6 +90,15 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 figout = batch_dir + 'covar_plot.png'
+
+
+fig = plt.figure()
+a = fig.subplots()
+imgplot = plt.imshow(localCovar)
+a.set_title('Covarience of SWE (0-150mm) and contact number\nover hemisphere: phi = [0, 75], theta = [0, 360]')
+plt.colorbar()
+
+
 
 fig = plt.figure()
 a = fig.add_subplot(1, 2, 1)

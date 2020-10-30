@@ -287,8 +287,9 @@ def las_ray_sample(vox):
 #     return rays
 
 
-def nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations):
-    print('Aggregating samples over each ray')
+def nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation=False):
+    if commentation:
+        print('Aggregating samples over each ray')
 
     # preallocate
     returns_mean = np.full(len(path_samples), np.nan)
@@ -321,7 +322,8 @@ def nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples,
         returns_med[ii] = np.median(return_sums)
         returns_std[ii] = np.std(return_sums)
 
-        print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
+        if commentation:
+            print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
 
     rays = rays.assign(returns_mean=returns_mean)
     rays = rays.assign(returns_median=returns_med)
@@ -491,8 +493,9 @@ def nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples,
 #     return rays
 
 
-def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations):
-    print('Aggregating samples over each ray')
+def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation=False):
+    if commentation:
+        print('Aggregating samples over each ray')
 
     # preallocate
     returns_mean = np.full(len(path_samples), np.nan)
@@ -503,7 +506,9 @@ def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, agg_sam
     post_a = prior[0] + path_returns
     post_b = 1 - 1 / (1 + prior[1] + path_samples)
 
-    print('Building dictionary...', end='')
+    if commentation:
+        print('Building dictionary...', end='')
+
     all_par = np.array((post_a.reshape(post_a.size), post_b.reshape(post_b.size))).swapaxes(0, 1)
     unique_par = np.unique(all_par, axis=0)
     unique_par = unique_par[~np.any(np.isnan(unique_par), axis=1)]
@@ -513,7 +518,8 @@ def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, agg_sam
     lookup = {}
     for dd in range(0, len(unique_par)):
         lookup[unique_par[dd]] = np.random.negative_binomial(unique_par[dd][0], unique_par[dd][1], ray_iterations)
-    # print('done')
+    if commentation:
+        print('done')
 
     # for each ray
     for ii in range(0, len(path_samples)):
@@ -536,7 +542,8 @@ def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, agg_sam
         returns_med[ii] = np.median(return_sums)
         returns_std[ii] = np.std(return_sums)
 
-        print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
+        if commentation:
+            print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
 
     rays = rays.assign(returns_mean=returns_mean)
     rays = rays.assign(returns_median=returns_med)
@@ -689,8 +696,9 @@ def nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, agg_sam
 #     return rays
 
 
-def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior, ray_iterations):
-    print('Aggregating voxels over rays:')
+def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior, ray_iterations, commentation=False):
+    if commentation:
+        print('Aggregating voxels over rays:')
 
     # pull points
     p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
@@ -716,7 +724,8 @@ def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior, ray_iteratio
     path_returns = np.full([len(p0), max_steps], np.nan)
 
     # for each sample step
-    print('Sampling voxels...')
+    if commentation:
+        print('Sampling voxels...')
     for ii in range(0, max_steps):
         # distance from p0 along ray
         sample_dist = (ii + offset) * agg_sample_length
@@ -735,11 +744,15 @@ def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior, ray_iteratio
             path_samples[in_range, ii] = vox.sample_data[sample_address]
             path_returns[in_range, ii] = vox.return_data[sample_address]
 
-        print(str(ii + 1) + ' of ' + str(max_steps) + ' steps')
+        if commentation:
+            print(str(ii + 1) + ' of ' + str(max_steps) + ' steps')
 
 
     # start = time.time()
-    rays_out = nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations)
+    # rays_out = nb_sample_lookup_global(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation=commentation)
+
+    rays_out = nb_sample_explicit_sum_combined(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations=100, commentation=commentation)
+
     # end = time.time()
     # print((end - start) / len(rays))
     #
@@ -890,6 +903,38 @@ def ray_sample_las(vox, create_new_hdf5=True):
     return vox
 
 
+def subset_vox(pts, vox, buffer):
+    vox_sub = VoxelObj()
+    vox_sub.id = vox.id + "_subset"
+    vox_sub.las_in = vox.las_in
+    vox_sub.traj_in = vox.traj_in
+    vox_sub.hdf5_path = vox.hdf5_path
+    vox_sub.return_set = vox.return_set
+    vox_sub.drop_class = vox.drop_class
+    vox_sub.chunksize = vox.chunksize
+    vox_sub.sample_length = vox.sample_length
+    vox_sub.step = vox.step
+
+    pnt_min = np.array([np.min(pts[:, 0]),  np.min(pts[:, 1]), np.min(pts[:, 2])])
+    pnt_max = np.array([np.max(pts[:, 0]), np.max(pts[:, 1]), np.max(pts[:, 2])])
+
+    buff_min = pnt_min - buffer
+    buff_max = pnt_max + buffer
+
+    buff_min_vox = np.floor(utm_to_vox(vox, buff_min)).astype(int)
+    buff_max_vox = np.ceil(utm_to_vox(vox, buff_max)).astype(int)
+
+    vox_sub_min = np.max(np.array([buff_min_vox, [0, 0, 0]]), axis=0)
+    vox_sub_max = np.min(np.array([buff_max_vox, vox.ncells]), axis=0)
+
+    vox_sub.origin = vox_to_utm(vox, vox_sub_min)
+    vox_sub.max = vox_to_utm(vox, vox_sub_max)
+    vox_sub.ncells = vox_sub_max - vox_sub_min
+    vox_sub.sample_data = vox.sample_data[vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
+    vox_sub.return_data = vox.return_data[vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
+
+    return vox_sub
+
 # LOAD VOX
 # vox = vox_load(hdf5_path, vox_id)
 
@@ -966,15 +1011,18 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
     phi_theta_lookup = rays_in.loc[:, ['x_index', 'y_index', 'phi', 'theta']]
     phi_theta_lookup.to_csv(rshm.file_dir[ii] + "phi_theta_lookup.csv", index=False)
 
+    # subset voxel space
+    vox_sub = subset_vox(rshm.loc[:, ['x_utm11n', 'y_utm11n', 'elevation_m']].values, vox, rshmeta.max_distance)
+
     for ii in range(initial_index, len(rshm)):
         it_time = time.time()
 
         origin = (rshm.x_utm11n[ii], rshm.y_utm11n[ii], rshm.elevation_m[ii])
         # calculate rays
-        rays_in = point_to_hemi_rays(origin, rshmeta.img_size, vox, max_phi=rshmeta.max_phi_rad, max_dist=rshmeta.max_distance, min_dist=rshmeta.min_distance)
+        rays_in = point_to_hemi_rays(origin, rshmeta.img_size, vox_sub, max_phi=rshmeta.max_phi_rad, max_dist=rshmeta.max_distance, min_dist=rshmeta.min_distance)
 
         # sample rays
-        rays_out = aggregate_voxels_over_rays(vox, rays_in, rshmeta.ray_sample_length, rshmeta.prior, rshmeta.ray_iterations)
+        rays_out = aggregate_voxels_over_rays(vox_sub, rays_in, rshmeta.ray_sample_length, rshmeta.prior, rshmeta.ray_iterations, commentation=True)
 
         output = rays_out.loc[:, ['x_index', 'y_index', 'phi', 'theta', 'returns_mean', 'returns_median', 'returns_std']]
 
@@ -1251,3 +1299,10 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
 # img_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\ray_sampling_transmittance.png'
 # imageio.imsave(img_out, img)
 #
+# import matplotlib
+# matplotlib.use('TkAgg')
+# import matplotlib.pyplot as plt
+# plt.scatter(uni, coo)
+# plt.scatter(runi, roo)
+# plt.scatter(uni, cumsoo)
+# plt.scatter(runi, rumsoo)

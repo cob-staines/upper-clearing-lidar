@@ -49,25 +49,51 @@
 #         p = mp.Process(target=spawn, args=(i,))
 #         p.start()
 
-import time
-from multiprocessing import Pool
+# import time
+# from multiprocessing import Pool
+#
+#
+# def square(x):
+#     print(f"start process:{x}")
+#     square = x * x
+#     print(f"square {x}:{square}")
+#     time.sleep(1)
+#     if square % 2 == 0:
+#         time.sleep(.5)
+#         print(f"{square} is even")
+#     print(f"end process:{x}")
+#
+#
+# if __name__ == "__main__":
+#     starttime = time.time()
+#     pool = Pool()
+#     pool.map(square, range(0, 10))
+#     pool.close()
+#     endtime = time.time()
+#     print(f"Time taken {endtime-starttime} seconds")
 
+from multiprocessing import Process
+import sharedmem
+import numpy
 
-def square(x):
-    print(f"start process:{x}")
-    square = x * x
-    print(f"square {x}:{square}")
-    time.sleep(1)
-    if square % 2 == 0:
-        time.sleep(.5)
-        print(f"{square} is even")
-    print(f"end process:{x}")
+def do_work(data, start):
+    print(data[start])
 
+def split_work(num):
+    n = 20
+    width = int(n/num)
+    shared = sharedmem.empty(n)
+    shared[:] = numpy.random.rand(1, n)[0]
+    print("values are %s" % shared)
 
-if __name__ == "__main__":
-    starttime = time.time()
-    pool = Pool()
-    pool.map(square, range(0, 10))
-    pool.close()
-    endtime = time.time()
-    print(f"Time taken {endtime-starttime} seconds")
+    processes = [Process(target=do_work, args=(shared, i*width), daemon=False) for i in range(0, num)]
+    for p in processes:
+        p.start()
+    for p in processes:
+        p.join()
+
+    print("values are %s" % shared)
+    print("type is %s" % type(shared[0]))
+
+if __name__ == '__main__':
+    split_work(4)
