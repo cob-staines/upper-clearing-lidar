@@ -12,7 +12,7 @@ vox.traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\dat
 # vox.traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
 vox.return_set = 'first'
 vox.drop_class = 7
-hdf5_path = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '.h5')
+hdf5_path = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '_int.h5')
 vox.hdf5_path = hdf5_path
 vox.chunksize = 10000000
 voxel_length = .25
@@ -21,16 +21,14 @@ vox.sample_length = voxel_length/np.pi
 vox_id = 'rs_vl' + str(voxel_length)
 vox.id = vox_id
 
-# vox = lrs.ray_sample_las(vox, create_new_hdf5=True)
+# vox = lrs.las_to_vox(vox, np.uint16, create_new_hdf5=True)
 
 # LOAD VOX
 vox = lrs.vox_load(hdf5_path, vox_id)
 
 
 
-
-
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\lrs_hemi_optimization_r.25_px1000\\'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\lrs_hemi_optimization_r.25_px100_experimental\\'
 
 img_lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
 # img_lookup_in = 'C:\\Users\\jas600\\workzone\\data\\las\\hemi_lookup_cleaned.csv'
@@ -76,7 +74,7 @@ rshmeta.ray_iterations = 100  # model runs for each ray, from which median and s
 
 # image dimensions
 #phi_step = (np.pi/2) / (180 * 2)
-rshmeta.img_size = 1000  # square, in pixels/ray samples
+rshmeta.img_size = 100  # square, in pixels/ray samples
 #rshmeta.max_phi_rad = phi_step * rshmeta.img_size
 rshmeta.max_phi_rad = np.pi/2
 
@@ -138,47 +136,85 @@ for ii in range(0, len(cnlog)):
 cnlog.to_csv(cnlog.file_dir[0] + "contact_number_optimization.csv")
 
 ###
-
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-import tifffile as tif
-ii = 0
-img = tif.imread(rshmeta.file_dir + rshmeta.file_name[ii])
-cn = img[:, :, 1] * 0.02268
-cv = img[:, :, 2] / img[:, :, 0]
-
-
-
-fig, axs = plt.subplots(1, 2, figsize=(10, 5))
-ax1, ax2 = axs.ravel()
-
-im1 = ax1.imshow(cn, interpolation='nearest', cmap='Greys', norm=matplotlib.colors.LogNorm())
-ax1.set_title("Contact number")
-ax1.set_axis_off()
-
-im2 = ax2.imshow(cv, interpolation='nearest', cmap='Greys', norm=matplotlib.colors.LogNorm())
-ax2.set_title("Coefficient of variation")
-ax2.set_axis_off()
+# #
+# import matplotlib
+# matplotlib.use('TkAgg')
+# import matplotlib.pyplot as plt
+# import tifffile as tif
+# ii = 0
+# img = tif.imread(rshmeta.file_dir + rshmeta.file_name[ii])
+# cn = img[:, :, 1] * 0.02268
+# cv = img[:, :, 2] / img[:, :, 0]
+#
+#
+#
+# fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+# ax1, ax2 = axs.ravel()
+#
+# im1 = ax1.imshow(cn, interpolation='nearest', cmap='Greys', norm=matplotlib.colors.LogNorm())
+# ax1.set_title("Contact number")
+# ax1.set_axis_off()
+#
+# im2 = ax2.imshow(cv, interpolation='nearest', cmap='Greys', norm=matplotlib.colors.LogNorm())
+# ax2.set_title("Coefficient of variation")
+# ax2.set_axis_off()
+#
+# ##
+# from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+#
+# fig, ax = plt.subplots(figsize=(8, 8))
+#
+# # img = ax.imshow(cn, interpolation='nearest', cmap='Greys')
+# img = ax.imshow(cn, interpolation='nearest', cmap='Greys', norm=matplotlib.colors.LogNorm())
+# ax.set_title("Contact number over hemisphere, modeled by ray re-sampling")
+#
+# axins = inset_axes(ax,
+#                    width="5%",  # width = 5% of parent_bbox width
+#                    height="50%",  # height : 50%
+#                    loc='right',
+#                    bbox_to_anchor=(.1, 0, 1, 1),
+#                    bbox_transform=ax.transAxes,
+#                    borderpad=0,
+#                    )
+# fig.colorbar(img, cax=axins)
+#
+# ax.set_axis_off()
+# fig.savefig(rshmeta.file_dir + 'contact_num_plot_' + rshmeta.file_name[ii] + '.png')
 
 ##
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
-fig, ax = plt.subplots(figsize=(8, 8))
+# modeling beam reflectance with gamma prior
+# mean = k * theta
+# var = k * theta ^2
+# theta = var / mean (or cv...)
+# k = mean / theta = mean^2 / var
 
-# img = ax.imshow(cn, interpolation='nearest', cmap='Greys')
-img = ax.imshow(cn, interpolation='nearest', cmap='Greys', norm=matplotlib.colors.LogNorm())
-ax.set_title("Contact number over hemisphere, modeled by ray re-sampling")
+# trans = np.sort(vox.return_data[vox.sample_data > 0] / vox.sample_data[vox.sample_data > 0])
+# mm = np.mean(trans * vox.sample_length)
+# vv = np.var(trans * vox.sample_length)
+# theta = vv / mm
+# kk = mm ** 2 / vv
+# prior = (kk, theta)
+#
+# kk = 100  # returns
+# nn = 100  # samples
+#
+# # post_a = kk ** 3/((nn ** 2) * prior[0] * prior[1] ** 2) + prior[0]
+# # post_b = 1 / (kk ** 2 / (prior[0] * prior[1] ** 2 * nn) + 1 / prior[1])
+#
+# # fails for kk=0... should not!
+#
+# post_a = 1 / (nn * prior[0] * prior[1] ** 2 / kk ** 2 + 1 / prior[0])
+# post_b = prior[0] * prior[1] ** 2 / kk + prior[1]
+# peace = np.random.gamma(post_a, post_b, 10000)
+# np.mean(peace)
+# np.var(peace)
+#
+# q999 = np.quantile(trans, .999)
+# # set ceiling on trans by adjusting samples...
+#
+# import matplotlib
+# matplotlib.use('TkAgg')
+# import matplotlib.pyplot as plt
+# plt.hist(trans, bins=500)
 
-axins = inset_axes(ax,
-                   width="5%",  # width = 5% of parent_bbox width
-                   height="50%",  # height : 50%
-                   loc='right',
-                   bbox_to_anchor=(.1, 0, 1, 1),
-                   bbox_transform=ax.transAxes,
-                   borderpad=0,
-                   )
-fig.colorbar(img, cax=axins)
-
-ax.set_axis_off()
-fig.savefig(rshmeta.file_dir + 'contact_num_plot_' + rshmeta.file_name[ii] + '.png')

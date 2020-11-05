@@ -6,10 +6,10 @@ import os
 # config for batch rs_hemi
 
 vox = lrs.VoxelObj()
-# vox.las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las'
-vox.las_in = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\19_149_las_proc_classified_merged.las'
-# vox.traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
-vox.traj_in = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\19_149_all_traj.txt'
+vox.las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las'
+# vox.las_in = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\19_149_las_proc_classified_merged.las'
+vox.traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
+# vox.traj_in = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\19_149_all_traj.txt'
 vox.return_set = 'first'
 vox.drop_class = 7
 hdf5_path = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '.h5')
@@ -21,7 +21,7 @@ vox.sample_length = voxel_length/np.pi
 vox_id = 'rs_vl' + str(voxel_length)
 vox.id = vox_id
 
-vox = lrs.ray_sample_las(vox, create_new_hdf5=False)
+# vox = lrs.las_to_vox(vox, create_new_hdf5=False)
 
 # LOAD VOX
 vox = lrs.vox_load(hdf5_path, vox_id)

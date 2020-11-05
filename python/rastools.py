@@ -310,12 +310,11 @@ def raster_to_pd(ras, colnames, include_nans=False):
     import pandas as pd
 
     # test if ras is path or raster_object
-    if not isinstance(ras, rasterObj):
-        if isinstance(ras, str):
-            ras_in = ras
-            ras = raster_load(ras_in)
-        else:
-            raise Exception('ras is not an instance of rasterObj or str (filepath), raster_to_pd() aborted.')
+    if isinstance(ras, str):
+        ras_in = ras
+        ras = raster_load(ras_in)
+    elif not isinstance(ras, rasterObj):
+        raise Exception('ras is not an instance of rasterObj or str (filepath), raster_to_pd() aborted.')
 
     if isinstance(ras.data, np.ndarray):
         # nest data in list if not already
@@ -334,7 +333,7 @@ def raster_to_pd(ras, colnames, include_nans=False):
     nan_vals = np.full([ras.rows, ras.cols, ras.band_count], False)
     for ii in range(0, ras.band_count):
         nan_vals[:, :, ii] = (ras.data[ii] == ras.no_data)
-    nan_vals = np.any(nan_vals, axis=2)
+    nan_vals = np.all(nan_vals, axis=2)
 
     if include_nans:
         pts_index = np.where(all_vals)
@@ -419,7 +418,7 @@ def pd_sample_raster_gdal(data_dict, include_nans=False, nodatavalue=np.nan):
 
     # for remaining items in files
     for ii in range(1, len(files)):
-        print('Loading ' + colnames[ii] + "... ", end='')
+        print('Loading ' + str(colnames[ii]) + "... ", end='')
         rs_array = gdal_raster_reproject(files[ii], files[0], nodatavalue=nodatavalue)
 
         band_count = rs_array.shape[2]

@@ -97,3 +97,14 @@ def split_work(num):
 
 if __name__ == '__main__':
     split_work(4)
+
+from cachetools import cached, LRUCache
+cache = LRUCache(maxsize=2)
+import time
+
+@cached(cache)
+def sleep_squared(s):
+    time.sleep(s)
+    return s ** 2
+
+sleep_squared(2)
