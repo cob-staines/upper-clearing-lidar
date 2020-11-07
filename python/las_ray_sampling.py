@@ -24,7 +24,8 @@ class VoxelObj(object):
         self.step = None
         self.ncells = None
         self.sample_length = None
-        self.precision = None
+        self.sample_precision = None
+        self.return_precision = None
         self.sample_data = None
         self.return_data = None
 
@@ -50,7 +51,8 @@ def vox_save(vox):
         h5f.create_dataset(vox.id + '_vox_step', data=vox.step)
         h5f.create_dataset(vox.id + '_vox_ncells', data=vox.ncells)
         h5f.create_dataset(vox.id + '_vox_sample_length', data=vox.sample_length)
-        h5f.create_dataset(vox.id + '_precision', data=vox.precision)
+        h5f.create_dataset(vox.id + '_sample_precision', data=vox.sample_precision)
+        h5f.create_dataset(vox.id + '_return_precision', data=vox.return_precision)
         h5f.create_dataset(vox.id + '_vox_sample_data', data=vox.sample_data)
         h5f.create_dataset(vox.id + '_vox_return_data', data=vox.return_data)
 
@@ -74,7 +76,8 @@ def vox_load(hdf5_path, vox_id, load_data=True):
         vox.step = h5f.get(vox_id + '_vox_step')[()]
         vox.ncells = h5f.get(vox_id + '_vox_ncells')[()]
         vox.sample_length = h5f.get(vox_id + '_vox_sample_length')[()]
-        vox.precision = h5f.get(vox_id + '_precision')[()]
+        vox.sample_precision = h5f.get(vox_id + '_sample_precision')[()]
+        vox.return_precision = h5f.get(vox_id + '_return_precision')[()]
         if load_data:
             vox.sample_data = h5f.get(vox_id + '_vox_sample_data')[()]
             vox.return_data = h5f.get(vox_id + '_vox_return_data')[()]
@@ -223,19 +226,19 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
         warnings.warn("vox.sample_length is greater than vox.step, some voxels will be stepped over in sampling. Consider smaller sample_length", UserWarning)
 
     if fail_overflow:
-        # define parameters for overflow testing
+        # define parameters for overflow testing of sample
         current_max = 0
         current_max_args = (np.array([0]), np.array([0]), np.array([0]))
-        if vox.precision is np.uint8:
+        if vox.sample_precision is np.uint8:
             valmax = (2 ** 8 - 1)
-        elif vox.precision is np.uint16:
+        elif vox.sample_precision is np.uint16:
             valmax = (2 ** 16 - 1)
-        elif vox.precision is np.uint32:
+        elif vox.sample_precision is np.uint32:
             valmax = (2 ** 32 - 1)
-        elif vox.precision is np.uint32:
+        elif vox.sample_precision is np.uint32:
             valmax = (2 ** 64 - 1)
         else:
-            raise Exception('vox.precision not recognized, please do the honors of adding to the code')
+            raise Exception('vox.sample_precision not recognized, please do the honors of adding to the code')
 
     print('Loading data descriptors... ', end='')
 
@@ -298,13 +301,14 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
     z_step = np.ceil(vox.ncells[2] / z_slices).astype(int)
 
     # memory test of slice size
-    m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.precision)
+    m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.sample_precision)
+    m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.return_precision)
     m_test = None
 
     # preallocate voxel hdf5
     with h5py.File(vox.vox_hdf5, mode='w') as hf:
-        hf.create_dataset(vox.id + '_sample_data', dtype=vox.precision, shape=vox.ncells, chunks=True)
-        hf.create_dataset(vox.id + '_return_data', dtype=vox.precision, shape=vox.ncells, chunks=True)
+        hf.create_dataset(vox.id + '_sample_data', dtype=vox.sample_precision, shape=vox.ncells, chunks=True)
+        hf.create_dataset(vox.id + '_return_data', dtype=vox.return_precision, shape=vox.ncells, chunks=True)
 
     # loop over las_traj chunks
     for ii in range(0, n_chunks):
@@ -324,9 +328,10 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
             ray_0 = hf['trajData'][idx_start:idx_end, 1:4]
         print('done')
 
-        rtns_vox = utm_to_vox(vox, ray_1).astype(vox.precision)
+        # transform returns to vox coords
+        rtns_vox = utm_to_vox(vox, ray_1).astype(vox.return_precision)
 
-        # interpolate rays to bounding box
+        # interpolate sensor to bounding box
         ray_bb = interpolate_to_bounding_box(ray_1, ray_0)
 
         # loop over z_slices
@@ -385,17 +390,17 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
                 sample_points = xyz_step[in_range, :] * sample_dist[in_range, np.newaxis] + z0[in_range]
 
                 if np.size(sample_points) != 0:
-                    # add counts to voxel_samples
-                    vox_coords = utm_to_vox(vox, sample_points).astype(vox.precision)
+                    # transform samples to vox coords
+                    samps_vox = utm_to_vox(vox, sample_points).astype(vox.sample_precision)
 
                     # correct for z_slice offset
-                    vox_coords[:, 2] = vox_coords[:, 2] - z_low
+                    samps_vox[:, 2] = samps_vox[:, 2] - z_low
 
                     # format
-                    vox_address = (vox_coords[:, 0], vox_coords[:, 1], vox_coords[:, 2])
+                    samps_address = (samps_vox[:, 0], samps_vox[:, 1], samps_vox[:, 2])
 
                     # add points
-                    np.add.at(sample_slice, vox_address, 1)
+                    np.add.at(sample_slice, samps_address, 1)
 
                 if fail_overflow:
                     past_max = current_max
@@ -1442,7 +1447,8 @@ def subset_vox(pts, vox, buffer):
     vox_sub.traj_in = vox.traj_in
     vox_sub.las_traj_hdf5 = vox.las_traj_hdf5
     vox_sub.vox_hdf5 = vox.vox_hdf5
-    vox_sub.precision = vox.precision
+    vox_sub.sample_precision = vox.sample_precision
+    vox_sub.return_precision = vox.return_precision
     vox_sub.return_set = vox.return_set
     vox_sub.drop_class = vox.drop_class
     vox_sub.chunksize = vox.chunksize
