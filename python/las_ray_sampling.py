@@ -10,22 +10,21 @@ import cProfile
 class VoxelObj(object):
     def __init__(self):
         # voxel object metadata
-        self.id = None
+        self.vox_hdf5 = None
         self.las_in = None
         self.traj_in = None
         self.las_traj_hdf5 = None
-        self.vox_hdf5 = None
+        self.las_traj_chunksize = None
         self.return_set = None
         self.drop_class = None
-        self.chunksize = None
         self.cw_rotation = None
         self.origin = None
         self.max = None
         self.step = None
         self.ncells = None
         self.sample_length = None
-        self.sample_precision = None
-        self.return_precision = None
+        self.sample_dtype = None
+        self.return_dtype = None
         self.sample_data = None
         self.return_data = None
 
@@ -33,54 +32,51 @@ class VoxelObj(object):
         from copy import deepcopy
         return deepcopy(self)
 
-    def save(self, hdf5_path):
-        vox_save(self, hdf5_path)
+    def save(self):
+        save_vox_meta(self)
 
 
-def vox_save(vox):
+def save_vox_meta(vox):
     with h5py.File(vox.vox_hdf5, 'a') as h5f:
-        h5f.create_dataset(vox.id + '_las_in', data=vox.las_in)
-        h5f.create_dataset(vox.id + '_traj_in', data=vox.traj_in)
-        h5f.create_dataset(vox.id + '_las_traj_hdf5', data=vox.las_traj_hdf5)
-        h5f.create_dataset(vox.id + '_return_set', data=vox.return_set)
-        h5f.create_dataset(vox.id + '_drop_class', data=vox.drop_class)
-        h5f.create_dataset(vox.id + '_chunksize', data=vox.chunksize)
-        h5f.create_dataset(vox.id + '_cw_rotation', data=vox.cw_rotation)
-        h5f.create_dataset(vox.id + '_vox_origin', data=vox.origin)
-        h5f.create_dataset(vox.id + '_vox_max', data=vox.max)
-        h5f.create_dataset(vox.id + '_vox_step', data=vox.step)
-        h5f.create_dataset(vox.id + '_vox_ncells', data=vox.ncells)
-        h5f.create_dataset(vox.id + '_vox_sample_length', data=vox.sample_length)
-        h5f.create_dataset(vox.id + '_sample_precision', data=vox.sample_precision)
-        h5f.create_dataset(vox.id + '_return_precision', data=vox.return_precision)
-        h5f.create_dataset(vox.id + '_vox_sample_data', data=vox.sample_data)
-        h5f.create_dataset(vox.id + '_vox_return_data', data=vox.return_data)
+        meta = h5f.create_group("meta")
+        meta.create_dataset('las_in', data=vox.las_in)
+        meta.create_dataset('traj_in', data=vox.traj_in)
+        meta.create_dataset('las_traj_hdf5', data=vox.las_traj_hdf5)
+        meta.create_dataset('return_set', data=vox.return_set)
+        meta.create_dataset('drop_class', data=vox.drop_class)
+        meta.create_dataset('las_traj_chunksize', data=vox.las_traj_chunksize)
+        meta.create_dataset('cw_rotation', data=vox.cw_rotation)
+        meta.create_dataset('vox_origin', data=vox.origin)
+        meta.create_dataset('vox_max', data=vox.max)
+        meta.create_dataset('vox_step', data=vox.step)
+        meta.create_dataset('vox_ncells', data=vox.ncells)
+        meta.create_dataset('vox_sample_length', data=vox.sample_length)
 
 
-def vox_load(hdf5_path, vox_id, load_data=True):
+
+def load_vox_meta(hdf5_path, load_data=False):
     vox = VoxelObj()
-    vox.id = vox_id
-    # vox.vox_hdf5 = hdf5_path
     vox.vox_hdf5 = hdf5_path
 
     with h5py.File(hdf5_path, 'r') as h5f:
-        vox.las_in = h5f.get(vox_id + '_las_in')[()]
-        vox.traj_in = h5f.get(vox_id + '_traj_in')[()]
-        vox.las_traj_hdf5 = h5f.get(vox_id + '_las_traj_hdf5')[()]
-        vox.return_set = h5f.get(vox_id + '_return_set')[()]
-        vox.drop_class = h5f.get(vox_id + '_drop_class')[()]
-        vox.chunksize = h5f.get(vox_id + '_chunksize')[()]
-        vox.cw_rotation = h5f.get(vox_id + '_cw_rotation')[()]
-        vox.origin = h5f.get(vox_id + '_vox_origin')[()]
-        vox.max = h5f.get(vox_id + '_vox_max')[()]
-        vox.step = h5f.get(vox_id + '_vox_step')[()]
-        vox.ncells = h5f.get(vox_id + '_vox_ncells')[()]
-        vox.sample_length = h5f.get(vox_id + '_vox_sample_length')[()]
-        vox.sample_precision = h5f.get(vox_id + '_sample_precision')[()]
-        vox.return_precision = h5f.get(vox_id + '_return_precision')[()]
+        meta = h5f.get('meta')
+        vox.las_in = meta.get('las_in')[()]
+        vox.traj_in = meta.get('traj_in')[()]
+        vox.las_traj_hdf5 = meta.get('las_traj_hdf5')[()]
+        vox.return_set = meta.get('return_set')[()]
+        vox.drop_class = meta.get('drop_class')[()]
+        vox.las_traj_chunksize = meta.get('las_traj_chunksize')[()]
+        vox.cw_rotation = meta.get('cw_rotation')[()]
+        vox.origin = meta.get('vox_origin')[()]
+        vox.max = meta.get('vox_max')[()]
+        vox.step = meta.get('vox_step')[()]
+        vox.ncells = meta.get('vox_ncells')[()]
+        vox.sample_length = meta.get('vox_sample_length')[()]
+        vox.sample_dtype = h5f.get('sample_data').dtype
+        vox.return_dtype = h5f.get('return_data').dtype
         if load_data:
-            vox.sample_data = h5f.get(vox_id + '_vox_sample_data')[()]
-            vox.return_data = h5f.get(vox_id + '_vox_return_data')[()]
+            vox.sample_data = h5f.get('sample_data')[()]
+            vox.return_data = h5f.get('return_data')[()]
     return vox
 
 
@@ -229,16 +225,16 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
         # define parameters for overflow testing of sample
         current_max = 0
         current_max_args = (np.array([0]), np.array([0]), np.array([0]))
-        if vox.sample_precision is np.uint8:
+        if vox.sample_dtype is np.uint8:
             valmax = (2 ** 8 - 1)
-        elif vox.sample_precision is np.uint16:
+        elif vox.sample_dtype is np.uint16:
             valmax = (2 ** 16 - 1)
-        elif vox.sample_precision is np.uint32:
+        elif vox.sample_dtype is np.uint32:
             valmax = (2 ** 32 - 1)
-        elif vox.sample_precision is np.uint32:
+        elif vox.sample_dtype is np.uint64:
             valmax = (2 ** 64 - 1)
         else:
-            raise Exception('vox.sample_precision not recognized, please do the honors of adding to the code')
+            raise Exception('vox.sample_dtype not recognized, please do the honors of adding to the code')
 
     print('Loading data descriptors... ', end='')
 
@@ -257,9 +253,9 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
     traj_time = None
 
     # calculate n_chunks
-    if vox.chunksize is None:
-        vox.chunksize = n_rows
-    n_chunks = np.ceil(n_rows / vox.chunksize).astype(int)
+    if vox.las_traj_chunksize is None:
+        vox.las_traj_chunksize = n_rows
+    n_chunks = np.ceil(n_rows / vox.las_traj_chunksize).astype(int)
 
     if vox.cw_rotation == 0:
         with h5py.File(vox.las_traj_hdf5, 'r') as hf:
@@ -275,9 +271,9 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
                 print('Chunk ' + str(ii) + '... ', end='')
 
                 # chunk start and end
-                idx_start = ii * vox.chunksize
+                idx_start = ii * vox.las_traj_chunksize
                 if ii != (n_chunks - 1):
-                    idx_end = (ii + 1) * vox.chunksize
+                    idx_end = (ii + 1) * vox.las_traj_chunksize
                 else:
                     idx_end = n_rows
 
@@ -301,14 +297,14 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
     z_step = np.ceil(vox.ncells[2] / z_slices).astype(int)
 
     # memory test of slice size
-    m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.sample_precision)
-    m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.return_precision)
+    m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.sample_dtype)
+    m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.return_dtype)
     m_test = None
 
     # preallocate voxel hdf5
     with h5py.File(vox.vox_hdf5, mode='w') as hf:
-        hf.create_dataset(vox.id + '_sample_data', dtype=vox.sample_precision, shape=vox.ncells, chunks=True)
-        hf.create_dataset(vox.id + '_return_data', dtype=vox.return_precision, shape=vox.ncells, chunks=True)
+        hf.create_dataset(vox.id + '_sample_data', dtype=vox.sample_dtype, shape=vox.ncells, chunks=True, compression='gzip')
+        hf.create_dataset(vox.id + '_return_data', dtype=vox.return_dtype, shape=vox.ncells, chunks=True, compression='gzip')
 
     # loop over las_traj chunks
     for ii in range(0, n_chunks):
@@ -316,9 +312,9 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
         print('Chunk ' + str(ii + 1) + ' of ' + str(n_chunks))
 
         # chunk start and end
-        idx_start = ii * vox.chunksize
+        idx_start = ii * vox.las_traj_chunksize
         if ii != (n_chunks - 1):
-            idx_end = (ii + 1) * vox.chunksize
+            idx_end = (ii + 1) * vox.las_traj_chunksize
         else:
             idx_end = n_rows
 
@@ -329,7 +325,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
         print('done')
 
         # transform returns to vox coords
-        rtns_vox = utm_to_vox(vox, ray_1).astype(vox.return_precision)
+        rtns_vox = utm_to_vox(vox, ray_1).astype(vox.return_dtype)
 
         # interpolate sensor to bounding box
         ray_bb = interpolate_to_bounding_box(ray_1, ray_0)
@@ -391,7 +387,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
 
                 if np.size(sample_points) != 0:
                     # transform samples to vox coords
-                    samps_vox = utm_to_vox(vox, sample_points).astype(vox.sample_precision)
+                    samps_vox = utm_to_vox(vox, sample_points).astype(vox.sample_dtype)
 
                     # correct for z_slice offset
                     samps_vox[:, 2] = samps_vox[:, 2] - z_low
@@ -1428,14 +1424,15 @@ def hemi_rays_to_img(rays_out, img_path, img_size, area_factor):
     imageio.imsave(img_path, img)
 
 
-def las_to_vox(vox, run_las_traj=True, fail_overflow=False):
+def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False):
     if run_las_traj:
         # interpolate trajectory
-        laslib.las_traj(vox.las_in, vox.traj_in, vox.las_traj_hdf5, vox.chunksize, vox.return_set, vox.drop_class)
+        laslib.las_traj(vox.las_in, vox.traj_in, vox.las_traj_hdf5, vox.las_traj_chunksize, vox.return_set, vox.drop_class)
 
     # sample voxel space from las_traj hdf5
-    vox = las_ray_sample(vox, fail_overflow)
-    vox_save(vox)
+    vox = las_ray_sample_by_z_slice(vox, z_slices, fail_overflow)
+    vox.save()
+    save_vox_meta(vox)
 
     return vox
 
@@ -1446,12 +1443,12 @@ def subset_vox(pts, vox, buffer):
     vox_sub.las_in = vox.las_in
     vox_sub.traj_in = vox.traj_in
     vox_sub.las_traj_hdf5 = vox.las_traj_hdf5
+    vox_sub.las_traj_chunksize = vox.las_traj_chunksize
     vox_sub.vox_hdf5 = vox.vox_hdf5
-    vox_sub.sample_precision = vox.sample_precision
-    vox_sub.return_precision = vox.return_precision
+    vox_sub.sample_dtype = vox.sample_dtype
+    vox_sub.return_dtype = vox.return_dtype
     vox_sub.return_set = vox.return_set
     vox_sub.drop_class = vox.drop_class
-    vox_sub.chunksize = vox.chunksize
     vox_sub.cw_rotation = vox.cw_rotation
     vox_sub.sample_length = vox.sample_length
     vox_sub.step = vox.step
