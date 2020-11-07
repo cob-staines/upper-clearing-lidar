@@ -303,8 +303,8 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
 
     # preallocate voxel hdf5
     with h5py.File(vox.vox_hdf5, mode='w') as hf:
-        hf.create_dataset(vox.id + '_sample_data', dtype=vox.sample_dtype, shape=vox.ncells, chunks=True, compression='gzip')
-        hf.create_dataset(vox.id + '_return_data', dtype=vox.return_dtype, shape=vox.ncells, chunks=True, compression='gzip')
+        hf.create_dataset('sample_data', dtype=vox.sample_dtype, shape=vox.ncells, chunks=True, compression='gzip')
+        hf.create_dataset('return_data', dtype=vox.return_dtype, shape=vox.ncells, chunks=True, compression='gzip')
 
     # loop over las_traj chunks
     for ii in range(0, n_chunks):
