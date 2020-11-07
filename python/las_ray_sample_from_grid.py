@@ -11,7 +11,6 @@ vox.traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\dat
 vox.return_set = 'first'
 vox.drop_class = 7
 vox.las_traj_hdf5 = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '_las_traj.h5')
-vox.vox_hdf5 = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '_vox_rot.h5')
 vox.sample_precision = np.uint32
 vox.return_precision = np.uint32
 vox.las_traj_chunksize = 10000000
@@ -19,6 +18,7 @@ vox.cw_rotation = -34 * np.pi / 180
 voxel_length = .25
 vox.step = np.full(3, voxel_length)
 vox.sample_length = voxel_length/np.pi
+vox.vox_hdf5 = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '_r' + str(voxel_length) + 'm_vox.h5')
 
 
 vox = lrs.las_to_vox(vox, run_las_traj=False, fail_overflow=False)
