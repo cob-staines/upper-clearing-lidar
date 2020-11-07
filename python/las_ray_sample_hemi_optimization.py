@@ -5,6 +5,7 @@ import os
 
 # config for batch rs_hemi
 
+
 vox = lrs.VoxelObj()
 vox.las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las'
 # vox.las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_las_proc_classified_merged.las'
@@ -12,19 +13,20 @@ vox.traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\dat
 # vox.traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
 vox.return_set = 'first'
 vox.drop_class = 7
-hdf5_path = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '_int.h5')
-vox.hdf5_path = hdf5_path
+vox.las_traj_hdf5 = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '_las_traj.h5')
+vox.vox_hdf5 = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '_vox_rot.h5')
 vox.chunksize = 10000000
 voxel_length = .25
+vox.cw_rotation = -34 * np.pi / 180
 vox.step = np.full(3, voxel_length)
 vox.sample_length = voxel_length/np.pi
-vox_id = 'rs_vl' + str(voxel_length)
-vox.id = vox_id
+vox.id = 'vox_r' + str(voxel_length)
 
-# vox = lrs.las_to_vox(vox, np.uint16, create_new_hdf5=True)
 
-# LOAD VOX
-vox = lrs.vox_load(hdf5_path, vox_id)
+# vox = lrs.las_to_vox(vox, np.uint16, run_las_traj=False, fail_overflow=False)
+
+# # LOAD VOX
+vox_test = lrs.vox_load(vox.vox_hdf5, vox.id)
 
 
 
