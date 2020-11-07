@@ -325,7 +325,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
         print('done')
 
         # transform returns to vox coords
-        rtns_vox = utm_to_vox(vox, ray_1).astype(vox.return_dtype)
+        rtns_vox = utm_to_vox(vox, ray_1).astype(int)
 
         # interpolate sensor to bounding box
         ray_bb = interpolate_to_bounding_box(ray_1, ray_0)
@@ -348,8 +348,8 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
 
             # load slices from vox
             with h5py.File(vox.vox_hdf5, mode='r') as hf:
-                sample_slice = hf[vox.id + '_sample_data'][:, :, z_low:z_high]
-                return_slice = hf[vox.id + '_return_data'][:, :, z_low:z_high]
+                sample_slice = hf['sample_data'][:, :, z_low:z_high]
+                return_slice = hf['return_data'][:, :, z_low:z_high]
 
 
             # add valid retruns to return slice
@@ -387,7 +387,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
 
                 if np.size(sample_points) != 0:
                     # transform samples to vox coords
-                    samps_vox = utm_to_vox(vox, sample_points).astype(vox.sample_dtype)
+                    samps_vox = utm_to_vox(vox, sample_points).astype(int)
 
                     # correct for z_slice offset
                     samps_vox[:, 2] = samps_vox[:, 2] - z_low
@@ -412,8 +412,8 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
 
             # save slice to file
             with h5py.File(vox.vox_hdf5, mode='r+') as hf:
-                hf[vox.id + '_sample_data'][:, :, z_low:z_high] = sample_slice
-                hf[vox.id + '_return_data'][:, :, z_low:z_high] = return_slice
+                hf['sample_data'][:, :, z_low:z_high] = sample_slice
+                hf['return_data'][:, :, z_low:z_high] = return_slice
 
 
     end = time.time()
@@ -422,10 +422,10 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
     return vox
 
 # with h5py.File(vox.vox_hdf5, mode='r') as hf:
-#     samp_count = np.sum(hf[vox.id + '_sample_data'][:, :, :])
-#     samp_max = np.max(hf[vox.id + '_sample_data'][:, :, :])
-#     ret_count = np.sum(hf[vox.id + '_return_data'][:, :, :])
-#     ret_max = np.max(hf[vox.id + '_return_data'][:, :, :])
+#     samp_count = np.sum(hf['sample_data'][()])
+#     samp_max = np.max(hf['sample_data'][()])
+#     ret_count = np.sum(hf['return_data'][()])
+#     ret_max = np.max(hf['return_data'][()])
 
 
 # def las_ray_sample(vox, fail_overflow=False):
@@ -1432,14 +1432,12 @@ def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False):
     # sample voxel space from las_traj hdf5
     vox = las_ray_sample_by_z_slice(vox, z_slices, fail_overflow)
     vox.save()
-    save_vox_meta(vox)
 
     return vox
 
 
 def subset_vox(pts, vox, buffer):
     vox_sub = VoxelObj()
-    vox_sub.id = vox.id + "_subset"
     vox_sub.las_in = vox.las_in
     vox_sub.traj_in = vox.traj_in
     vox_sub.las_traj_hdf5 = vox.las_traj_hdf5
@@ -1533,7 +1531,6 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
                         "x_utm11n": rshmeta.origin[:, 0],
                         "y_utm11n": rshmeta.origin[:, 1],
                         "elevation_m": rshmeta.origin[:, 2],
-                        "vox_id": vox.id,
                         "src_las_file": vox.las_in,
                         "vox_step": vox.step[0],
                         "vox_sample_length": vox.sample_length,
@@ -1672,7 +1669,6 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
 #                         "x_utm11n": rshmeta.origin[:, 0],
 #                         "y_utm11n": rshmeta.origin[:, 1],
 #                         "elevation_m": rshmeta.origin[:, 2],
-#                         "vox_id": vox.id,
 #                         "src_las_file": vox.las_in,
 #                         "vox_step": vox.step[0],
 #                         "vox_sample_length": vox.sample_length,

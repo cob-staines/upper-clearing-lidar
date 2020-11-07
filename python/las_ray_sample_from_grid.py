@@ -4,15 +4,15 @@ import pandas as pd
 import os
 
 vox = lrs.VoxelObj()
-vox.las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las'
-# vox.las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_las_proc_classified_merged.las'
-vox.traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
-# vox.traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
+# vox.las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las'
+vox.las_in = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\19_149_las_proc_classified_merged.las'
+# vox.traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
+vox.traj_in = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\19_149_all_traj.txt'
 vox.return_set = 'first'
 vox.drop_class = 7
 vox.las_traj_hdf5 = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '_las_traj.h5')
 vox.sample_precision = np.uint32
-vox.return_precision = np.uint32
+vox.return_precision = np.uint16
 vox.las_traj_chunksize = 10000000
 vox.cw_rotation = -34 * np.pi / 180
 voxel_length = .25
@@ -20,8 +20,8 @@ vox.step = np.full(3, voxel_length)
 vox.sample_length = voxel_length/np.pi
 vox.vox_hdf5 = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '_r' + str(voxel_length) + 'm_vox.h5')
 
-
-vox = lrs.las_to_vox(vox, run_las_traj=False, fail_overflow=False)
+z_slices = 4
+vox = lrs.las_to_vox(vox, z_slices, run_las_traj=False, fail_overflow=False)
 
 # # LOAD VOX
 vox = lrs.load_vox_meta(vox.vox_hdf5, load_data=False)
