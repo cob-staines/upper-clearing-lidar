@@ -88,12 +88,20 @@ def z_rotmat(theta):
                     [0, 0, 1]])
 
 
-def utm_to_vox(vox, utm_points):
-    return (np.matmul(utm_points, z_rotmat(vox.cw_rotation)) - vox.origin) / vox.step
+def utm_to_vox(vox, utm_points, rotation=True):
+    if rotation:
+        theta = vox.cw_rotation
+    else:
+        theta = 0
+    return (np.matmul(utm_points, z_rotmat(theta)) - vox.origin) / vox.step
 
 
-def vox_to_utm(vox, vox_points):
-    return np.matmul(vox_points * vox.step + vox.origin, z_rotmat(-vox.cw_rotation))
+def vox_to_utm(vox, vox_points, rotation=True):
+    if rotation:
+        theta = vox.cw_rotation
+    else:
+        theta = 0
+    return np.matmul(vox_points * vox.step + vox.origin, z_rotmat(-theta))
 
 
 def add_points_to_voxels(vox, dataset, points):
@@ -112,9 +120,12 @@ def add_points_to_voxels(vox, dataset, points):
 
     return vox
 
-
-def interpolate_to_bounding_box(fixed_points, flex_points, bb=None):
+def interpolate_to_bounding_box(fixed_points, flex_points, bb=None, cw_rotation=0):
     # print('Interpolating rays to bounding box... ', end='')
+
+    if cw_rotation != 0:
+        fixed_points = np.matmul(fixed_points, z_rotmat(cw_rotation))
+        flex_points = np.matmul(flex_points, z_rotmat(cw_rotation))
 
     if fixed_points.shape != flex_points.shape:
         raise Exception('fixed_points and flex_points have different shapes!')
@@ -142,6 +153,9 @@ def interpolate_to_bounding_box(fixed_points, flex_points, bb=None):
                     flex_points[lows, ii] - fixed_points[lows, ii]) + flex_points[lows, jj]
             bb_points[highs, jj] = (ub[ii] - flex_points[highs, ii]) * (flex_points[highs, jj] - fixed_points[highs, jj]) / (
                         flex_points[highs, ii] - fixed_points[highs, ii]) + flex_points[highs, jj]
+
+    if cw_rotation != 0:
+        bb_points = np.matmul(bb_points, z_rotmat(-cw_rotation))
 
     # print('done.')
 
@@ -420,176 +434,6 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
     print('Ray sampling done in ' + str(end - start) + ' seconds.')
 
     return vox
-
-# with h5py.File(vox.vox_hdf5, mode='r') as hf:
-#     samp_count = np.sum(hf['sample_data'][()])
-#     samp_max = np.max(hf['sample_data'][()])
-#     ret_count = np.sum(hf['return_data'][()])
-#     ret_max = np.max(hf['return_data'][()])
-
-
-# def las_ray_sample(vox, fail_overflow=False):
-#
-#     print('----- LAS Ray Sampling -----')
-#
-#     start = time.time()
-#
-#     if vox.sample_length > vox.step[0]:
-#         import warnings
-#         warnings.warn("vox.sample_length is greater than vox.step, some voxels will be stepped over in sampling. Consider smaller sample_length", UserWarning)
-#
-#     # print('Loading data descriptors... ', end='')
-#     # with h5py.File(vox.las_traj_hdf5, 'r') as hf:
-#     #     las_time = hf['lasData'][:, 0]
-#     #     traj_time = hf['trajData'][:, 0]
-#     #     n_rows = len(las_time)
-#     #     x_min = np.min(hf['lasData'][:, 1])
-#     #     y_min = np.min(hf['lasData'][:, 2])
-#     #     z_min = np.min(hf['lasData'][:, 3])
-#     #     x_max = np.max(hf['lasData'][:, 1])
-#     #     y_max = np.max(hf['lasData'][:, 2])
-#     #     z_max = np.max(hf['lasData'][:, 3])
-#     # print('done')
-#     #
-#     # vox.origin = np.array([x_min, y_min, z_min])
-#     # vox.max = np.array([x_max, y_max, z_max])
-#     # vox.ncells = np.ceil((vox.max - vox.origin) / vox.step).astype(int)
-#
-#     print('Loading data descriptors... ', end='')
-#
-#     with h5py.File(vox.las_traj_hdf5, 'r') as hf:
-#         las_time = hf['lasData'][:, 0]
-#         traj_time = hf['trajData'][:, 0]
-#         n_rows = len(las_time)
-#         z_min = np.min(hf['lasData'][:, 3])
-#         z_max = np.max(hf['lasData'][:, 3])
-#
-#     # check that gps_times align
-#     if np.all(las_time != traj_time):
-#         raise Exception('gps_times do not align between las and traj dfs, process aborted.')
-#     las_time = None
-#     traj_time = None
-#
-#     if vox.chunksize is None:
-#         vox.chunksize = n_rows
-#     n_chunks = np.ceil(n_rows / vox.chunksize).astype(int)
-#
-#     xmin_rot = ymin_rot = xmax_rot = ymax_rot = np.nan
-#     with h5py.File(vox.las_traj_hdf5, 'r') as hf:
-#         for ii in range(0, n_chunks):
-#             print('Chunk ' + str(ii) + '... ', end='')
-#
-#             # chunk start and end
-#             idx_start = ii * vox.chunksize
-#             if ii != (n_chunks - 1):
-#                 idx_end = (ii + 1) * vox.chunksize
-#             else:
-#                 idx_end = n_rows
-#
-#             pts_rot = np.matmul(hf['lasData'][idx_start:idx_end, 1:3], z_rotmat(vox.cw_rotation)[0:2, 0:2])
-#
-#             xmin_rot_chunk, ymin_rot_chunk = np.min(pts_rot, axis=0)
-#             xmax_rot_chunk, ymax_rot_chunk = np.max(pts_rot, axis=0)
-#
-#             xmin_rot = np.nanmin((xmin_rot, xmin_rot_chunk))
-#             ymin_rot = np.nanmin((ymin_rot, ymin_rot_chunk))
-#             xmax_rot = np.nanmax((xmax_rot, xmax_rot_chunk))
-#             ymax_rot = np.nanmax((ymax_rot, ymax_rot_chunk))
-#
-#     print('done')
-#
-#     # define voxel parameters
-#     vox.origin = np.array([xmin_rot, ymin_rot, z_min])
-#     vox.max = np.array([xmax_rot, ymax_rot, z_max])
-#     vox.ncells = np.ceil((vox.max - vox.origin) / vox.step).astype(int)
-#     vox.sample_data = np.zeros(vox.ncells, dtype=vox.precision)
-#     vox.return_data = np.zeros(vox.ncells, dtype=vox.precision)
-#
-#     if fail_overflow:
-#         if vox.precision is np.uint8:
-#             valmax = (2 ** 8 - 1)
-#         elif vox.precision is np.uint16:
-#             valmax = (2 ** 16 - 1)
-#         elif vox.precision is np.uint32:
-#             valmax = (2 ** 32 - 1)
-#         elif vox.precision is np.uint32:
-#             valmax = (2 ** 64 - 1)
-#         else:
-#             raise Exception('vox.precision not recognized, please do the honors of adding to the code')
-#
-#         current_max = 0
-#         current_max_args = (np.array([0]), np.array([0]), np.array([0]))
-#
-#     # chunk las ray_sample
-#     for ii in range(0, n_chunks):
-#
-#         print('Voxel sampling of ' + vox.return_set + ' return rays: Chunk ' + str(ii + 1))
-#
-#         # chunk start and end
-#         idx_start = ii * vox.chunksize
-#         if ii != (n_chunks - 1):
-#             idx_end = (ii + 1) * vox.chunksize
-#         else:
-#             idx_end = n_rows
-#
-#         print('Loading data chunk... ', end='')
-#         with h5py.File(vox.las_traj_hdf5, 'r') as hf:
-#             ray_1 = hf['lasData'][idx_start:idx_end, 1:4]
-#             ray_0 = hf['trajData'][idx_start:idx_end, 1:4]
-#         print('done')
-#
-#         # interpolate rays to bounding box
-#         ray_bb = interpolate_to_bounding_box(ray_1, ray_0)
-#
-#         # calculate length of ray
-#         dist = np.sqrt(np.sum((ray_1 - ray_bb) ** 2, axis=1))
-#
-#         # calc unit step along ray in x, y, z dims (avoid edge cases where dist == 0)
-#         xyz_step = np.full([len(dist), 3], np.nan)
-#         xyz_step[dist > 0, :] = (ray_1[dist > 0] - ray_bb[dist > 0]) / dist[dist > 0, np.newaxis]
-#
-#         # random offset for each ray sample series
-#         offset = np.random.random(len(ray_1))
-#
-#         # iterate until longest ray length is surpassed
-#         max_step = np.ceil(np.max(dist) / vox.sample_length).astype(int)
-#         for jj in range(0, max_step):
-#             print(str(jj + 1) + ' of ' + str(max_step))
-#             # distance from p0 along ray
-#             sample_dist = (jj + offset) * vox.sample_length
-#
-#             # select rays where t_dist is in range
-#             in_range = (dist > sample_dist)
-#
-#             # calculate tracer point coords for step
-#             sample_points = xyz_step[in_range, :] * sample_dist[in_range, np.newaxis] + ray_bb[in_range]
-#
-#             if np.size(sample_points) != 0:
-#                 # add counts to voxel_samples
-#                 vox = add_points_to_voxels(vox, "samples", sample_points)
-#
-#             if fail_overflow:
-#                 past_max = current_max
-#                 past_max_args = current_max_args
-#
-#                 current_max = np.max(vox.sample_data)
-#                 current_max_args = np.where(vox.sample_data == current_max)
-#
-#                 if np.any(vox.sample_data[past_max_args] < past_max):
-#                     raise Exception('Overflow observed in past_max_args decrease, process aborted.\npast_max: ' + str(past_max) + '\ncurrent_max: ' + str(current_max))
-#                 if current_max == valmax:
-#                     raise Exception('Overflow expected based on reaching maximum value, process aborted')
-#
-#         # voxel sample returns
-#         vox = add_points_to_voxels(vox, "returns", ray_1)
-#
-#         # to correct sample_data to unit length (ie. "meters sampled within voxel")
-#         # vox.sample_data = vox.sample_data * vox.sample_length
-#
-#     end = time.time()
-#     print('Ray sampling done in ' + str(end - start) + ' seconds.')
-#
-#     return vox
 
 
 def nb_sample_sum_explicit(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation=False):
@@ -1178,6 +1022,29 @@ def linear_return_model(rays, path_samples, path_returns, agg_sample_length, pri
     return rays
 
 
+def beta_clt(rays, path_samples, path_returns, vox_sample_length, agg_sample_length, prior):
+    # set min value of samples equal to path_returns
+    path_samples[path_samples < path_returns] = path_returns[path_samples < path_returns]
+
+    alpha = prior[0]
+    beta = prior[1]
+    k = path_returns
+    n = path_samples * vox_sample_length / agg_sample_length
+
+    post_a = k + alpha
+    post_b = n + k + beta
+
+    # normal approximation of sum
+    returns_mean = np.nansum(post_a/(post_a + post_b), axis=1)
+    returns_std = np.sqrt(np.nansum(post_a * post_b / ((post_a + post_b) ** 2 * (post_a + post_b + 1)), axis=1))
+
+    rays = rays.assign(returns_mean=returns_mean)
+    rays = rays.assign(returns_median=np.nan)
+    rays = rays.assign(returns_std=returns_std)
+
+    return rays
+
+
 def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior, ray_iterations, method, commentation=False):
     if commentation:
         print('Aggregating voxels over rays:')
@@ -1229,19 +1096,26 @@ def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior, ray_iteratio
         if commentation:
             print(str(ii + 1) + ' of ' + str(max_steps) + ' steps')
 
-    # correct voxel sample distance with vox sample_length
-    path_samples = path_samples * vox.sample_length
-
     if method == 'nb_lookup':
+        # correct voxel sample distance with vox sample_length
+        path_samples = path_samples * vox.sample_length
         rays_out = nb_sample_sum_lookup(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
     elif method == 'nb_combined':
+        # correct voxel sample distance with vox sample_length
+        path_samples = path_samples * vox.sample_length
         rays_out = nb_sample_sum_combined(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
     elif method == 'nb_explicit':
+        # correct voxel sample distance with vox sample_length
+        path_samples = path_samples * vox.sample_length
         rays_out = nb_sample_sum_explicit(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
     elif method == 'linear':
+        # correct voxel sample distance with vox sample_length
+        path_samples = path_samples * vox.sample_length
         rays_out = linear_return_model(rays, path_samples, path_returns, agg_sample_length, prior, commentation)
+    elif method == 'beta':
+        rays_out = beta_clt(rays, path_samples, path_returns, vox.sample_length, agg_sample_length, prior)
     else:
-        raise Exception('Aggregation method not found, process aborted.')
+        raise Exception('Aggregation method "' + method + '" not found, process aborted.')
 
     return rays_out
 
@@ -1388,10 +1262,10 @@ def point_to_hemi_rays(origin, img_size, vox, max_phi=np.pi/2, max_dist=50, min_
     rays = rays.assign(phi=np.sqrt((rays.x_index - img_origin) ** 2 + (rays.y_index - img_origin) ** 2) * max_phi / img_origin)
     rays = rays.assign(theta=np.arctan2((rays.x_index - img_origin), (rays.y_index - img_origin)) + np.pi)
 
-    # remove rays which exceed max_phi (circle
+    # remove rays which exceed max_phi (beyond image horizon)
     rays = rays[rays.phi <= max_phi]
 
-    # calculate cartesian coords of point at r = max_dist along ray
+    # calculate utm coords of point at r = max_dist along ray
     rr0 = min_dist
     x0 = rr0 * np.sin(rays.theta) * np.sin(rays.phi)
     y0 = rr0 * np.cos(rays.theta) * np.sin(rays.phi)
@@ -1405,8 +1279,8 @@ def point_to_hemi_rays(origin, img_size, vox, max_phi=np.pi/2, max_dist=50, min_
     p0 = np.swapaxes(np.array([x0, y0, z0]), 0, 1) + origin
     p1 = np.swapaxes(np.array([x1, y1, z1]), 0, 1) + origin
 
-    # interpolate p1 to bounding box
-    p1_bb = interpolate_to_bounding_box(p0, p1, bb=[vox.origin, vox.max])
+    # interpolate p1 to bounding box of vox
+    p1_bb = interpolate_to_bounding_box(p0, p1, bb=[vox.origin, vox.max], cw_rotation=vox.cw_rotation)
     rays = rays.assign(x0=p0[:, 0], y0=p0[:, 1], z0=p0[:, 2])
     rays = rays.assign(x1=p1_bb[:, 0], y1=p1_bb[:, 1], z1=p1_bb[:, 2])
 
@@ -1437,6 +1311,8 @@ def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False):
 
 
 def subset_vox(pts, vox, buffer):
+
+    # inherit non-spatial attributes
     vox_sub = VoxelObj()
     vox_sub.las_in = vox.las_in
     vox_sub.traj_in = vox.traj_in
@@ -1451,23 +1327,35 @@ def subset_vox(pts, vox, buffer):
     vox_sub.sample_length = vox.sample_length
     vox_sub.step = vox.step
 
+    # convert pts to rotated utm if needed
+    if vox.cw_rotation != 0:
+        pts = np.matmul(pts, z_rotmat(vox.cw_rotation))
+
+    # extent of data in rotated utm
     pnt_min = np.array([np.min(pts[:, 0]),  np.min(pts[:, 1]), np.min(pts[:, 2])])
     pnt_max = np.array([np.max(pts[:, 0]), np.max(pts[:, 1]), np.max(pts[:, 2])])
 
+    # extent of data with buffer in rotated utm
     buff_min = pnt_min - buffer
     buff_max = pnt_max + buffer
 
-    buff_min_vox = np.floor(utm_to_vox(vox, buff_min)).astype(int)
-    buff_max_vox = np.ceil(utm_to_vox(vox, buff_max)).astype(int)
+    # convert to voxel space
+    buff_min_vox = np.floor(utm_to_vox(vox, buff_min, rotation=False)).astype(int)
+    buff_max_vox = np.ceil(utm_to_vox(vox, buff_max, rotation=False)).astype(int)
 
+    # calculate sub_vox min/max
     vox_sub_min = np.max(np.array([buff_min_vox, [0, 0, 0]]), axis=0)
     vox_sub_max = np.min(np.array([buff_max_vox, vox.ncells]), axis=0)
 
-    vox_sub.origin = vox_to_utm(vox, vox_sub_min)
-    vox_sub.max = vox_to_utm(vox, vox_sub_max)
+    vox_sub.origin = vox_to_utm(vox, vox_sub_min, rotation=False)
+    vox_sub.max = vox_to_utm(vox, vox_sub_max, rotation=False)
     vox_sub.ncells = vox_sub_max - vox_sub_min
-    vox_sub.sample_data = vox.sample_data[vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
-    vox_sub.return_data = vox.return_data[vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
+
+
+
+    with h5py.File(vox_sub.vox_hdf5, mode='r') as hf:
+        vox_sub.sample_data = hf['sample_data'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
+        vox_sub.return_data = hf['return_data'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
 
     return vox_sub
 
@@ -1542,8 +1430,8 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
                         "max_phi_rad": rshmeta.max_phi_rad,
                         "min_distance_m": rshmeta.min_distance,
                         "max_distance_m": rshmeta.max_distance,
-                        "prior_a": rshmeta.prior[0],
-                        "prior_b": rshmeta.prior[1],
+                        "agg_method": rshmeta.agg_method,
+                        "prior": str(rshmeta.prior),
                         "created_datetime": None,
                         "computation_time_s": None})
 
@@ -1558,13 +1446,12 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
         log.close()
 
     # export table of rays in grid
-    ii = 0
-    origin = (rshm.x_utm11n[ii], rshm.y_utm11n[ii], rshm.elevation_m[ii])
+    origin = (rshm.x_utm11n[0], rshm.y_utm11n[0], rshm.elevation_m[0])
     # calculate rays
     rays_in = point_to_hemi_rays(origin, rshmeta.img_size, vox, max_phi=rshmeta.max_phi_rad,
                                  max_dist=rshmeta.max_distance, min_dist=rshmeta.min_distance)
     phi_theta_lookup = rays_in.loc[:, ['x_index', 'y_index', 'phi', 'theta']]
-    phi_theta_lookup.to_csv(rshm.file_dir[ii] + "phi_theta_lookup.csv", index=False)
+    phi_theta_lookup.to_csv(rshm.file_dir[0] + "phi_theta_lookup.csv", index=False)
 
     # subset voxel space
     vox_sub = subset_vox(rshm.loc[:, ['x_utm11n', 'y_utm11n', 'elevation_m']].values, vox, rshmeta.max_distance)
@@ -1854,8 +1741,8 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
 # import matplotlib
 # matplotlib.use('TkAgg')
 # import matplotlib.pyplot as plt
-# fig = plt.imshow(template, interpolation='nearest')
-# plt.show(fig)
+# plt.imshow(template[:, :, 0], interpolation='nearest')
+
 #
 # from scipy import misc
 # import imageio

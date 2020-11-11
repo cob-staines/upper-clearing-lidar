@@ -24,10 +24,10 @@ vox.vox_hdf5 = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_
 # vox = lrs.las_to_vox(vox, run_las_traj=False, fail_overflow=False)
 
 # # LOAD VOX
-vox = lrs.load_vox_meta(vox.vox_hdf5, load_data=False)
+vox = lrs.load_vox_meta(vox.vox_hdf5, load_data=True)
 
 
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\lrs_hemi_optimization_r.25_px100_experimental\\'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\lrs_hemi_optimization_r.25_px100_beta\\'
 
 img_lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
 # img_lookup_in = 'C:\\Users\\jas600\\workzone\\data\\las\\hemi_lookup_cleaned.csv'
@@ -55,19 +55,50 @@ pts = pd.DataFrame({'id': img_lookup.filename,
 # # load points
 # pts = pd.read_csv(pts_in)
 
-# configure hemisphere outputs
 rshmeta = lrs.RaySampleHemiMetaObj()
+# self.id = None
+# self.file_name = None
 
-# ray resampling parameters
-# ratio = .05  # ratio of voxel area weight of prior
-# F = .16 * 0.05  # expected footprint area
-# V = np.prod(vox.step)  # volume of each voxel
-mean_path_length = 2 * np.pi / (6 + np.pi) * voxel_length  # mean path length through a voxel cube across angles (m)
-prior_weight = 5  # in units of scans (1 <=> equivalent weight to 1 expected voxel scan)
-# prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
-prior_b = mean_path_length * prior_weight
-prior_a = prior_b * 0.001
-rshmeta.prior = [prior_a, prior_b]
+rshmeta.agg_method = 'beta'
+
+if rshmeta.agg_method == 'nb_lookup':
+    mean_path_length = 2 * np.pi / (6 + np.pi) * voxel_length  # mean path length through a voxel cube across angles (m)
+    prior_weight = 5  # in units of scans (1 <=> equivalent weight to 1 expected voxel scan)
+    prior_b = mean_path_length * prior_weight
+    prior_a = prior_b * 0.01
+    rshmeta.prior = [prior_a, prior_b]
+elif rshmeta.agg_method == 'linear':
+    samps = (vox.sample_data > 0)
+    trans = vox.return_data[samps] // (vox.sample_data[samps] * vox.sample_length)
+    rshmeta.prior = np.var(trans)
+elif rshmeta.agg_method == 'beta':
+    val = (vox.sample_data > 0)  # roughly 50% at .25m
+    ret = vox.return_data[val]
+    sam = vox.sample_data[val]
+    # correct values to be between 0 and 1
+    sam[ret > sam] = ret[ret > sam]
+    mu = np.mean(ret / sam)
+    sig2 = np.var(ret / sam)
+
+    alpha = ((1 - mu)/sig2 - 1/mu) * (mu ** 2)
+    beta = alpha * (1/mu - 1)
+    rshmeta.prior = [alpha, beta]
+else:
+    raise Exception('Aggregation method ' + rshmeta.agg_method + ' unknown.')
+
+# # beta model
+# z = 0  # number of returns in given volume
+# N = 21  # number of samples in given volume
+#
+# post_a = z + alpha
+# post_b = N - z + beta
+#
+# normal approximation of sums
+# mu_i = post_a/(post_a + post_b)
+# S_mu = sum(mu_i)
+# sig2_i = post_a* post_b/((post_a + post_b) **2 * (post_a + post_b + 1))
+# S_sig2 = sum(sig2_i)
+
 rshmeta.ray_sample_length = vox.sample_length
 rshmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
 
