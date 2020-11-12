@@ -1138,9 +1138,6 @@ def rs_gridgen(rsgmeta, vox, initial_index=0):
     # load dem as points
     points_in = dem_to_points(rsgmeta.src_ras_file, rsgmeta.mask_file)
 
-    # load dem as raster template
-    ras_temp = rastools.raster_load(rsgmeta.src_ras_file)
-
     for ii in range(initial_index, len(rsgm)):
         print(str(ii + 1) + " of " + str(len(rsgm)) + ': ', end='')
 
@@ -1167,7 +1164,7 @@ def rs_gridgen(rsgmeta, vox, initial_index=0):
         rays_out = agg_chunk(100000, vox, rays_in, rsgmeta.ray_sample_length, rsgmeta.prior, rsgmeta.ray_iterations, rsgmeta.agg_method, commentation=True)
 
         # format to image
-        ras = ras_temp
+        ras = rastools.raster_load(rsgmeta.src_ras_file)
         ras.band_count = 2
         mean_data = np.full((ras.rows, ras.cols), ras.no_data)
         mean_data[(rays_out.y_index.values, rays_out.x_index.values)] = rays_out.returns_mean
