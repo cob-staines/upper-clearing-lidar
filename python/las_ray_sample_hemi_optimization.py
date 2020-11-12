@@ -20,11 +20,14 @@ vox.step = np.full(3, voxel_length)
 vox.sample_length = voxel_length/np.pi
 vox.vox_hdf5 = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '_r' + str(voxel_length) + 'm_vox.h5')
 
+z_slices = 4
+vox = lrs.las_to_vox(vox, z_slices, run_las_traj=False, fail_overflow=False)
 
-# vox = lrs.las_to_vox(vox, run_las_traj=False, fail_overflow=False)
 
 # # LOAD VOX
-vox = lrs.load_vox_meta(vox.vox_hdf5, load_data=False)
+print('Loading vox... ', end='')
+vox = lrs.load_vox_meta(vox.vox_hdf5, load_data=True)
+print('done')
 
 
 batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\lrs_hemi_optimization_r.25_px100_experimental\\'
@@ -48,44 +51,53 @@ pts = pd.DataFrame({'id': img_lookup.filename,
                     'y_utm11n': img_lookup.ycoordUTM1,
                     'z_m': img_lookup.elevation})
 
-# batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\mb_15_1m_pr.15_os10\\'
-# las_in = "C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_las_proc_classified_merged.las"
-# pts_in = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\1m_dem_points_mb_15.csv'
 
-# # load points
-# pts = pd.read_csv(pts_in)
+rshmeta = lrs.RaySampleGridMetaObj()
 
-# configure hemisphere outputs
-rshmeta = lrs.RaySampleHemiMetaObj()
+rshmeta.agg_method = 'beta'
 
-# ray resampling parameters
-# ratio = .05  # ratio of voxel area weight of prior
-# F = .16 * 0.05  # expected footprint area
-# V = np.prod(vox.step)  # volume of each voxel
-mean_path_length = 2 * np.pi / (6 + np.pi) * voxel_length  # mean path length through a voxel cube across angles (m)
-prior_weight = 5  # in units of scans (1 <=> equivalent weight to 1 expected voxel scan)
-# prior_b = ratio * V / F  # path length required to scan "ratio" of one voxel volume
-prior_b = mean_path_length * prior_weight
-prior_a = prior_b * 0.001
-rshmeta.prior = [prior_a, prior_b]
+print('Calculating prior... ', end='')
+if rshmeta.agg_method == 'nb_lookup':
+    mean_path_length = 2 * np.pi / (6 + np.pi) * voxel_length  # mean path length through a voxel cube across angles (m)
+    prior_weight = 5  # in units of scans (1 <=> equivalent weight to 1 expected voxel scan)
+    prior_b = mean_path_length * prior_weight
+    prior_a = prior_b * 0.01
+    rshmeta.prior = [prior_a, prior_b]
+elif rshmeta.agg_method == 'linear':
+    samps = (vox.sample_data > 0)
+    trans = vox.return_data[samps] // (vox.sample_data[samps] * vox.sample_length)
+    rshmeta.prior = np.var(trans)
+elif rshmeta.agg_method == 'beta':
+    val = (vox.sample_data > 0)  # roughly 50% at .25m
+    rate = vox.return_data[val] / vox.sample_data[val]
+    mu = np.mean(rate)
+    sig2 = np.var(rate)
+
+    alpha = ((1 - mu)/sig2 - 1/mu) * (mu ** 2)
+    beta = alpha * (1/mu - 1)
+    rshmeta.prior = [alpha, beta]
+else:
+    raise Exception('Aggregation method ' + rshmeta.agg_method + ' unknown.')
+print('done')
+
+
 rshmeta.ray_sample_length = vox.sample_length
-rshmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
+# rsgmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
 
-# image dimensions
-#phi_step = (np.pi/2) / (180 * 2)
-rshmeta.img_size = 100  # square, in pixels/ray samples
-#rshmeta.max_phi_rad = phi_step * rshmeta.img_size
-rshmeta.max_phi_rad = np.pi/2
-
-# image geometry
+# ray geometry
+# phi_step = (np.pi / 2) / (180 * 2)
+rshmeta.set_phi_size = 61  # square, in pixels/ray samples
+# rshmeta.set_max_phi_rad = phi_step * rshmeta.set_phi_size
+rshmeta.set_max_phi_rad = np.pi/2
 hemi_m_above_ground = img_lookup.height_m  # meters
 rshmeta.max_distance = 50  # meters
 rshmeta.min_distance = voxel_length * np.sqrt(3)  # meters
 
+# rshmeta.ray_iterations = 100
+
 
 # output file dir
 rshmeta.file_dir = batch_dir + "outputs\\"
-
 if not os.path.exists(rshmeta.file_dir):
     os.makedirs(rshmeta.file_dir)
 
@@ -97,7 +109,6 @@ rshmeta.origin = np.array([pts.x_utm11n,
 rshmeta.file_name = ["las_19_149_id_" + str(id) + ".tif" for id in pts.id]
 
 rshm = lrs.rs_hemigen(rshmeta, vox, initial_index=0)
-# rshm = lrs.rs_hemigen_multiproc(rshmeta, vox, initial_index=0, n_cores=4)
 
 
 # parse results
