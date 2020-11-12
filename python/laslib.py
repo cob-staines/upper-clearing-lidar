@@ -338,7 +338,7 @@ def las_traj(las_in, traj_in, hdf5_path, chunksize=10000000, keep_return='all', 
 
     print('Writing LAS data to HDF5... ', end='')
     with h5py.File(hdf5_path, 'w') as hf:
-        hf.create_dataset('lasData', p0.shape, data=p0.values, chunks=(chunksize, 1))
+        hf.create_dataset('lasData', p0.shape, data=p0.values, chunks=(chunksize, 1), compression='gzip')
         hf.create_dataset('lasData_cols', data=las_cols, dtype=h5py.string_dtype(encoding='utf-8'))
     p0 = None
     print('done')
@@ -438,7 +438,7 @@ def las_traj(las_in, traj_in, hdf5_path, chunksize=10000000, keep_return='all', 
     # save to hdf5 file
     print('Writing interpolated_traj data to HDF5... ', end='')
     with h5py.File(hdf5_path, 'r+') as hf:
-        hf.create_dataset('trajData', traj_interpolated.shape, data=traj_interpolated.values, chunks=(chunksize, 1))
+        hf.create_dataset('trajData', traj_interpolated.shape, data=traj_interpolated.values, chunks=(chunksize, 1), compression='gzip')
         hf.create_dataset('trajData_cols', data=traj_interpolated.columns, dtype=h5py.string_dtype(encoding='utf-8'))
     traj_interpolated = None
     print('done')
@@ -605,4 +605,18 @@ def las_quantile_dem(las_in, ras_template, q, q_out=None, n_out=None, las_ground
 # import matplotlib
 # matplotlib.use('TkAgg')
 # import matplotlib.pyplot as plt
-# plt.imshow(stat_q, interpolation='nearest')
+# # plt.imshow(stat_q, interpolation='nearest')
+# import numpy as np
+#
+# fig = plt.figure(figsize=(10, 10), dpi=100)
+# # ax = plt.subplot(111, polar=True)
+# ax = fig.add_subplot(111, polar=True)
+# ax.set_rmax(90)
+# ax.set_rgrids(np.linspace(0, 90, 7), labels=['', '15$^\circ$', '30$^\circ$', '45$^\circ$', '60$^\circ$', '75$^\circ$', '90$^\circ$'], angle=225)
+# # ax.set_rticks(np.linspace(0, 90, 7))
+# ax.set_theta_zero_location("N")
+# ax.set_theta_direction(-1)
+# # ax.set_thetagrids(np.linspace(0, 360, 8, endpoint=False), labels=['N', '', 'W', '', 'S', '', 'E', ''])
+# ax.set_thetagrids(np.linspace(0, 360, 4, endpoint=False), labels=['N', 'W', 'S', 'E'])
+# ax.grid(True)
+# fig.savefig("C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_axes_grid_10_225.png", transparent=True)
