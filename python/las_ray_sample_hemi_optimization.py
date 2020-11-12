@@ -24,10 +24,12 @@ vox.vox_hdf5 = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_
 # vox = lrs.las_to_vox(vox, run_las_traj=False, fail_overflow=False)
 
 # # LOAD VOX
+print('Loading vox... ', end='')
 vox = lrs.load_vox_meta(vox.vox_hdf5, load_data=True)
+print('done')
 
 
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\lrs_hemi_optimization_r.25_px100_beta\\'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\lrs_hemi_optimization_r.25_px100_beta_pm15.25\\'
 
 img_lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
 # img_lookup_in = 'C:\\Users\\jas600\\workzone\\data\\las\\hemi_lookup_cleaned.csv'
@@ -48,19 +50,12 @@ pts = pd.DataFrame({'id': img_lookup.filename,
                     'y_utm11n': img_lookup.ycoordUTM1,
                     'z_m': img_lookup.elevation})
 
-# batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\mb_15_1m_pr.15_os10\\'
-# las_in = "C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_las_proc_classified_merged.las"
-# pts_in = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\1m_dem_points_mb_15.csv'
-
-# # load points
-# pts = pd.read_csv(pts_in)
 
 rshmeta = lrs.RaySampleHemiMetaObj()
-# self.id = None
-# self.file_name = None
 
 rshmeta.agg_method = 'beta'
 
+print('Calculating prior... ', end='')
 if rshmeta.agg_method == 'nb_lookup':
     mean_path_length = 2 * np.pi / (6 + np.pi) * voxel_length  # mean path length through a voxel cube across angles (m)
     prior_weight = 5  # in units of scans (1 <=> equivalent weight to 1 expected voxel scan)
@@ -73,42 +68,27 @@ elif rshmeta.agg_method == 'linear':
     rshmeta.prior = np.var(trans)
 elif rshmeta.agg_method == 'beta':
     val = (vox.sample_data > 0)  # roughly 50% at .25m
-    ret = vox.return_data[val]
-    sam = vox.sample_data[val]
-    # correct values to be between 0 and 1
-    sam[ret > sam] = ret[ret > sam]
-    mu = np.mean(ret / sam)
-    sig2 = np.var(ret / sam)
+    rate = vox.return_data[val] / vox.sample_data[val]
+    mu = np.mean(rate)
+    sig2 = np.var(rate)
 
     alpha = ((1 - mu)/sig2 - 1/mu) * (mu ** 2)
     beta = alpha * (1/mu - 1)
     rshmeta.prior = [alpha, beta]
 else:
     raise Exception('Aggregation method ' + rshmeta.agg_method + ' unknown.')
+print('done')
 
-# # beta model
-# z = 0  # number of returns in given volume
-# N = 21  # number of samples in given volume
-#
-# post_a = z + alpha
-# post_b = N - z + beta
-#
-# normal approximation of sums
-# mu_i = post_a/(post_a + post_b)
-# S_mu = sum(mu_i)
-# sig2_i = post_a* post_b/((post_a + post_b) **2 * (post_a + post_b + 1))
-# S_sig2 = sum(sig2_i)
 
 rshmeta.ray_sample_length = vox.sample_length
-rshmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
+# rshmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
 
-# image dimensions
-#phi_step = (np.pi/2) / (180 * 2)
+
+# ray geometry
+#phi_step = (np.pi / 2) / (180 * 2)
 rshmeta.img_size = 100  # square, in pixels/ray samples
 #rshmeta.max_phi_rad = phi_step * rshmeta.img_size
 rshmeta.max_phi_rad = np.pi/2
-
-# image geometry
 hemi_m_above_ground = img_lookup.height_m  # meters
 rshmeta.max_distance = 50  # meters
 rshmeta.min_distance = voxel_length * np.sqrt(3)  # meters
@@ -116,7 +96,6 @@ rshmeta.min_distance = voxel_length * np.sqrt(3)  # meters
 
 # output file dir
 rshmeta.file_dir = batch_dir + "outputs\\"
-
 if not os.path.exists(rshmeta.file_dir):
     os.makedirs(rshmeta.file_dir)
 
@@ -167,27 +146,29 @@ cnlog.to_csv(cnlog.file_dir[0] + "contact_number_optimization.csv")
 
 ###
 # #
-# import matplotlib
-# matplotlib.use('TkAgg')
-# import matplotlib.pyplot as plt
-# import tifffile as tif
-# ii = 0
-# img = tif.imread(rshmeta.file_dir + rshmeta.file_name[ii])
-# cn = img[:, :, 1] * 0.02268
-# cv = img[:, :, 2] / img[:, :, 0]
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+import tifffile as tif
+ii = 0
+img = tif.imread(rshmeta.file_dir + rshmeta.file_name[ii])
+cmn = img[:, :, 0] * 0.1953
+cst = img[:, :, 2] * 0.1953
+#
 #
 #
 #
 # fig, axs = plt.subplots(1, 2, figsize=(10, 5))
 # ax1, ax2 = axs.ravel()
-#
-# im1 = ax1.imshow(cn, interpolation='nearest', cmap='Greys', norm=matplotlib.colors.LogNorm())
+# #
+# im1 = ax1.imshow(cmn, interpolation='nearest', cmap='Greys', norm=matplotlib.colors.LogNorm())
 # ax1.set_title("Contact number")
 # ax1.set_axis_off()
 #
-# im2 = ax2.imshow(cv, interpolation='nearest', cmap='Greys', norm=matplotlib.colors.LogNorm())
-# ax2.set_title("Coefficient of variation")
+# im2 = ax2.imshow(cst, interpolation='nearest', cmap='Greys', norm=matplotlib.colors.LogNorm())
+# ax2.set_title("Standard deviation of contact number")
 # ax2.set_axis_off()
+# fig.colorbar(im2, cax=ax2)
 #
 # ##
 # from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -212,39 +193,15 @@ cnlog.to_csv(cnlog.file_dir[0] + "contact_number_optimization.csv")
 # fig.savefig(rshmeta.file_dir + 'contact_num_plot_' + rshmeta.file_name[ii] + '.png')
 
 ##
-
-# modeling beam reflectance with gamma prior
-# mean = k * theta
-# var = k * theta ^2
-# theta = var / mean (or cv...)
-# k = mean / theta = mean^2 / var
-
-# trans = np.sort(vox.return_data[vox.sample_data > 0] / vox.sample_data[vox.sample_data > 0])
-# mm = np.mean(trans * vox.sample_length)
-# vv = np.var(trans * vox.sample_length)
-# theta = vv / mm
-# kk = mm ** 2 / vv
-# prior = (kk, theta)
 #
-# kk = 100  # returns
-# nn = 100  # samples
-#
-# # post_a = kk ** 3/((nn ** 2) * prior[0] * prior[1] ** 2) + prior[0]
-# # post_b = 1 / (kk ** 2 / (prior[0] * prior[1] ** 2 * nn) + 1 / prior[1])
-#
-# # fails for kk=0... should not!
-#
-# post_a = 1 / (nn * prior[0] * prior[1] ** 2 / kk ** 2 + 1 / prior[0])
-# post_b = prior[0] * prior[1] ** 2 / kk + prior[1]
-# peace = np.random.gamma(post_a, post_b, 10000)
-# np.mean(peace)
-# np.var(peace)
-#
-# q999 = np.quantile(trans, .999)
-# # set ceiling on trans by adjusting samples...
-#
+# val = vox.sample_data > 0
+# kk = vox.return_data[val]
+# nn = vox.sample_data[val]
+# nn[nn < kk] = kk[nn < kk]
+# pp = kk / nn
+# #
 # import matplotlib
 # matplotlib.use('TkAgg')
 # import matplotlib.pyplot as plt
-# plt.hist(trans, bins=500)
+# plt.hist(pp, bins=500)
 

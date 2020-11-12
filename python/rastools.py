@@ -29,6 +29,10 @@ class rasterObj(object):
         # cell-centered affine transformation
         self.T1 = self.T0 * Affine.translation(0.5, 0.5)
 
+    def copy(self):
+        from copy import deepcopy
+        return deepcopy(self)
+
 
 def raster_load(ras_in):
     # takes in path for georaster file, returns raster objects with following attributes:
@@ -262,31 +266,6 @@ def csv_sample_raster(ras_in, pts_in, pts_out, pts_xcoord_name, pts_ycoord_name,
     # write to file
     pts.to_csv(pts_out, index=False, na_rep=sample_no_data_value)
 
-# rewrite if needed using raster to pd, opd to hdf5, no vaex dependence
-# def raster_to_hdf5(ras_in, hdf5_out, data_col_name="data"):
-#     import numpy as np
-#     import vaex
-#
-#     ras = raster_load(ras_in)
-#
-#     row_map = np.full_like(ras.data, 0).astype(int)
-#     for ii in range(0, ras.rows):
-#         row_map[ii, :] = ii
-#     col_map = np.full_like(ras.data, 0).astype(int)
-#     for ii in range(0, ras.cols):
-#         col_map[:, ii] = ii
-#
-#     index_x = np.reshape(col_map, [ras.rows * ras.cols])
-#     index_y = np.reshape(row_map, [ras.rows * ras.cols])
-#     coords = ras.T1 * (index_x, index_y)
-#
-#     # add to vaex_df
-#     df = vaex.from_arrays(index_x=index_x, index_y=index_y, UTM11N_x=coords[0], UTM11N_y=coords[1])
-#     df.add_column(data_col_name, np.reshape(ras.data, [ras.rows * ras.cols]), dtype=None)
-#
-#     # export to file
-#     df.export_hdf5(hdf5_out)
-
 
 def raster_nearest_neighbor(points, ras):
     import numpy as np
@@ -304,6 +283,54 @@ def raster_nearest_neighbor(points, ras):
             distance_map[jj, ii] = distances[nearest_id]
     return index_map, distance_map
 
+
+def clip_raster_to_valid_extent(ras):
+    import numpy as np
+    from affine import Affine
+
+    # test if ras is path or raster_object
+    if isinstance(ras, str):
+        ras_in = ras
+        ras = raster_load(ras_in)
+    elif not isinstance(ras, rasterObj):
+        raise Exception('ras is not an instance of rasterObj or str (filepath), raster_to_pd() aborted.')
+
+    if ras.band_count > 1:
+        # unstack data
+        data = np.full((ras.rows, ras.cols, ras.band_count), ras.no_data)
+        for ii in range(0, ras.band_count):
+            data[:, :, ii] = ras.data[ii]
+        valid = np.where(np.any(data != ras.no_data, axis=2))
+    else:
+        # nest data in list
+        ras.data = [ras.data]
+        valid = np.where(ras.data != ras.no_data)
+
+    yc_min, xc_min = np.min(valid, axis=1)
+    yc_max, xc_max = np.max(valid, axis=1)
+
+    x_min, y_min = ras.T0 * (xc_min, yc_min)
+
+    ras.gt = (x_min, ras.gt[1], ras.gt[2], y_min, ras.gt[4], ras.gt[5])
+
+    new_data = []
+    for ii in range(0, ras.band_count):
+        band = np.full((yc_max - yc_min + 1, xc_max - xc_min + 1), ras.no_data)
+        band[(valid[0] - yc_min, valid[1] - xc_min)] = ras.data[ii][valid]
+        new_data.append(band)
+
+    ras.data = new_data
+
+    ras.rows, ras.cols = ras.data[0].shape
+
+    if ras.band_count == 1:
+        ras.data = ras.data[0]
+
+    ras.T0 = Affine.from_gdal(*ras.gt)
+    # cell-centered affine transformation
+    ras.T1 = ras.T0 * Affine.translation(0.5, 0.5)
+
+    return ras
 
 def raster_to_pd(ras, colnames, include_nans=False):
     import numpy as np
