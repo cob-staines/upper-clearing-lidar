@@ -21,7 +21,7 @@ vox.sample_length = voxel_length/np.pi
 vox.vox_hdf5 = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '_r' + str(voxel_length) + 'm_vox.h5')
 
 z_slices = 4
-vox = lrs.las_to_vox(vox, z_slices, run_las_traj=False, fail_overflow=False)
+# vox = lrs.las_to_vox(vox, z_slices, run_las_traj=False, fail_overflow=False)
 
 
 # # LOAD VOX
@@ -75,9 +75,9 @@ rshmeta.ray_sample_length = vox.sample_length
 
 # ray geometry
 # phi_step = (np.pi / 2) / (180 * 2)
-rshmeta.set_phi_size = 61  # square, in pixels/ray samples
-# rshmeta.set_max_phi_rad = phi_step * rshmeta.set_phi_size
-rshmeta.set_max_phi_rad = np.pi/2
+rshmeta.img_size = 61  # square, in pixels/ray samples
+# rshmeta.max_phi_rad = phi_step * rshmeta.img_size
+rshmeta.max_phi_rad = np.pi/2
 hemi_m_above_ground = 0  # meters
 rshmeta.max_distance = 50  # meters
 rshmeta.min_distance = voxel_length * np.sqrt(3)  # meters

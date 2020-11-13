@@ -228,7 +228,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
 
     print('----- LAS Ray Sampling -----')
 
-    start = time.time()
+    start_time = time.time()
 
     if vox.sample_length > vox.step[0]:
         import warnings
@@ -322,7 +322,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
     # loop over las_traj chunks
     for ii in range(0, n_chunks):
 
-        print('Chunk ' + str(ii + 1) + ' of ' + str(n_chunks))
+        print('Chunk ' + str(ii + 1) + ' of ' + str(n_chunks) + ': ', end='')
 
         # chunk start and end
         idx_start = ii * vox.las_traj_chunksize
@@ -331,7 +331,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
         else:
             idx_end = n_rows
 
-        print('Loading data chunk... ', end='')
+        print('Loading data... ', end='')
         with h5py.File(vox.las_traj_hdf5, 'r') as hf:
             ray_1 = hf['lasData'][idx_start:idx_end, 1:4]
             ray_0 = hf['trajData'][idx_start:idx_end, 1:4]
@@ -345,7 +345,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
 
         # loop over z_slices
         for zz in range(0, z_slices):
-            print('slice ' + str(zz + 1) + ' of ' + str(z_slices))
+            print('\tSlice ' + str(zz + 1) + ' of ' + str(z_slices) + ': ', end='')
             z_low = zz * z_step
             if zz != (z_slices - 1):
                 z_high = (zz + 1) * z_step
@@ -366,6 +366,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
                     sample_slice = hf['sample_data'][:, :, z_low:z_high]
                     return_slice = hf['return_data'][:, :, z_low:z_high]
 
+                print('Counting returns... ', end='')
 
                 # add valid retruns to return slice
                 rtns_valid = rtns_vox[(rtns_vox[:, 2] >= z_low) & (rtns_vox[:, 2] < z_high), :]
@@ -387,10 +388,11 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
                 # random offset for each ray sample series
                 offset = np.random.random(len(z1))
 
+                cur_cent = 0
+
                 # iterate until longest ray length is surpassed
                 max_step = np.ceil(np.max(dist) / vox.sample_length).astype(int)
                 for jj in range(0, max_step):
-                    print(str(jj + 1) + ' of ' + str(max_step))
                     # distance from p0 along ray
                     sample_dist = (jj + offset) * vox.sample_length
 
@@ -425,19 +427,37 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
                         if current_max == valmax:
                             raise Exception('Overflow expected based on reaching maximum value, process aborted')
 
+                    # print progress bar
+                    past_cent = cur_cent
+                    cur_cent = int(100 * (ii + 1) / max_step)
+                    if cur_cent > past_cent:
+                        for kk in range(0, cur_cent - past_cent):
+                            if (past_cent + kk + 1) % 10 == 0:
+                                print(str(past_cent + kk + 1), end='')
+                            else:
+                                print('.', end='')
+
                 # save slice to file
                 with h5py.File(vox.vox_hdf5, mode='r+') as hf:
                     hf['sample_data'][:, :, z_low:z_high] = sample_slice
                     hf['return_data'][:, :, z_low:z_high] = return_slice
 
     if samp_floor_as_returns:
+        print('Setting sample floor as return count... ', end='')
         # set minimum sample count equal to return count
         with h5py.File(vox.vox_hdf5, mode='r+') as hf:
             fix = hf['sample_data'][()] < hf['return_data'][()]
             hf['sample_data'][fix] = hf['return_data'][fix]
+        print('done', end='')
 
-    end = time.time()
-    print('Ray sampling done in ' + str(end - start) + ' seconds.')
+    with h5py.File(vox.vox_hdf5, mode='r') as hf:
+        sample_count = np.sum(hf['sample_data'][()])
+        return_count = np.sum(hf['return_data'][()])
+    vox_count = np.prod(vox.step)
+
+    print("-------- Las Ray Sampling completed--------")
+    print(str(return_count) + " return points and " + str(sample_count) + " sample points stored in " + str(vox_count) + ' voxels.')
+    print('Total time: ' + str(int(time.time() - start_time)) + " seconds")
 
     return vox
 

@@ -13,7 +13,7 @@ photos = merge(photos_lai, photos_meta, by.x='original_file', by.y='filename', a
 photos = photos[, c("original_file", "contactnum_1", "contactnum_2", "contactnum_3", "contactnum_4", "contactnum_5")]
 
 
-rsm_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/synthetic_hemis/batches/lrs_hemi_optimization_r.25_px100_beta/outputs/contact_number_optimization.csv"
+rsm_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/synthetic_hemis/batches/lrs_hemi_optimization_r.25_px361_beta/outputs/contact_number_optimization.csv"
 rsm = read.csv(rsm_in, header=TRUE, na.strings = c("NA",""), sep=",")
 rsm$id = as.character(rsm$id)
 rsm = rsm[, c("id", "rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5", "rsm_med_1", "rsm_med_2", "rsm_med_3", "rsm_med_4", "rsm_med_5")]
@@ -49,13 +49,12 @@ ggplot(df_anal, aes(x=rsm_mean, y=contactnum, color=ring_number)) +
   annotate("text", x=5, y=.15, label=r2, parse=TRUE) +
   labs(title="Contact number from photographic ring analysis vs. expected returns from ray sampling", x='Expected Returns', y='Contact number', color='Ring')
 
-nb_plot
-linear_plot
+
 
 ##
 
 # plot linear against nb
-rsm_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/synthetic_hemis/batches/lrs_hemi_optimization_r.25_px100_linear/outputs/contact_number_optimization.csv"
+rsm_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/synthetic_hemis/batches/lrs_hemi_optimization_r.25_px361_linear/outputs/contact_number_optimization.csv"
 rsm = read.csv(rsm_in, header=TRUE, na.strings = c("NA",""), sep=",")
 rsm$id = as.character(rsm$id)
 rsm_linear = rsm[, c("id", "rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5", "rsm_med_1", "rsm_med_2", "rsm_med_3", "rsm_med_4", "rsm_med_5")]
