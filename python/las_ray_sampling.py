@@ -359,74 +359,76 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
             # cycle through all las_traj data chunks
             z1, z0 = interpolate_to_z_slice(ray_1, ray_bb, z_low_utm, z_high_utm)
 
-            # load slices from vox
-            with h5py.File(vox.vox_hdf5, mode='r') as hf:
-                sample_slice = hf['sample_data'][:, :, z_low:z_high]
-                return_slice = hf['return_data'][:, :, z_low:z_high]
+            if len(z0) > 0:
+
+                # load slices from vox
+                with h5py.File(vox.vox_hdf5, mode='r') as hf:
+                    sample_slice = hf['sample_data'][:, :, z_low:z_high]
+                    return_slice = hf['return_data'][:, :, z_low:z_high]
 
 
-            # add valid retruns to return slice
-            rtns_valid = rtns_vox[(rtns_vox[:, 2] >= z_low) & (rtns_vox[:, 2] < z_high), :]
-            # correct for z_slice offset
-            rtns_valid[:, 2] = rtns_valid[:, 2] - z_low
-            # format
-            rtns_address = (rtns_valid[:, 0], rtns_valid[:, 1], rtns_valid[:, 2])
-            # add points
-            np.add.at(return_slice, rtns_address, 1)
+                # add valid retruns to return slice
+                rtns_valid = rtns_vox[(rtns_vox[:, 2] >= z_low) & (rtns_vox[:, 2] < z_high), :]
+                # correct for z_slice offset
+                rtns_valid[:, 2] = rtns_valid[:, 2] - z_low
+                # format
+                rtns_address = (rtns_valid[:, 0], rtns_valid[:, 1], rtns_valid[:, 2])
+                # add points
+                np.add.at(return_slice, rtns_address, 1)
 
 
-            # calculate length of ray
-            dist = np.sqrt(np.sum((z1 - z0) ** 2, axis=1))
+                # calculate length of ray
+                dist = np.sqrt(np.sum((z1 - z0) ** 2, axis=1))
 
-            # calc unit step along ray in x, y, z dims (avoid edge cases where dist == 0)
-            xyz_step = np.full([len(dist), 3], np.nan)
-            xyz_step[dist > 0, :] = (z1[dist > 0] - z0[dist > 0]) / dist[dist > 0, np.newaxis]
+                # calc unit step along ray in x, y, z dims (avoid edge cases where dist == 0)
+                xyz_step = np.full([len(dist), 3], np.nan)
+                xyz_step[dist > 0, :] = (z1[dist > 0] - z0[dist > 0]) / dist[dist > 0, np.newaxis]
 
-            # random offset for each ray sample series
-            offset = np.random.random(len(z1))
+                # random offset for each ray sample series
+                offset = np.random.random(len(z1))
 
-            # iterate until longest ray length is surpassed
-            max_step = np.ceil(np.max(dist) / vox.sample_length).astype(int)
-            for jj in range(0, max_step):
-                print(str(jj + 1) + ' of ' + str(max_step))
-                # distance from p0 along ray
-                sample_dist = (jj + offset) * vox.sample_length
+                # iterate until longest ray length is surpassed
+                max_step = np.ceil(np.max(dist) / vox.sample_length).astype(int)
+                for jj in range(0, max_step):
+                    print(str(jj + 1) + ' of ' + str(max_step))
+                    # distance from p0 along ray
+                    sample_dist = (jj + offset) * vox.sample_length
 
-                # select rays where t_dist is in range
-                in_range = (dist > sample_dist)
+                    # select rays where t_dist is in range
+                    in_range = (dist > sample_dist)
 
-                # calculate tracer point coords for step
-                sample_points = xyz_step[in_range, :] * sample_dist[in_range, np.newaxis] + z0[in_range]
+                    # calculate tracer point coords for step
+                    sample_points = xyz_step[in_range, :] * sample_dist[in_range, np.newaxis] + z0[in_range]
 
-                if np.size(sample_points) != 0:
-                    # transform samples to vox coords
-                    samps_vox = utm_to_vox(vox, sample_points).astype(int)
+                    if np.size(sample_points) != 0:
+                        # transform samples to vox coords
+                        samps_vox = utm_to_vox(vox, sample_points).astype(int)
 
-                    # correct for z_slice offset
-                    samps_vox[:, 2] = samps_vox[:, 2] - z_low
+                        # correct for z_slice offset
+                        samps_vox[:, 2] = samps_vox[:, 2] - z_low
 
-                    # format
-                    samps_address = (samps_vox[:, 0], samps_vox[:, 1], samps_vox[:, 2])
+                        # format
+                        samps_address = (samps_vox[:, 0], samps_vox[:, 1], samps_vox[:, 2])
 
-                    # add points
-                    np.add.at(sample_slice, samps_address, 1)
+                        # add points
+                        np.add.at(sample_slice, samps_address, 1)
 
-                if fail_overflow:
-                    past_max = current_max
-                    past_max_args = current_max_args
+                    if fail_overflow:
+                        past_max = current_max
+                        past_max_args = current_max_args
 
-                    current_max = np.max(sample_slice)
-                    current_max_args = np.where(sample_slice == current_max)
+                        current_max = np.max(sample_slice)
+                        current_max_args = np.where(sample_slice == current_max)
 
-                    if np.any(sample_slice[past_max_args] < past_max):
-                        raise Exception('Overflow observed in past_max_args decrease, process aborted.\npast_max: ' + str(past_max) + '\ncurrent_max: ' + str(current_max))
-                    if current_max == valmax:
-                        raise Exception('Overflow expected based on reaching maximum value, process aborted')
+                        if np.any(sample_slice[past_max_args] < past_max):
+                            raise Exception('Overflow observed in past_max_args decrease, process aborted.\npast_max: ' + str(past_max) + '\ncurrent_max: ' + str(current_max))
+                        if current_max == valmax:
+                            raise Exception('Overflow expected based on reaching maximum value, process aborted')
 
-            # save slice to file
-            with h5py.File(vox.vox_hdf5, mode='r+') as hf:
-                hf['sample_data'][:, :, z_low:z_high] = sample_slice
-                hf['return_data'][:, :, z_low:z_high] = return_slice
+                # save slice to file
+                with h5py.File(vox.vox_hdf5, mode='r+') as hf:
+                    hf['sample_data'][:, :, z_low:z_high] = sample_slice
+                    hf['return_data'][:, :, z_low:z_high] = return_slice
 
     if samp_floor_as_returns:
         # set minimum sample count equal to return count
