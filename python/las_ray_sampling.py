@@ -309,7 +309,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
 
     z_step = np.ceil(vox.ncells[2] / z_slices).astype(int)
 
-    # memory test of slice size
+    # memory test of slice size (attempt to trigger memory error early)
     m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.sample_dtype)
     m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.return_dtype)
     m_test = None
@@ -445,9 +445,17 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
     if samp_floor_as_returns:
         print('Setting sample floor as return count... ', end='')
         # set minimum sample count equal to return count
-        with h5py.File(vox.vox_hdf5, mode='r+') as hf:
-            fix = hf['sample_data'][()] < hf['return_data'][()]
-            hf['sample_data'][fix] = hf['return_data'][fix]
+        for zz in range(0, z_slices):
+            print('\tSlice ' + str(zz + 1) + ' of ' + str(z_slices) + ': ', end='')
+            z_low = zz * z_step
+            if zz != (z_slices - 1):
+                z_high = (zz + 1) * z_step
+            else:
+                z_high = vox.ncells[2]
+
+            with h5py.File(vox.vox_hdf5, mode='r+') as hf:
+                fix = hf['sample_data'][:, :, z_low:z_high] < hf['return_data'][:, :, z_low:z_high]
+                hf['sample_data'][:, :, z_low:z_high][fix] = hf['return_data'][:, :, z_low:z_high][fix]
         print('done', end='')
 
     with h5py.File(vox.vox_hdf5, mode='r') as hf:
