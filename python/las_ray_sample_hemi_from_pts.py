@@ -100,11 +100,11 @@ rshmeta.file_name = ["las_19_149_id_" + str(id) + ".tif" for id in pts.id]
 rshm = lrs.rs_hemigen(rshmeta, vox, initial_index=0)
 
 ###
-
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-import tifffile as tif
-ii = 0
-peace = tif.imread(rshm.file_dir[ii] + rshm.file_name[ii])
-plt.imshow(peace[:, :, 2], interpolation='nearest')
+#
+# import matplotlib
+# matplotlib.use('TkAgg')
+# import matplotlib.pyplot as plt
+# import tifffile as tif
+# ii = 0
+# peace = tif.imread(rshm.file_dir[ii] + rshm.file_name[ii])
+# plt.imshow(peace[:, :, 2], interpolation='nearest')

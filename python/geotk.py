@@ -87,3 +87,79 @@ def bin_summarize(df, dist_inv_func, bounds, bin_count):
 # stats = geotk.bin_summarize(df, linear_ab, unif_bounds, 25)
 
 # plot
+import pandas as pd
+import numpy as np
+data_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.10m_canopy_19_149.csv'
+data = pd.read_csv(data_in)  # too big... considder leaving unneeded columns out
+
+counts, bins = np.histogram(data.er_p0_mean[~np.isnan(data.er_p0_mean)], bins=50)
+norm = np.sum(counts)
+
+lai_stats = pd.DataFrame({'bin_low': bins[0:-1],
+                          'bin_mid': (bins[0:-1] + bins[1:]) / 2,
+                          'bin_high': bins[1:],
+                          'density': counts / norm,
+                          'log_density': np.log(counts / norm)})
+
+counts, bins = np.histogram(data.er_p0_mean[~np.isnan(data.loc[:, 'dswe_19_045-19_052'])], bins=bins)
+swe_stats = pd.DataFrame({'bin_low': bins[0:-1],
+                          'bin_mid': (bins[0:-1] + bins[1:]) / 2,
+                          'bin_high': bins[1:],
+                          'density': counts / norm,
+                          'log_density': np.log(counts / norm)})
+
+#### rejection sample points
+proposal = 'dswe_19_045-19_052'  # given these values
+sample = 'er_p0_mean'  # sample according to this distribution
+
+nbins = 50
+nsamps = 10000
+# data
+
+# determine bins by equal quantiles of sample(?) data
+lala = pd.qcut(data.loc[~np.isnan(data.loc[:, sample]), sample], q=nbins)
+
+# hist of native sample dist
+samp_count, bins = np.histogram(data.loc[~np.isnan(data.loc[:, sample]), sample], bins=nbins)
+
+
+
+####### resume here -- we can make this more efficient by setting bins to equal quantities
+
+valid = ~np.isnan(data.loc[:, proposal])
+dval = data.loc[valid, :]
+
+pro_count, bins = np.histogram(dval.loc[:, proposal], bins=nbins)
+norm = np.sum(pro_count)
+
+
+
+stats = pd.DataFrame({'bin_low': bins[0:-1],
+                      'bin_mid': (bins[0:-1] + bins[1:]) / 2,
+                      'bin_high': bins[1:],
+                      'prop_dist': pro_count / norm,
+                      'samp_dist': samp_count / norm})
+stats = stats.assign(acceptance_prob=stats.samp_dist / stats.prop_dist)
+# rescale acceptance_prob to maximize acceptance
+stats.acceptance_prob = stats.acceptance_prob / np.max(stats.acceptance_prob)
+
+net_acceptance_prob = stats.acceptance_prob * samp_count
+
+# sample from sample distribution (with or without replacement?)
+if nsamps > len(dval):
+    raise Exception('Number of samples greater than number of candidates, process aborted.')
+
+prop_id = np.random.randint(0, len(dval), nsamps)  # with replacement
+prop_id = np.random.permutation(range(0, len(dval)))[0:nsamps]  # without replacement (nsamps must be less than
+
+bins = np.digitize(dval.loc[:, proposal].iloc[prop_id], bins=bins)
+
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+
+plt.plot(bins[1:], samp_count)
+
+plt.plot(stats.bin_mid, stats.prop_dist)
+plt.plot(stats.bin_mid, stats.samp_dist)
+plt.plot(stats.bin_mid, stats.acceptance_prob)

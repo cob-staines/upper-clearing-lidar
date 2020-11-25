@@ -608,7 +608,7 @@ def las_quantile_dem(las_in, ras_template, q, q_out=None, n_out=None, las_ground
 # # plt.imshow(stat_q, interpolation='nearest')
 # import numpy as np
 #
-# fig = plt.figure(figsize=(10, 10), dpi=100)
+# fig = plt.figure(figsize=(7, 7), dpi=100)
 # # ax = plt.subplot(111, polar=True)
 # ax = fig.add_subplot(111, polar=True)
 # ax.set_rmax(90)
@@ -619,4 +619,4 @@ def las_quantile_dem(las_in, ras_template, q, q_out=None, n_out=None, las_ground
 # # ax.set_thetagrids(np.linspace(0, 360, 8, endpoint=False), labels=['N', '', 'W', '', 'S', '', 'E', ''])
 # ax.set_thetagrids(np.linspace(0, 360, 4, endpoint=False), labels=['N', 'W', 'S', 'E'])
 # ax.grid(True)
-# fig.savefig("C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_axes_grid_10_225.png", transparent=True)
+# fig.savefig("C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_axes_grid_7_225.png", transparent=True)

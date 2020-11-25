@@ -1,6 +1,7 @@
 import las_ray_sampling as lrs
 import numpy as np
 import pandas as pd
+import h5py
 import os
 
 vox = lrs.VoxelObj()
@@ -30,7 +31,7 @@ vox = lrs.load_vox_meta(vox.vox_hdf5, load_data=True)
 print('done')
 
 
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\lrs_hemi_optimization_r.25_px100_beta\\'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta\\'
 
 img_lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
 # img_lookup_in = 'C:\\Users\\jas600\\workzone\\data\\las\\hemi_lookup_cleaned.csv'
@@ -53,6 +54,7 @@ pts = pd.DataFrame({'id': img_lookup.filename,
 
 
 rshmeta = lrs.RaySampleGridMetaObj()
+rshmeta.ray_sample_length = vox.sample_length
 
 rshmeta.agg_method = 'beta'
 
@@ -76,17 +78,40 @@ elif rshmeta.agg_method == 'beta':
     alpha = ((1 - mu)/sig2 - 1/mu) * (mu ** 2)
     beta = alpha * (1/mu - 1)
     rshmeta.prior = [alpha, beta]
+elif rshmeta.agg_method == 'beta_lookup':
+    # calculate  prior
+    val = (vox.sample_data > 0)  # roughly 50% at .25m
+    rate = vox.return_data[val] / vox.sample_data[val]
+    mu = np.mean(rate)
+    sig2 = np.var(rate)
+
+    prior_alpha = ((1 - mu)/sig2 - 1/mu) * (mu ** 2)
+    prior_beta = prior_alpha * (1/mu - 1)
+    rshmeta.prior = [prior_alpha, prior_beta]
+
+
+    # # calculate and write prior lookup
+    # sample_length_correction = vox.sample_length / rshmeta.ray_sample_length
+    # post_dtype = np.float32
+    #
+    # with h5py.File(vox.vox_hdf5, mode='r+') as hf:
+    #     hf.create_dataset('posterior_alpha', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
+    #     hf.create_dataset('posterior_beta', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
+    #
+    #     hf['posterior_alpha'][()] = hf['return_data'][()] + prior_alpha
+    #     hf['posterior_beta'][()] = hf['sample_data'] * sample_length_correction + hf['return_data'][()] + prior_beta
+
 else:
     raise Exception('Aggregation method ' + rshmeta.agg_method + ' unknown.')
 print('done')
 
 
-rshmeta.ray_sample_length = vox.sample_length
+
 # rsgmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
 
 # ray geometry
 # phi_step = (np.pi / 2) / (180 * 2)
-rshmeta.img_size = 100  # square, in pixels/ray samples
+rshmeta.img_size = 181  # square, in pixels/ray samples
 # rshmeta.max_phi_rad = phi_step * rshmeta.img_size
 rshmeta.max_phi_rad = np.pi/2
 hemi_m_above_ground = img_lookup.height_m  # meters
@@ -124,23 +149,23 @@ phi[(np.array(angle_lookup.x_index), np.array(angle_lookup.y_index))] = angle_lo
 phi_bands = [0, 15, 30, 45, 60, 75]
 
 cnlog.loc[:, ["rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5"]] = np.nan
-cnlog.loc[:, ["rsm_med_1", "rsm_med_2", "rsm_med_3", "rsm_med_4", "rsm_med_5"]] = np.nan
+# cnlog.loc[:, ["rsm_med_1", "rsm_med_2", "rsm_med_3", "rsm_med_4", "rsm_med_5"]] = np.nan
 cnlog.loc[:, ["rsm_std_1", "rsm_std_2", "rsm_std_3", "rsm_std_4", "rsm_std_5"]] = np.nan
 for ii in range(0, len(cnlog)):
     img = tif.imread(cnlog.file_dir[ii] + cnlog.file_name[ii])
     mean = img[:, :, 0]
-    med = img[:, :, 1]
-    std = img[:, :, 2]
+    # med = img[:, :, 1]
+    std = img[:, :, 1]
     mean_temp = []
-    med_temp = []
+    # med_temp = []
     std_temp = []
     for jj in range(0, 5):
         mask = (phi >= phi_bands[jj]) & (phi < phi_bands[jj + 1])
         mean_temp.append(np.nanmean(mean[mask]))
-        med_temp.append(np.nanmean(med[mask]))
+        # med_temp.append(np.nanmean(med[mask]))
         std_temp.append(np.nanmean(std[mask]))
     cnlog.loc[ii, ["rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5"]] = mean_temp
-    cnlog.loc[ii, ["rsm_med_1", "rsm_med_2", "rsm_med_3", "rsm_med_4", "rsm_med_5"]] = med_temp
+    # cnlog.loc[ii, ["rsm_med_1", "rsm_med_2", "rsm_med_3", "rsm_med_4", "rsm_med_5"]] = med_temp
     cnlog.loc[ii, ["rsm_std_1", "rsm_std_2", "rsm_std_3", "rsm_std_4", "rsm_std_5"]] = std_temp
 
 cnlog.to_csv(cnlog.file_dir[0] + "contact_number_optimization.csv")
@@ -191,38 +216,6 @@ cnlog.to_csv(cnlog.file_dir[0] + "contact_number_optimization.csv")
 # ax.set_axis_off()
 # fig.savefig(rshmeta.file_dir + 'contact_num_plot_' + rshmeta.file_name[ii] + '.png')
 
-##
-
-# modeling beam reflectance with gamma prior
-# mean = k * theta
-# var = k * theta ^2
-# theta = var / mean (or cv...)
-# k = mean / theta = mean^2 / var
-
-# trans = np.sort(vox.return_data[vox.sample_data > 0] / vox.sample_data[vox.sample_data > 0])
-# mm = np.mean(trans * vox.sample_length)
-# vv = np.var(trans * vox.sample_length)
-# theta = vv / mm
-# kk = mm ** 2 / vv
-# prior = (kk, theta)
-#
-# kk = 100  # returns
-# nn = 100  # samples
-#
-# # post_a = kk ** 3/((nn ** 2) * prior[0] * prior[1] ** 2) + prior[0]
-# # post_b = 1 / (kk ** 2 / (prior[0] * prior[1] ** 2 * nn) + 1 / prior[1])
-#
-# # fails for kk=0... should not!
-#
-# post_a = 1 / (nn * prior[0] * prior[1] ** 2 / kk ** 2 + 1 / prior[0])
-# post_b = prior[0] * prior[1] ** 2 / kk + prior[1]
-# peace = np.random.gamma(post_a, post_b, 10000)
-# np.mean(peace)
-# np.var(peace)
-#
-# q999 = np.quantile(trans, .999)
-# # set ceiling on trans by adjusting samples...
-#
 # import matplotlib
 # matplotlib.use('TkAgg')
 # import matplotlib.pyplot as plt

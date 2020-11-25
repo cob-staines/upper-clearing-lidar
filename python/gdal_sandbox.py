@@ -108,3 +108,7 @@ def sleep_squared(s):
     return s ** 2
 
 sleep_squared(2)
+
+##
+import theano
+print(theano.config.device)

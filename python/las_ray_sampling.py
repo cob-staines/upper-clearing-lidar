@@ -625,7 +625,6 @@ def linear_return_model(rays, path_samples, path_returns, agg_sample_length, pri
     returns_std = np.sqrt(prior / np.nansum(path_samples + agg_sample_length, axis=1))
 
     rays = rays.assign(returns_mean=returns_mean)
-    rays = rays.assign(returns_median=np.nan)
     rays = rays.assign(returns_std=returns_std)
 
     return rays
@@ -644,13 +643,119 @@ def beta_clt(rays, path_samples, path_returns, vox_sample_length, agg_sample_len
     returns_std = np.sqrt(np.nansum(post_a * post_b / ((post_a + post_b) ** 2 * (post_a + post_b + 1)), axis=1))
 
     rays = rays.assign(returns_mean=returns_mean)
-    rays = rays.assign(returns_median=np.nan)
+    rays = rays.assign(returns_std=returns_std)
+
+    return rays
+
+def beta_clt_lookup(rays, path_samples, path_returns):
+
+    post_a = path_returns
+    post_b = path_samples
+
+    # normal approximation of sum
+    returns_mean = np.nansum(post_a/(post_a + post_b), axis=1)
+    returns_std = np.sqrt(np.nansum(post_a * post_b / ((post_a + post_b) ** 2 * (post_a + post_b + 1)), axis=1))
+
+    rays = rays.assign(returns_mean=returns_mean)
     rays = rays.assign(returns_std=returns_std)
 
     return rays
 
 
 def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior, ray_iterations, method, commentation=False):
+
+    # pull points
+    p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
+    p1 = rays.loc[:, ['x1', 'y1', 'z1']].values
+
+
+    # calculate distance between ray start (ground) and end (sky)
+    dist = np.sqrt(np.sum((p1 - p0) ** 2, axis=1))
+    rays = rays.assign(path_length=dist)
+
+    # calc unit step along ray in x, y, z dims
+    xyz_step = (p1 - p0) / dist[:, np.newaxis]
+
+    # random offset for each ray sample series
+    offset = np.random.random(len(p0))
+
+    # calculate number of samples
+    n_samples = ((dist - offset) / agg_sample_length).astype(int)
+    max_steps = np.max(n_samples)
+
+    # preallocate aggregate lists
+    path_samples = np.full([len(p0), max_steps], np.nan)  # precision could be lower if used -1 or...
+    path_returns = np.full([len(p0), max_steps], np.nan)
+
+    # for each sample step
+    if commentation:
+        print('Sampling voxels', end='')
+        cur_cent = 0
+    for ii in range(0, max_steps):
+        # distance from p0 along ray
+        sample_dist = (ii + offset) * agg_sample_length
+
+        # select rays where t_dist is in range
+        in_range = (dist > sample_dist)
+
+        # calculate tracer point coords for step
+        sample_points = xyz_step[in_range, :] * sample_dist[in_range, np.newaxis] + p0[in_range]
+
+        if np.size(sample_points) != 0:
+            # add voxel value to list
+            sample_vox = utm_to_vox(vox, sample_points).astype(int)
+            sample_address = (sample_vox[:, 0], sample_vox[:, 1], sample_vox[:, 2])
+
+            path_samples[in_range, ii] = vox.sample_data[sample_address]
+            path_returns[in_range, ii] = vox.return_data[sample_address]
+
+        if commentation:
+            past_cent = cur_cent
+            cur_cent = int(100 * (ii + 1) / max_steps)
+            if cur_cent > past_cent:
+                for jj in range(0, cur_cent - past_cent):
+                    if (past_cent + jj + 1) % 10 == 0:
+                        print(str(past_cent + jj + 1), end='')
+                    else:
+                        print('.', end='')
+
+    if commentation:
+        print(' -- Calculating returns... ', end='')
+
+    if method == 'beta':
+        rays_out = beta_clt(rays, path_samples, path_returns, vox.sample_length, agg_sample_length, prior)
+    elif method == 'beta_lookup':
+        rays_out = beta_clt_lookup(rays, path_samples, path_returns)
+    else:
+        raise Exception('Not a valid method: ' + method)
+
+    # if method == 'nb_lookup':
+    #     # correct voxel sample distance with vox sample_length
+    #     path_samples = path_samples * vox.sample_length
+    #     rays_out = nb_sample_sum_lookup(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
+    # elif method == 'nb_combined':
+    #     # correct voxel sample distance with vox sample_length
+    #     path_samples = path_samples * vox.sample_length
+    #     rays_out = nb_sample_sum_combined(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
+    # elif method == 'nb_explicit':
+    #     # correct voxel sample distance with vox sample_length
+    #     path_samples = path_samples * vox.sample_length
+    #     rays_out = nb_sample_sum_explicit(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
+    # elif method == 'linear':
+    #     # correct voxel sample distance with vox sample_length
+    #     path_samples = path_samples * vox.sample_length
+    #     rays_out = linear_return_model(rays, path_samples, path_returns, agg_sample_length, prior, commentation)
+    # elif method == 'beta':
+    #     if commentation:
+    #         print(' -- Calculating returns... ', end='')
+    #     rays_out = beta_clt(rays, path_samples, path_returns, vox.sample_length, agg_sample_length, prior)
+    # else:
+    #     raise Exception('Aggregation method "' + method + '" not found, process aborted.')
+
+    return rays_out
+
+
+def aggregate_voxels_over_rays_gpu(vox, rays, agg_sample_length, prior, ray_iterations, method, commentation=False):
 
     # pull points
     p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
@@ -766,7 +871,11 @@ def agg_chunk(chunksize, vox, rays, agg_sample_length, prior, ray_iterations, me
         chunk_rays_in = rays.iloc[idx_start:idx_end, ]
 
         set_pts = np.concatenate((chunk_rays_in.loc[:, ['x0', 'y0', 'z0']].values, chunk_rays_in.loc[:, ['x1', 'y1', 'z1']].values), axis=0)
-        vox_sub = subset_vox(set_pts, vox, 0)
+
+        if method == 'beta_lookup':
+            vox_sub = subset_vox(set_pts, vox, 0, data='posterior')
+        else:
+            vox_sub = subset_vox(set_pts, vox, 0, data='counts')
 
         chunk_rays_out = aggregate_voxels_over_rays(vox_sub, chunk_rays_in, agg_sample_length, prior, ray_iterations, method, commentation)
 
@@ -918,7 +1027,7 @@ def point_to_hemi_rays(origin, vox, img_size, max_phi=np.pi/2, max_dist=50, min_
 def hemi_rays_to_img(rays_out, img_path, img_size, area_factor):
     import imageio
 
-    rays_out = rays_out.assign(transmittance=np.exp(-1 * area_factor * rays_out.returns_median))
+    rays_out = rays_out.assign(transmittance=np.exp(-1 * area_factor * rays_out.returns_mean))
     template = np.full([img_size, img_size], 1.0)
     template[(rays_out.y_index.values, rays_out.x_index.values)] = rays_out.transmittance
 
@@ -938,7 +1047,7 @@ def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False):
     return vox
 
 
-def subset_vox(pts, vox, buffer):
+def subset_vox(pts, vox, buffer, data='counts'):
 
     # inherit non-spatial attributes
     vox_sub = VoxelObj()
@@ -980,10 +1089,16 @@ def subset_vox(pts, vox, buffer):
     vox_sub.ncells = vox_sub_max - vox_sub_min
 
 
-
-    with h5py.File(vox_sub.vox_hdf5, mode='r') as hf:
-        vox_sub.sample_data = hf['sample_data'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
-        vox_sub.return_data = hf['return_data'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
+    if data == 'counts':
+        with h5py.File(vox_sub.vox_hdf5, mode='r') as hf:
+            vox_sub.sample_data = hf['sample_data'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
+            vox_sub.return_data = hf['return_data'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
+    elif data == 'posterior':
+        with h5py.File(vox_sub.vox_hdf5, mode='r') as hf:
+            vox_sub.sample_data = hf['posterior_beta'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
+            vox_sub.return_data = hf['posterior_alpha'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
+    else:
+        raise Exception('invalid specification for "data": ' + str(data))
 
     return vox_sub
 
@@ -1076,7 +1191,12 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
     vector_set.to_csv(rshm.file_dir[0] + "phi_theta_lookup.csv", index=False)
 
     # subset voxel space
-    vox_sub = subset_vox(rshm.loc[:, ['x_utm11n', 'y_utm11n', 'elevation_m']].values, vox, rshmeta.max_distance)
+    if rshmeta.agg_method == 'beta_lookup':
+        data_lookup = 'posterior'
+    else:
+        data_lookup = 'counts'
+
+    vox_sub = subset_vox(rshm.loc[:, ['x_utm11n', 'y_utm11n', 'elevation_m']].values, vox, rshmeta.max_distance, data=data_lookup)
 
     for ii in range(initial_index, len(rshm)):
         print(str(ii + 1) + " of " + str(rshmeta.origin.shape[0]) + ': ', end='')
@@ -1086,7 +1206,7 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
         # calculate rays
         rays_in = point_to_hemi_rays(origin, vox_sub, rshmeta.img_size, rshmeta.max_phi_rad, max_dist=rshmeta.max_distance, min_dist=rshmeta.min_distance)
 
-        # sample rays
+        # # sample rays
         # rays = rays_in
         # agg_sample_length = rshmeta.ray_sample_length
         # prior = rshmeta.prior

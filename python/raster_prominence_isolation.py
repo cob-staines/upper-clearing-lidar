@@ -5,13 +5,14 @@ from scipy import spatial
 from scipy.ndimage.measurements import label, maximum_position
 from skimage.feature import peak_local_max
 from skimage.segmentation import watershed
+import os
 
 # config
-elev_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_all_200311_628000_5646525_spike_free_chm_.10m.bil"
+elev_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\CHM\\19_149_spike_free_chm_r.10m.tif"
 
 # output file naming conventions
-output_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DFT\\"
-file_base = elev_in.split("\\")[-1].replace(".bil", "")
+output_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\DNT\\ras_prom\\"
+file_base = elev_in.split("\\")[-1].replace(".tif", "")
 treetops_out = output_dir + file_base + "_prom_treetops.csv"
 nearest_out = output_dir + file_base + "_prom_nearest.tif"
 distance_out = output_dir + file_base + "_prom_distance_to_tree.tif"
@@ -21,6 +22,12 @@ z_min = 2  # lower elevation limit in elevation units (all cells below will be m
 z_step = 0.25  # vertical resolution of prominence calculation in elevation units
 
 ##
+
+# make output dir
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+
+
 # load raster
 print("Loading raster")
 ras = rastools.raster_load(elev_in)

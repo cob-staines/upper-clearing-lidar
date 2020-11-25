@@ -5,14 +5,21 @@ from PIL import Image
 import pandas as pd
 import tifffile as tif
 
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\lrs_uf_1m\\outputs\\'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_uf_.25m_180px\\outputs\\'
 # batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\mb_15_1m_pr.15_os10\\outputs\\'
+
+log_batch = False
+
+if log_batch:
+    covar_out = batch_dir + "phi_theta_lookup_log_covar.csv"
+else:
+    covar_out = batch_dir + "phi_theta_lookup_covar.csv"
 
 # covar type
 globalBool = False
 localBool = True
 
-scaling_coef = 0.02268
+scaling_coef = 0.19546
 
 # load img meta
 hemimeta = pd.read_csv(batch_dir + 'rshmetalog.csv')
@@ -20,7 +27,7 @@ hemimeta = pd.read_csv(batch_dir + 'rshmetalog.csv')
 imsize = hemimeta.img_size_px[0]
 
 # merge with covariant
-var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\19_050-19_052\\dswe_19_050-19_052_r1.00m.tif'
+var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\19_045-19_052\\dswe_19_045-19_052_r.25m.tif'
 var = rastools.raster_to_pd(var_in, 'covariant')
 hemi_var = pd.merge(hemimeta, var, left_on=('x_utm11n', 'y_utm11n'), right_on=('x_coord', 'y_coord'), how='inner')
 
@@ -31,16 +38,22 @@ phi[(np.array(angle_lookup.x_index), np.array(angle_lookup.y_index))] = angle_lo
 max_phi = 75
 
 
-# filter to desited images
+# filter to desired images
 #hemiList = hemi_swe.loc[(hemi_swe.swe.values >= 0) & (hemi_swe.swe.values <= 150), :]
 hemiList = hemi_var
 
 
 
 imstack = np.full([imsize, imsize, len(hemiList)], np.nan)
-for ii in range(0, len(hemiList)):
-    imstack[:, :, ii] = tif.imread(batch_dir + hemiList.file_name[ii])[:, :, 1] * scaling_coef
-    print(str(ii + 1) + ' of ' + str(len(hemiList)))
+if log_batch:
+    for ii in range(0, len(hemiList)):
+        imstack[:, :, ii] = np.log(tif.imread(batch_dir + hemiList.file_name[ii])[:, :, 1] * scaling_coef)
+        print(str(ii + 1) + ' of ' + str(len(hemiList)))
+else:
+    for ii in range(0, len(hemiList)):
+        imstack[:, :, ii] = tif.imread(batch_dir + hemiList.file_name[ii])[:, :, 1] * scaling_coef
+        print(str(ii + 1) + ' of ' + str(len(hemiList)))
+
 
 # calculate radius to avoid pixels outside of circle
 # im_center = (imsize - 1)/2
@@ -72,6 +85,7 @@ for ii in range(0, imsize):
         if imrange[jj, ii]:
             can = imstack[jj, ii, :]
             can_mu = np.mean(can)
+
             if localBool:
                 localCovar[jj, ii] = np.mean((can - np.mean(can)) * (hemiList.covariant - var_mu))
             if globalBool:
@@ -84,6 +98,14 @@ for ii in range(0, imsize):
 # localCovar = np.load(batch_dir + '_local.npy')
 # globalCovar = np.load(batch_dir + '_global.npy')
 
+angle_lookup_covar = angle_lookup.copy()
+if log_batch:
+    angle_lookup_covar.loc[:, 'log_covar'] = localCovar[angle_lookup_covar.y_index.values, angle_lookup_covar.x_index.values]
+else:
+    angle_lookup_covar.loc[:, 'linear_covar'] = localCovar[angle_lookup_covar.y_index.values, angle_lookup_covar.x_index.values]
+angle_lookup_covar.to_csv(covar_out, index=False)
+
+
 import matplotlib
 matplotlib.use('TkAgg')
 # matplotlib.use('Agg')
@@ -94,10 +116,10 @@ figout = batch_dir + 'covar_plot.png'
 
 fig = plt.figure()
 a = fig.subplots()
-imgplot = plt.imshow(localCovar)
-a.set_title('Covarience of SWE (0-150mm) and contact number\nover hemisphere: phi = [0, 75], theta = [0, 360]')
+# imgplot = plt.imshow(localCovar, cmap=plt.get_cmap('cividis_r'))
+imgplot = plt.imshow(localCovar, cmap=plt.get_cmap('viridis_r'))
+plt.axis('off')
 plt.colorbar()
-
 
 
 fig = plt.figure()

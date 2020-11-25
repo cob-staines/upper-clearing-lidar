@@ -15,7 +15,7 @@ def log_inv(dd):
 
 def linear_ab(x):
     a = .1
-    b = 150
+    b = 10
     return (b - a) * x + a
 
 
@@ -43,10 +43,23 @@ df_in ='C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lida
 df = pd.read_csv(df_in)
 df.loc[:, 'canopy_closure'] = 1 - df.openness
 
-# filter to uf site
-#df_uf = df[df.uf == 1]
-stats = spatial_stats_on_col(df, 'canopy_closure', iterations=1000, replicates=100, nbins=50)
+df.loc[:, 'cn_mean'] = df.loc[:, 'er_p0_mean'] * 0.19546
+df.loc[:, 'cn_sd'] = df.loc[:, 'er_p0_sd'] * 0.19546
 
+df.loc[:, ['cn_mean_ln']] = np.log(df.cn_mean)
+df.loc[:, ['cn_sd_ln']] = df.cn_sd * df.cn_mean_ln / df.cn_mean
+
+
+# filter to cc cutoff
+# df_cc = df[df.canopy_closure >= .75]
+
+# filter to uf site
+df_uf = df[df.uf == 1]
+
+stats_cn = spatial_stats_on_col(df_uf, 'cn_mean', iterations=10000, replicates=100, nbins=50)
+stats_cn_log = spatial_stats_on_col(df_uf, 'cn_mean_ln', iterations=10000, replicates=100, nbins=50)
+stats_dswe = spatial_stats_on_col(df_uf, 'dswe_19_045-19_052', iterations=10000, replicates=100, nbins=50)
+stats_lai = spatial_stats_on_col(df_uf, 'lai_s_cc', iterations=10000, replicates=100, nbins=50)
 
 #####
 import matplotlib
@@ -61,7 +74,7 @@ import matplotlib.pyplot as plt
 # # plt.show()
 #
 # fig, ax = plt.subplots()
-
+stats = stats_cn
 fig = plt.figure()
 axes = fig.add_axes([0.1, 0.1, 0.8, 0.8])
 # adding axes
@@ -69,8 +82,8 @@ axes.scatter(stats.mean_dist, stats.stdev)
 axes.set_ylim([0, np.nanmax(stats.stdev) * 1.1])
 axes.set_xlim([0, np.nanmax(stats.mean_dist) * 1.025])
 plt.xlabel('Distance (m)')
-plt.ylabel('Standard deviation of CC')
-plt.title('Standard deviation of CC with distance\n Upper Forest, n=1000000')
+plt.ylabel('Standard deviation of Contact Number')
+plt.title('Standard deviation of contact number with distance\n Upper Forest, n=1000000')
 plt.show()
 
 
