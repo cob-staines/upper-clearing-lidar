@@ -90,76 +90,108 @@ def bin_summarize(df, dist_inv_func, bounds, bin_count):
 import pandas as pd
 import numpy as np
 data_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.10m_canopy_19_149.csv'
-data = pd.read_csv(data_in)  # too big... considder leaving unneeded columns out
+data = pd.read_csv(data_in)
 
-counts, bins = np.histogram(data.er_p0_mean[~np.isnan(data.er_p0_mean)], bins=50)
-norm = np.sum(counts)
-
-lai_stats = pd.DataFrame({'bin_low': bins[0:-1],
-                          'bin_mid': (bins[0:-1] + bins[1:]) / 2,
-                          'bin_high': bins[1:],
-                          'density': counts / norm,
-                          'log_density': np.log(counts / norm)})
-
-counts, bins = np.histogram(data.er_p0_mean[~np.isnan(data.loc[:, 'dswe_19_045-19_052'])], bins=bins)
-swe_stats = pd.DataFrame({'bin_low': bins[0:-1],
-                          'bin_mid': (bins[0:-1] + bins[1:]) / 2,
-                          'bin_high': bins[1:],
-                          'density': counts / norm,
-                          'log_density': np.log(counts / norm)})
+# counts, bins = np.histogram(data.er_p0_mean[~np.isnan(data.er_p0_mean)], bins=50)
+# norm = np.sum(counts)
+#
+# lai_stats = pd.DataFrame({'bin_low': bins[0:-1],
+#                           'bin_mid': (bins[0:-1] + bins[1:]) / 2,
+#                           'bin_high': bins[1:],
+#                           'density': counts / norm,
+#                           'log_density': np.log(counts / norm)})
+#
+# counts, bins = np.histogram(data.er_p0_mean[~np.isnan(data.loc[:, 'dswe_19_045-19_052'])], bins=bins)
+# swe_stats = pd.DataFrame({'bin_low': bins[0:-1],
+#                           'bin_mid': (bins[0:-1] + bins[1:]) / 2,
+#                           'bin_high': bins[1:],
+#                           'density': counts / norm,
+#                           'log_density': np.log(counts / norm)})
 
 #### rejection sample points
 proposal = 'dswe_19_045-19_052'  # given these values
 sample = 'er_p0_mean'  # sample according to this distribution
 
-nbins = 50
-nsamps = 10000
+nbins = 25
+nsamps = 100000
 # data
 
-# determine bins by equal quantiles of sample(?) data
-lala = pd.qcut(data.loc[~np.isnan(data.loc[:, sample]), sample], q=nbins)
+valid_samp = ~np.isnan(data.loc[:, sample])
+valid_prop = ~np.isnan(data.loc[:, proposal])
+
+# determine bins by equal quantiles of sample data
+scrap, bins = pd.qcut(data.loc[~np.isnan(data.loc[:, sample]), sample], q=nbins, retbins=True)
+# # determine bins by equal interval of sample data
+# scrap, bins = np.histogram(data.loc[valid_samp, sample], bins=nbins)
 
 # hist of native sample dist
-samp_count, bins = np.histogram(data.loc[~np.isnan(data.loc[:, sample]), sample], bins=nbins)
+samp_count, bins = np.histogram(data.loc[valid_samp, sample], bins=bins)
 
-
-
-####### resume here -- we can make this more efficient by setting bins to equal quantities
-
-valid = ~np.isnan(data.loc[:, proposal])
-dval = data.loc[valid, :]
-
-pro_count, bins = np.histogram(dval.loc[:, proposal], bins=nbins)
-norm = np.sum(pro_count)
-
-
+# histogram of observed (valid) sample distribution
+prop_count, bins = np.histogram(data.loc[valid_prop, sample], bins=bins)
 
 stats = pd.DataFrame({'bin_low': bins[0:-1],
                       'bin_mid': (bins[0:-1] + bins[1:]) / 2,
                       'bin_high': bins[1:],
-                      'prop_dist': pro_count / norm,
-                      'samp_dist': samp_count / norm})
-stats = stats.assign(acceptance_prob=stats.samp_dist / stats.prop_dist)
-# rescale acceptance_prob to maximize acceptance
-stats.acceptance_prob = stats.acceptance_prob / np.max(stats.acceptance_prob)
+                      'prop_dist': prop_count/np.sum(prop_count),
+                      'samp_dist': samp_count/np.sum(samp_count)})
 
-net_acceptance_prob = stats.acceptance_prob * samp_count
+stats = stats.assign(dist_ratio=stats.prop_dist / stats.samp_dist)
+stats = stats.assign(samp_scaled=stats.samp_dist * np.min(stats.dist_ratio))
+stats = stats.assign(acc_rate=stats.samp_scaled / stats.prop_dist)
 
-# sample from sample distribution (with or without replacement?)
-if nsamps > len(dval):
-    raise Exception('Number of samples greater than number of candidates, process aborted.')
+total_acc_rate = np.sum(prop_count * stats.acc_rate) / np.sum(prop_count)
 
-prop_id = np.random.randint(0, len(dval), nsamps)  # with replacement
-prop_id = np.random.permutation(range(0, len(dval)))[0:nsamps]  # without replacement (nsamps must be less than
+# randomly sample from valid_prop
+# prop_id = np.random.randint(0, len(data), nsamps)  # with replacement
+prop_samps = np.int(nsamps / total_acc_rate) + 1
 
-bins = np.digitize(dval.loc[:, proposal].iloc[prop_id], bins=bins)
+prop_id = np.random.permutation(range(0, len(data.loc[valid_prop, :])))[0:prop_samps]  # without replacement (nsamps must be less than data length)
+d_prop = data.loc[valid_prop, :].iloc[prop_id, :]
+
+rs = pd.DataFrame({'cat': np.digitize(d_prop.loc[:, sample], bins=bins) - 1,
+                   'seed': np.random.random(len(d_prop))},
+                   index=d_prop.index)
+
+rs = pd.merge(rs, stats.acc_rate, how='left', left_on='cat', right_index=True)
+
+accept = (rs.seed <= rs.acc_rate)
+
+d_samp = d_prop.loc[accept, :]
+
+# evaluate final dist
+
+scrap, bins = np.histogram(data.loc[valid_samp, sample], bins=nbins)
+samp_count, bins = np.histogram(data.loc[valid_samp, sample], bins=bins)
+prop_count, bins = np.histogram(data.loc[valid_prop, sample], bins=bins)
+d_samp_count, bins = np.histogram(d_samp.loc[:, sample], bins=bins)
+
+eval = pd.DataFrame({'bin_low': bins[0:-1],
+                      'bin_mid': (bins[0:-1] + bins[1:]) / 2,
+                      'bin_high': bins[1:],
+                      'prop_dist': prop_count/np.sum(prop_count),
+                      'samp_dist': samp_count/np.sum(samp_count),
+                      'd_samp_dist': d_samp_count/np.sum(d_samp_count)})
+eval = eval.assign(prop_ratio=eval.prop_dist / eval.prop_dist)
+eval = eval.assign(samp_ratio=eval.prop_dist / eval.samp_dist)
+eval = eval.assign(d_samp_ratio=eval.prop_dist / eval.d_samp_dist)
+
 
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
-plt.plot(bins[1:], samp_count)
-
 plt.plot(stats.bin_mid, stats.prop_dist)
 plt.plot(stats.bin_mid, stats.samp_dist)
-plt.plot(stats.bin_mid, stats.acceptance_prob)
+plt.plot(stats.bin_mid, stats.d_samp_dist)
+plt.plot(stats.bin_mid, stats.dist_ratio)
+plt.plot(stats.bin_mid, stats.samp_scaled)
+plt.plot(stats.bin_mid, stats.acc_rate)
+
+plt.plot(eval.bin_mid, eval.prop_ratio)
+plt.plot(eval.bin_mid, eval.samp_ratio)
+plt.plot(eval.bin_mid, eval.d_samp_ratio)
+
+plt.plot(eval.bin_mid, eval.prop_dist)
+plt.plot(eval.bin_mid, eval.samp_dist)
+plt.plot(eval.bin_mid, eval.d_samp_dist)

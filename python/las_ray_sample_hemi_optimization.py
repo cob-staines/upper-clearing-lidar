@@ -1,14 +1,13 @@
 import las_ray_sampling as lrs
 import numpy as np
 import pandas as pd
-import h5py
 import os
 
 vox = lrs.VoxelObj()
 vox.las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las'
-# vox.las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_las_proc_classified_merged.las'
+# vox.las_in = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\19_149_las_proc_classified_merged.las'
 vox.traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
-# vox.traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
+# vox.traj_in = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\19_149_all_traj.txt'
 vox.return_set = 'first'
 vox.drop_class = 7
 vox.las_traj_hdf5 = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '_las_traj.h5')
@@ -54,8 +53,8 @@ pts = pd.DataFrame({'id': img_lookup.filename,
 
 
 rshmeta = lrs.RaySampleGridMetaObj()
-rshmeta.ray_sample_length = vox.sample_length
 
+rshmeta.ray_sample_length = vox.sample_length
 rshmeta.agg_method = 'beta'
 
 print('Calculating prior... ', end='')
@@ -65,6 +64,7 @@ if rshmeta.agg_method == 'nb_lookup':
     prior_b = mean_path_length * prior_weight
     prior_a = prior_b * 0.01
     rshmeta.prior = [prior_a, prior_b]
+    rshmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
 elif rshmeta.agg_method == 'linear':
     samps = (vox.sample_data > 0)
     trans = vox.return_data[samps] // (vox.sample_data[samps] * vox.sample_length)
@@ -79,35 +79,11 @@ elif rshmeta.agg_method == 'beta':
     beta = alpha * (1/mu - 1)
     rshmeta.prior = [alpha, beta]
 elif rshmeta.agg_method == 'beta_lookup':
-    # calculate  prior
-    val = (vox.sample_data > 0)  # roughly 50% at .25m
-    rate = vox.return_data[val] / vox.sample_data[val]
-    mu = np.mean(rate)
-    sig2 = np.var(rate)
-
-    prior_alpha = ((1 - mu)/sig2 - 1/mu) * (mu ** 2)
-    prior_beta = prior_alpha * (1/mu - 1)
-    rshmeta.prior = [prior_alpha, prior_beta]
-
-
-    # # calculate and write prior lookup
-    # sample_length_correction = vox.sample_length / rshmeta.ray_sample_length
-    # post_dtype = np.float32
-    #
-    # with h5py.File(vox.vox_hdf5, mode='r+') as hf:
-    #     hf.create_dataset('posterior_alpha', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
-    #     hf.create_dataset('posterior_beta', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
-    #
-    #     hf['posterior_alpha'][()] = hf['return_data'][()] + prior_alpha
-    #     hf['posterior_beta'][()] = hf['sample_data'] * sample_length_correction + hf['return_data'][()] + prior_beta
-
+    # lrs.beta_lookup_prior_calc(vox, rshmeta.ray_sample_length)
+    pass
 else:
     raise Exception('Aggregation method ' + rshmeta.agg_method + ' unknown.')
 print('done')
-
-
-
-# rsgmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
 
 # ray geometry
 # phi_step = (np.pi / 2) / (180 * 2)
@@ -117,8 +93,6 @@ rshmeta.max_phi_rad = np.pi/2
 hemi_m_above_ground = img_lookup.height_m  # meters
 rshmeta.max_distance = 50  # meters
 rshmeta.min_distance = voxel_length * np.sqrt(3)  # meters
-
-# rshmeta.ray_iterations = 100
 
 
 # output file dir

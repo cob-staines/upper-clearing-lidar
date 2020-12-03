@@ -41,6 +41,7 @@ mask_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\l
 
 rsgmeta = lrs.RaySampleGridMetaObj()
 
+rsgmeta.ray_sample_length = vox.sample_length
 rsgmeta.agg_method = 'beta'
 
 print('Calculating prior... ', end='')
@@ -50,6 +51,7 @@ if rsgmeta.agg_method == 'nb_lookup':
     prior_b = mean_path_length * prior_weight
     prior_a = prior_b * 0.01
     rsgmeta.prior = [prior_a, prior_b]
+    rsgmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
 elif rsgmeta.agg_method == 'linear':
     samps = (vox.sample_data > 0)
     trans = vox.return_data[samps] // (vox.sample_data[samps] * vox.sample_length)
@@ -63,13 +65,12 @@ elif rsgmeta.agg_method == 'beta':
     alpha = ((1 - mu)/sig2 - 1/mu) * (mu ** 2)
     beta = alpha * (1/mu - 1)
     rsgmeta.prior = [alpha, beta]
+elif rsgmeta.agg_method == 'beta_lookup':
+    # lrs.beta_lookup_prior_calc(vox, rshmeta.ray_sample_length)
+    pass
 else:
     raise Exception('Aggregation method ' + rsgmeta.agg_method + ' unknown.')
 print('done')
-
-
-rsgmeta.ray_sample_length = vox.sample_length
-# rsgmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
 
 # ray geometry
 phi_step = (np.pi / 2) / (180 * 2)

@@ -4,6 +4,8 @@ import laslib
 import rastools
 import time
 import h5py
+import os
+import tifffile as tiff
 
 
 class VoxelObj(object):
@@ -469,6 +471,27 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
 
     return vox
 
+def beta_lookup_prior_calc(vox, ray_sample_length):
+    val = (vox.sample_data > 0)  # roughly 50% at .25m
+    rate = vox.return_data[val] / vox.sample_data[val]
+    mu = np.mean(rate)
+    sig2 = np.var(rate)
+
+    prior_alpha = ((1 - mu)/sig2 - 1/mu) * (mu ** 2)
+    prior_beta = prior_alpha * (1/mu - 1)
+
+
+    # calculate and write prior lookup
+    sample_length_correction = vox.sample_length / ray_sample_length
+    post_dtype = np.float32
+
+    with h5py.File(vox.vox_hdf5, mode='r+') as hf:
+        hf.create_dataset('posterior_alpha', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
+        hf.create_dataset('posterior_beta', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
+
+        hf['posterior_alpha'][()] = hf['return_data'][()] + prior_alpha
+        hf['posterior_beta'][()] = hf['sample_data'] * sample_length_correction + hf['return_data'][()] + prior_beta
+
 
 def nb_sample_sum_explicit(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation=False):
     if commentation:
@@ -754,96 +777,96 @@ def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior, ray_iteratio
 
     return rays_out
 
+#
+# def aggregate_voxels_over_rays_gpu(vox, rays, agg_sample_length, prior, ray_iterations, method, commentation=False):
+#
+#     # pull points
+#     p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
+#     p1 = rays.loc[:, ['x1', 'y1', 'z1']].values
+#
+#
+#     # calculate distance between ray start (ground) and end (sky)
+#     dist = np.sqrt(np.sum((p1 - p0) ** 2, axis=1))
+#     rays = rays.assign(path_length=dist)
+#
+#     # calc unit step along ray in x, y, z dims
+#     xyz_step = (p1 - p0) / dist[:, np.newaxis]
+#
+#     # random offset for each ray sample series
+#     offset = np.random.random(len(p0))
+#
+#     # calculate number of samples
+#     n_samples = ((dist - offset) / agg_sample_length).astype(int)
+#     max_steps = np.max(n_samples)
+#
+#     # preallocate aggregate lists
+#     path_samples = np.full([len(p0), max_steps], np.nan)  # precision could be lower if used -1 or...
+#     path_returns = np.full([len(p0), max_steps], np.nan)
+#
+#     # for each sample step
+#     if commentation:
+#         print('Sampling voxels', end='')
+#         cur_cent = 0
+#     for ii in range(0, max_steps):
+#         # distance from p0 along ray
+#         sample_dist = (ii + offset) * agg_sample_length
+#
+#         # select rays where t_dist is in range
+#         in_range = (dist > sample_dist)
+#
+#         # calculate tracer point coords for step
+#         sample_points = xyz_step[in_range, :] * sample_dist[in_range, np.newaxis] + p0[in_range]
+#
+#         if np.size(sample_points) != 0:
+#             # add voxel value to list
+#             sample_vox = utm_to_vox(vox, sample_points).astype(int)
+#             sample_address = (sample_vox[:, 0], sample_vox[:, 1], sample_vox[:, 2])
+#
+#             path_samples[in_range, ii] = vox.sample_data[sample_address]
+#             path_returns[in_range, ii] = vox.return_data[sample_address]
+#
+#         if commentation:
+#             past_cent = cur_cent
+#             cur_cent = int(100 * (ii + 1) / max_steps)
+#             if cur_cent > past_cent:
+#                 for jj in range(0, cur_cent - past_cent):
+#                     if (past_cent + jj + 1) % 10 == 0:
+#                         print(str(past_cent + jj + 1), end='')
+#                     else:
+#                         print('.', end='')
+#
+#     if commentation:
+#         print(' -- Calculating returns... ', end='')
+#
+#     rays_out = beta_clt(rays, path_samples, path_returns, vox.sample_length, agg_sample_length, prior)
+#
+#     # if method == 'nb_lookup':
+#     #     # correct voxel sample distance with vox sample_length
+#     #     path_samples = path_samples * vox.sample_length
+#     #     rays_out = nb_sample_sum_lookup(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
+#     # elif method == 'nb_combined':
+#     #     # correct voxel sample distance with vox sample_length
+#     #     path_samples = path_samples * vox.sample_length
+#     #     rays_out = nb_sample_sum_combined(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
+#     # elif method == 'nb_explicit':
+#     #     # correct voxel sample distance with vox sample_length
+#     #     path_samples = path_samples * vox.sample_length
+#     #     rays_out = nb_sample_sum_explicit(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
+#     # elif method == 'linear':
+#     #     # correct voxel sample distance with vox sample_length
+#     #     path_samples = path_samples * vox.sample_length
+#     #     rays_out = linear_return_model(rays, path_samples, path_returns, agg_sample_length, prior, commentation)
+#     # elif method == 'beta':
+#     #     if commentation:
+#     #         print(' -- Calculating returns... ', end='')
+#     #     rays_out = beta_clt(rays, path_samples, path_returns, vox.sample_length, agg_sample_length, prior)
+#     # else:
+#     #     raise Exception('Aggregation method "' + method + '" not found, process aborted.')
+#
+#     return rays_out
+#
 
-def aggregate_voxels_over_rays_gpu(vox, rays, agg_sample_length, prior, ray_iterations, method, commentation=False):
-
-    # pull points
-    p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
-    p1 = rays.loc[:, ['x1', 'y1', 'z1']].values
-
-
-    # calculate distance between ray start (ground) and end (sky)
-    dist = np.sqrt(np.sum((p1 - p0) ** 2, axis=1))
-    rays = rays.assign(path_length=dist)
-
-    # calc unit step along ray in x, y, z dims
-    xyz_step = (p1 - p0) / dist[:, np.newaxis]
-
-    # random offset for each ray sample series
-    offset = np.random.random(len(p0))
-
-    # calculate number of samples
-    n_samples = ((dist - offset) / agg_sample_length).astype(int)
-    max_steps = np.max(n_samples)
-
-    # preallocate aggregate lists
-    path_samples = np.full([len(p0), max_steps], np.nan)  # precision could be lower if used -1 or...
-    path_returns = np.full([len(p0), max_steps], np.nan)
-
-    # for each sample step
-    if commentation:
-        print('Sampling voxels', end='')
-        cur_cent = 0
-    for ii in range(0, max_steps):
-        # distance from p0 along ray
-        sample_dist = (ii + offset) * agg_sample_length
-
-        # select rays where t_dist is in range
-        in_range = (dist > sample_dist)
-
-        # calculate tracer point coords for step
-        sample_points = xyz_step[in_range, :] * sample_dist[in_range, np.newaxis] + p0[in_range]
-
-        if np.size(sample_points) != 0:
-            # add voxel value to list
-            sample_vox = utm_to_vox(vox, sample_points).astype(int)
-            sample_address = (sample_vox[:, 0], sample_vox[:, 1], sample_vox[:, 2])
-
-            path_samples[in_range, ii] = vox.sample_data[sample_address]
-            path_returns[in_range, ii] = vox.return_data[sample_address]
-
-        if commentation:
-            past_cent = cur_cent
-            cur_cent = int(100 * (ii + 1) / max_steps)
-            if cur_cent > past_cent:
-                for jj in range(0, cur_cent - past_cent):
-                    if (past_cent + jj + 1) % 10 == 0:
-                        print(str(past_cent + jj + 1), end='')
-                    else:
-                        print('.', end='')
-
-    if commentation:
-        print(' -- Calculating returns... ', end='')
-
-    rays_out = beta_clt(rays, path_samples, path_returns, vox.sample_length, agg_sample_length, prior)
-
-    # if method == 'nb_lookup':
-    #     # correct voxel sample distance with vox sample_length
-    #     path_samples = path_samples * vox.sample_length
-    #     rays_out = nb_sample_sum_lookup(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
-    # elif method == 'nb_combined':
-    #     # correct voxel sample distance with vox sample_length
-    #     path_samples = path_samples * vox.sample_length
-    #     rays_out = nb_sample_sum_combined(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
-    # elif method == 'nb_explicit':
-    #     # correct voxel sample distance with vox sample_length
-    #     path_samples = path_samples * vox.sample_length
-    #     rays_out = nb_sample_sum_explicit(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
-    # elif method == 'linear':
-    #     # correct voxel sample distance with vox sample_length
-    #     path_samples = path_samples * vox.sample_length
-    #     rays_out = linear_return_model(rays, path_samples, path_returns, agg_sample_length, prior, commentation)
-    # elif method == 'beta':
-    #     if commentation:
-    #         print(' -- Calculating returns... ', end='')
-    #     rays_out = beta_clt(rays, path_samples, path_returns, vox.sample_length, agg_sample_length, prior)
-    # else:
-    #     raise Exception('Aggregation method "' + method + '" not found, process aborted.')
-
-    return rays_out
-
-
-def agg_chunk(chunksize, vox, rays, agg_sample_length, prior, ray_iterations, method, commentation=False):
+def agg_ray_chunk(chunksize, vox, rays, agg_sample_length, prior, ray_iterations, method, commentation=False):
 
     n_rays = len(rays)
 
@@ -1035,7 +1058,7 @@ def hemi_rays_to_img(rays_out, img_path, img_size, area_factor):
     imageio.imsave(img_path, img)
 
 
-def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False):
+def las_to_vox(vox, z_slices, ray_sample_length, run_las_traj=True, fail_overflow=False):
     if run_las_traj:
         # interpolate trajectory
         laslib.las_traj(vox.las_in, vox.traj_in, vox.las_traj_hdf5, vox.las_traj_chunksize, vox.return_set, vox.drop_class)
@@ -1043,6 +1066,8 @@ def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False):
     # sample voxel space from las_traj hdf5
     vox = las_ray_sample_by_z_slice(vox, z_slices, fail_overflow)
     vox.save()
+
+    beta_lookup_prior_calc(vox, ray_sample_length)
 
     return vox
 
@@ -1139,8 +1164,6 @@ class RaySampleGridMetaObj(object):
 
 
 def rs_hemigen(rshmeta, vox, initial_index=0):
-    import os
-    import tifffile as tiff
 
     tot_time = time.time()
 
@@ -1190,21 +1213,32 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
     vector_set = hemi_vectors(rshmeta.img_size, rshmeta.max_phi_rad)
     vector_set.to_csv(rshm.file_dir[0] + "phi_theta_lookup.csv", index=False)
 
+    rshm = rshm_iterate(rshm, rshmeta, vox, log_path)
+
+    print("-------- Ray Sample Hemigen completed--------")
+    print(str(rshmeta.origin.shape[0] - initial_index) + " images generated in " + str(int(time.time() - tot_time)) + " seconds")
+    return rshm
+
+def rshm_iterate(rshm, rshmeta, vox, log_path):
+
     # subset voxel space
     if rshmeta.agg_method == 'beta_lookup':
         data_lookup = 'posterior'
     else:
         data_lookup = 'counts'
 
-    vox_sub = subset_vox(rshm.loc[:, ['x_utm11n', 'y_utm11n', 'elevation_m']].values, vox, rshmeta.max_distance, data=data_lookup)
-
-    for ii in range(initial_index, len(rshm)):
-        print(str(ii + 1) + " of " + str(rshmeta.origin.shape[0]) + ': ', end='')
+    vox_sub = subset_vox(rshm.loc[:, ['x_utm11n', 'y_utm11n', 'elevation_m']].values, vox, rshmeta.max_distance,
+                         data=data_lookup)
+    for ii in range(0, len(rshm)):
+        print(str(ii + 1) + " of " + str(len(rshm)) + ': ', end='')
         it_time = time.time()
 
-        origin = (rshm.x_utm11n[ii], rshm.y_utm11n[ii], rshm.elevation_m[ii])
+        iid = rshm.index[ii]
+
+        origin = (rshm.x_utm11n.iloc[ii], rshm.y_utm11n.iloc[ii], rshm.elevation_m.iloc[ii])
         # calculate rays
-        rays_in = point_to_hemi_rays(origin, vox_sub, rshmeta.img_size, rshmeta.max_phi_rad, max_dist=rshmeta.max_distance, min_dist=rshmeta.min_distance)
+        rays_in = point_to_hemi_rays(origin, vox_sub, rshmeta.img_size, rshmeta.max_phi_rad,
+                                     max_dist=rshmeta.max_distance, min_dist=rshmeta.min_distance)
 
         # # sample rays
         # rays = rays_in
@@ -1213,7 +1247,8 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
         # ray_iterations = rshmeta.ray_iterations
         # commentation = True
         # method = rshmeta.agg_method
-        rays_out = aggregate_voxels_over_rays(vox_sub, rays_in, rshmeta.ray_sample_length, rshmeta.prior, rshmeta.ray_iterations, rshmeta.agg_method, commentation=True)
+        rays_out = aggregate_voxels_over_rays(vox_sub, rays_in, rshmeta.ray_sample_length, rshmeta.prior,
+                                              rshmeta.ray_iterations, rshmeta.agg_method, commentation=True)
 
         # format to image
         template = np.full((rshmeta.img_size, rshmeta.img_size, 2), np.nan)
@@ -1223,19 +1258,96 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
         tiff.imsave(rshm.file_dir.iloc[ii] + rshm.file_name.iloc[ii], template)
 
         # log meta
-        rshm.loc[ii, "created_datetime"] = time.strftime('%Y-%m-%d %H:%M:%S')
-        rshm.loc[ii, "computation_time_s"] = int(time.time() - it_time)
+
+        rshm[iid, "created_datetime"] = time.strftime('%Y-%m-%d %H:%M:%S')
+        rshm[iid, "computation_time_s"] = int(time.time() - it_time)
 
         # write to log file
         rshm.iloc[ii:ii + 1].to_csv(log_path, encoding='utf-8', mode='a', header=False, index=False)
 
-        print("done in " + str(rshm.computation_time_s[ii]) + " seconds")
+        print("done in " + str(rshm.computation_time_s.iloc[ii]) + " seconds")
+
+    return rshm
+
+tile_count_1d = 5
+def rs_hemigen_tile(rshmeta, vox, tile_count_1d):
+
+    tot_time = time.time()
+
+    # handle case with only one output
+    if rshmeta.origin.shape.__len__() == 1:
+        rshmeta.origin = np.array([rshmeta.origin])
+    if type(rshmeta.file_name) == str:
+        rshmeta.file_dir = [rshmeta.file_dir]
+
+    # QC: ensure origins and file_names have same length
+    if rshmeta.origin.shape[0] != rshmeta.file_name.__len__():
+        raise Exception('origin_coords and img_out_path have different lengths, execution halted.')
+
+    rshm = pd.DataFrame({"id": rshmeta.id,
+                        "file_name": rshmeta.file_name,
+                        "file_dir": rshmeta.file_dir,
+                        "x_utm11n": rshmeta.origin[:, 0],
+                        "y_utm11n": rshmeta.origin[:, 1],
+                        "elevation_m": rshmeta.origin[:, 2],
+                        "src_las_file": vox.las_in,
+                        "vox_step": vox.step[0],
+                        "vox_sample_length": vox.sample_length,
+                        "src_return_set": vox.return_set,
+                        "src_drop_class": vox.drop_class,
+                        "ray_sample_length": rshmeta.ray_sample_length,
+                        "ray_iterations": rshmeta.ray_iterations,
+                        "img_size_px": rshmeta.img_size,
+                        "max_phi_rad": rshmeta.max_phi_rad,
+                        "min_distance_m": rshmeta.min_distance,
+                        "max_distance_m": rshmeta.max_distance,
+                        "agg_method": rshmeta.agg_method,
+                        "prior": str(rshmeta.prior),
+                        "created_datetime": np.nan,
+                        "computation_time_s": np.nan})
+
+    # resent index in case of rollover indexing
+    rshm = rshm.reset_index(drop=True)
+
+
+    # export phi_theta_lookup of vectors in grid
+    vector_set = hemi_vectors(rshmeta.img_size, rshmeta.max_phi_rad)
+    vector_set.to_csv(rshm.file_dir[0] + "phi_theta_lookup.csv", index=False)
+
+
+    # iterate here for batch tiling
+    ##
+    import scipy.stats
+    bin_counts, x_bins, y_bins, bin_num = scipy.stats.binned_statistic_2d(rshm.x_utm11n, rshm.y_utm11n, rshm.elevation_m, statistic='count', bins=tile_count_1d)
+    rshm.loc[:, 'tile_id'] = bin_num
+    tiles = np.unique(bin_num)
+    ##
+
+    if not os.path.exists(rshmeta.file_dir + "\\tile_logs\\"):
+        os.makedirs(rshmeta.file_dir + "\\tile_logs\\")
+
+    for tt in tiles:
+
+        # preallocate tile log file
+        log_path = rshmeta.file_dir + "\\tile_logs\\rshmetalog_tile_" + str(tt) + ".csv"
+        if not os.path.exists(log_path):
+            with open(log_path, mode='w', encoding='utf-8') as log:
+                log.write(",".join(rshm.columns) + '\n')
+            log.close()
+
+        rshm_tile = rshm.loc[rshm.tile_id == tt, :].copy()
+
+        rshm_tile = rshm_iterate(rshm_tile, rshmeta, vox, log_path)
+
+        rshm.loc[rshm.tile_id == tt, :] = rshm_tile  # this could be problematic... do I need to maintain this data stream?
+
     print("-------- Ray Sample Hemigen completed--------")
-    print(str(rshmeta.origin.shape[0] - initial_index) + " images generated in " + str(int(time.time() - tot_time)) + " seconds")
+    print(str(rshmeta.origin.shape[0]) + " images generated in " + str(
+        int(time.time() - tot_time)) + " seconds")
+
     return rshm
 
 def rs_gridgen(rsgmeta, vox, initial_index=0):
-    import os
 
     tot_time = time.time()
 
@@ -1311,7 +1423,7 @@ def rs_gridgen(rsgmeta, vox, initial_index=0):
         # ray_iterations = rsgmeta.ray_iterations
         # commentation = True
         # method = rsgmeta.agg_method
-        rays_out = agg_chunk(100000, vox, rays_in, rsgmeta.ray_sample_length, rsgmeta.prior, rsgmeta.ray_iterations, rsgmeta.agg_method, commentation=True)
+        rays_out = agg_ray_chunk(100000, vox, rays_in, rsgmeta.ray_sample_length, rsgmeta.prior, rsgmeta.ray_iterations, rsgmeta.agg_method, commentation=True)
 
         # format to image
         ras = rastools.raster_load(rsgmeta.src_ras_file)

@@ -44,7 +44,7 @@ r2 = paste0("R^2 == ", sprintf("%.5f",summary(rsm_mean_lm)$r.squared))
 
 
 ggplot(df_anal, aes(x=rsm_mean, y=contactnum, color=ring_number)) +
-  geom_point(size = 3) +
+  geom_point(size = 2) +
   geom_abline(intercept = 0, slope = rsm_mean_lm$coefficients['df_anal$rsm_mean']) +
   annotate("text", x=5, y=.20, label=fo, parse=TRUE) +
   annotate("text", x=5, y=.10, label=r2, parse=TRUE) +

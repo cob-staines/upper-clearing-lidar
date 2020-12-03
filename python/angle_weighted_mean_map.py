@@ -14,7 +14,7 @@ covar = covar.loc[~np.isnan(covar.log_covar), :]
 
 # several methods for setting weights
 
-hist, bins = np.histogram(covar, bins=[0,20,40,60,80,100])
+# hist, bins = np.histogram(covar, bins=[0,20,40,60,80,100])
 
 covar.loc[:, 'deg'] = np.digitize(covar.phi, np.arange(0, np.pi / 2, np.pi / 180)) - 1
 
@@ -77,7 +77,11 @@ plt.imshow(lncnw, interpolation='nearest')
 
 plt.scatter(phi_weight.phi, phi_weight.area_weight_cum)
 plt.scatter(phi_weight.phi, phi_weight.area_weight)
+
 plt.scatter(phi_weight.phi, -phi_weight.log_covar)
+plt.scatter(phi_weight.phi, np.sin(2 * phi_weight.phi)/(np.pi * phi_weight.phi ** 2))
+
+
 plt.scatter(phi_weight.phi, 25 * np.max(phi_weight.area_weight) * np.sin(2*phi_weight.phi) / (phi_weight.phi ** 2))
 plt.scatter(phi_weight.phi, 1 / np.sqrt(phi_weight.phi ** 2 + 1))
 plt.scatter(phi_weight.phi, 7 * np.cos(phi_weight.phi) ** 12)

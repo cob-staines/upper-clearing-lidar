@@ -5,9 +5,9 @@ import os
 
 vox = lrs.VoxelObj()
 vox.las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las'
-# vox.las_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_las_proc_classified_merged.las'
+# vox.las_in = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\19_149_las_proc_classified_merged.las'
 vox.traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
-# vox.traj_in = 'C:\\Users\\jas600\\workzone\\data\\las\\19_149_all_traj.txt'
+# vox.traj_in = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\19_149_all_traj.txt'
 vox.return_set = 'first'
 vox.drop_class = 7
 vox.las_traj_hdf5 = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '_las_traj.h5')
@@ -26,12 +26,12 @@ z_slices = 4
 
 # # LOAD VOX
 print('Loading vox... ', end='')
-vox = lrs.load_vox_meta(vox.vox_hdf5, load_data=True)
+vox = lrs.load_vox_meta(vox.vox_hdf5, load_data=False)
 print('done')
 
 
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\lrs_uf_1m\\'
-pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\1m_dem_points_uf.csv"
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_mb_15_r.25_px181_test\\'
+pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\dem_r.25_points_mb_15.csv"
 
 
 # batch_dir = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\batches\\lrs_uf_1m\\'
@@ -43,7 +43,8 @@ pts = pd.read_csv(pts_in)
 
 rshmeta = lrs.RaySampleGridMetaObj()
 
-rshmeta.agg_method = 'beta'
+rshmeta.ray_sample_length = vox.sample_length
+rshmeta.agg_method = 'beta_lookup'
 
 print('Calculating prior... ', end='')
 if rshmeta.agg_method == 'nb_lookup':
@@ -52,6 +53,7 @@ if rshmeta.agg_method == 'nb_lookup':
     prior_b = mean_path_length * prior_weight
     prior_a = prior_b * 0.01
     rshmeta.prior = [prior_a, prior_b]
+    rshmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
 elif rshmeta.agg_method == 'linear':
     samps = (vox.sample_data > 0)
     trans = vox.return_data[samps] // (vox.sample_data[samps] * vox.sample_length)
@@ -65,24 +67,21 @@ elif rshmeta.agg_method == 'beta':
     alpha = ((1 - mu)/sig2 - 1/mu) * (mu ** 2)
     beta = alpha * (1/mu - 1)
     rshmeta.prior = [alpha, beta]
+elif rshmeta.agg_method == 'beta_lookup':
+    # lrs.beta_lookup_prior_calc(vox, rshmeta.ray_sample_length)
+    pass
 else:
     raise Exception('Aggregation method ' + rshmeta.agg_method + ' unknown.')
 print('done')
 
-
-rshmeta.ray_sample_length = vox.sample_length
-# rsgmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
-
 # ray geometry
 # phi_step = (np.pi / 2) / (180 * 2)
-rshmeta.img_size = 61  # square, in pixels/ray samples
+rshmeta.img_size = 181  # square, in pixels/ray samples
 # rshmeta.max_phi_rad = phi_step * rshmeta.img_size
 rshmeta.max_phi_rad = np.pi/2
 hemi_m_above_ground = 0  # meters
 rshmeta.max_distance = 50  # meters
 rshmeta.min_distance = voxel_length * np.sqrt(3)  # meters
-
-# rshmeta.ray_iterations = 100
 
 
 # output file dir
