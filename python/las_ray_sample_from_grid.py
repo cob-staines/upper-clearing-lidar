@@ -12,7 +12,7 @@ vox.return_set = 'first'
 vox.drop_class = 7
 vox.las_traj_hdf5 = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '_las_traj.h5')
 vox.sample_precision = np.uint32
-vox.return_precision = np.uint16
+vox.return_precision = np.uint32
 vox.las_traj_chunksize = 10000000
 vox.cw_rotation = -34 * np.pi / 180
 voxel_length = .25
@@ -30,7 +30,7 @@ vox = lrs.load_vox_meta(vox.vox_hdf5, load_data=True)
 print('done')
 
 
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_mb_15_dem_.25m_single_runs\\'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_mb_15_dem_.25m_single_runs_test\\'
 dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\DEM\\interpolated\\19_149_dem_interpolated_r.25m.tif"
 mask_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\mb_15_plot_r.25m.tif"
 
@@ -42,7 +42,7 @@ mask_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\l
 rsgmeta = lrs.RaySampleGridMetaObj()
 
 rsgmeta.ray_sample_length = vox.sample_length
-rsgmeta.agg_method = 'beta'
+rsgmeta.agg_method = 'beta_lookup'
 
 print('Calculating prior... ', end='')
 if rsgmeta.agg_method == 'nb_lookup':

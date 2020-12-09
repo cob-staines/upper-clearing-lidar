@@ -1,17 +1,16 @@
 import rastools
-import os
 import numpy as np
-from PIL import Image
 import pandas as pd
 import tifffile as tif
 
 batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_uf_.25m_180px\\outputs\\'
 # batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\mb_15_1m_pr.15_os10\\outputs\\'
 
-log_batch = False
+log_batch = True
 
 if log_batch:
-    covar_out = batch_dir + "phi_theta_lookup_log_covar.csv"
+    covar_out = batch_dir + "phi_theta_lookup_log_covar_training.csv"
+    weighted_cn_out = batch_dir + "rshmetalog_weighted_cn.csv"
 else:
     covar_out = batch_dir + "phi_theta_lookup_covar.csv"
 
@@ -35,12 +34,16 @@ hemi_var = pd.merge(hemimeta, var, left_on=('x_utm11n', 'y_utm11n'), right_on=('
 angle_lookup = pd.read_csv(batch_dir + "phi_theta_lookup.csv")
 phi = np.full((imsize, imsize), np.nan)
 phi[(np.array(angle_lookup.x_index), np.array(angle_lookup.y_index))] = angle_lookup.phi * 180 / np.pi
-max_phi = 75
+max_phi = 90
 
 
 # filter to desired images
 #hemiList = hemi_swe.loc[(hemi_swe.swe.values >= 0) & (hemi_swe.swe.values <= 150), :]
-hemiList = hemi_var
+
+# delineate training set and test set
+set_param = np.random.random(len(hemi_var))
+hemi_var.loc[:, 'training_set'] = set_param < 1
+hemiList = hemi_var.loc[hemi_var.training_set, :].reset_index()
 
 
 
@@ -103,8 +106,32 @@ if log_batch:
     angle_lookup_covar.loc[:, 'log_covar'] = localCovar[angle_lookup_covar.y_index.values, angle_lookup_covar.x_index.values]
 else:
     angle_lookup_covar.loc[:, 'linear_covar'] = localCovar[angle_lookup_covar.y_index.values, angle_lookup_covar.x_index.values]
+
+angle_lookup_covar.loc[:, "abs_log_covar"] = np.abs(angle_lookup_covar.log_covar)
+angle_lookup_covar.loc[:, "abs_log_covar_weight"] = angle_lookup_covar.log_covar / np.sum(angle_lookup_covar.loc[:, "abs_log_covar"])
+angle_lookup_covar.loc[:, "sqr_log_covar"] = angle_lookup_covar.log_covar ** 2
+angle_lookup_covar.loc[:, "sqr_log_covar_weight"] = angle_lookup_covar.log_covar / np.sum(angle_lookup_covar.loc[:, "sqr_log_covar"])
+
 angle_lookup_covar.to_csv(covar_out, index=False)
 
+# Calculate weighted CN for all images based on hemisphere
+
+abs_weight = np.full([imsize, imsize], np.nan)
+abs_weight[(angle_lookup_covar.y_index.values, angle_lookup_covar.x_index.values)] = angle_lookup_covar.abs_log_covar_weight.values
+
+sqr_weight = np.full([imsize, imsize], np.nan)
+sqr_weight[(angle_lookup_covar.y_index.values, angle_lookup_covar.x_index.values)] = angle_lookup_covar.sqr_log_covar_weight.values
+
+hemi_var.loc[:, "log_cn_abs_weighted"] = np.nan
+hemi_var.loc[:, "log_cn_sqr_weighted"] = np.nan
+if log_batch:
+    for ii in range(0, len(hemi_var)):
+        temp_im = np.log(tif.imread(batch_dir + hemi_var.file_name[ii])[:, :, 1] * scaling_coef)
+        hemi_var.log_cn_abs_weighted[ii] = np.nansum(-1 * temp_im * abs_weight)
+        hemi_var.log_cn_sqr_weighted[ii] = np.nansum(-1 * temp_im * sqr_weight)
+        print(str(ii + 1) + ' of ' + str(len(hemi_var)))
+
+hemi_var.to_csv(weighted_cn_out, index=False)
 
 import matplotlib
 matplotlib.use('TkAgg')
@@ -117,21 +144,44 @@ figout = batch_dir + 'covar_plot.png'
 fig = plt.figure()
 a = fig.subplots()
 # imgplot = plt.imshow(localCovar, cmap=plt.get_cmap('cividis_r'))
-imgplot = plt.imshow(localCovar, cmap=plt.get_cmap('viridis_r'))
+imgplot = plt.imshow(localCovar, cmap=plt.get_cmap('Purples_r'))
 plt.axis('off')
 plt.colorbar()
 
 
-fig = plt.figure()
-a = fig.add_subplot(1, 2, 1)
-imgplot = plt.imshow(localCovar)
-a.set_title('Covarience (local) of SWE (0-150mm) and Canopy presence')
-plt.colorbar()
-a = fig.add_subplot(1, 2, 2)
-imgplot = plt.imshow(globalCovar)
-a.set_title('Covarience (global) of SWE (0-150mm) and Canopy presence')
-plt.colorbar()
-fig.savefig(figout)
+## visualize weights
+
+plt.imshow(abs_weight, cmap=plt.get_cmap('Purples_r'))
+plt.imshow(sqr_weight, cmap=plt.get_cmap('Purples_r'))
+
+
+# load data
+data_in ='C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_uf_.25m_180px\\outputs\\rshmetalog_weighted_cn.csv'
+hemi_var = pd.read_csv(data_in)
+
+
+# all points
+plt.scatter(hemi_var.covariant, hemi_var.log_cn_weighted)
+# training set
+plt.scatter(hemi_var.covariant[hemi_var.training_set.values], -hemi_var.log_cn_abs_weighted[hemi_var.training_set.values], s=1, alpha=.25)
+# test set
+plt.scatter(hemi_var.covariant[~hemi_var.training_set.values], -hemi_var.log_cn_abs_weighted[~hemi_var.training_set.values], s=1, alpha=.25)
+
+plt.scatter(hemi_var.covariant[~hemi_var.training_set.values], -hemi_var.log_cn_sqr_weighted[~hemi_var.training_set.values], s=1, alpha=.25)
+
+
+##
+#
+# fig = plt.figure()
+# a = fig.add_subplot(1, 2, 1)
+# imgplot = plt.imshow(localCovar)
+# a.set_title('Covarience (local) of SWE (0-150mm) and Canopy presence')
+# plt.colorbar()
+# a = fig.add_subplot(1, 2, 2)
+# imgplot = plt.imshow(globalCovar)
+# a.set_title('Covarience (global) of SWE (0-150mm) and Canopy presence')
+# plt.colorbar()
+# fig.savefig(figout)
 
 
 

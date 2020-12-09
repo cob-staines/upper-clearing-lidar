@@ -112,3 +112,60 @@ if __name__ == '__main__':
 # ##
 # import theano
 # print(theano.config.device)
+
+import pandas as pd
+import numpy as np
+
+# load data
+data_in ='C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.25m_canopy_19_149.csv'
+data = pd.read_csv(data_in)
+
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+
+data = data.loc[data.uf.values == 1, :]
+
+plt.scatter(data.loc[:, "dswe_19_045-19_052"], np.log(data.lai_s_cc), s=1, alpha=.25)
+plt.scatter(data.loc[:, "dswe_19_045-19_052"], np.log(data.er_p0_mean * 0.19546), s=1, alpha=.25)
+
+
+
+fig = plt.figure(figsize=(5, 10))
+ax1 = fig.add_subplot(211)
+
+
+ax1.set_ylabel('ln(Contact Number Weighted)')
+hmm = plt.scatter(data.loc[:, "dswe_19_045-19_052"], np.log(data.cn_weighted), s=1, alpha=.25)
+plt.xlim(-20, 60)
+
+ax2 = fig.add_subplot(212)
+ax2.set_ylabel('DCE')
+hmm = plt.scatter(data.loc[:, "dswe_19_045-19_052"], data.loc[:, "dce"], s=1, alpha=.25)
+plt.xlim(-20, 60)
+
+ax2.set_xlabel('$\Delta$ SWE')
+plt.show()
+
+fig = plt.figure(figsize=(5, 5))
+ax3 = fig.add_subplot(111)
+ax3.set_xlabel('DCE')
+ax3.set_ylabel('ln(Contact Number Weighted)')
+plt.scatter(data.loc[:, "dce"], np.log(data.cn_weighted), s=1, alpha=.25, c='green')
+
+
+
+
+fig, ax = plt.subplot()
+hmm = ax.scatter(data.loc[:, "dswe_19_045-19_052"], np.log(data.cn_weighted), s=1, alpha=.25)
+plt.xlim(-20, 60)
+plt.set_xlabel("$\\Delta SWE")
+plt.set_ylabel("ln(Weighted Contact Number)")
+
+plt.subplot(2, 2, 2)
+plt.scatter(data.loc[:, "dswe_19_045-19_052"], data.loc[:, "dce"], s=1, alpha=.25)
+plt.xlim(-20, 60)
+
+plt.subplot(2,2,3)
+plt.scatter(data.loc[:, "dce"], np.log(data.cn_weighted), s=1, alpha=.25)
+

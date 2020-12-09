@@ -6,6 +6,7 @@ import time
 import h5py
 import os
 import tifffile as tiff
+from tqdm import tqdm
 
 
 class VoxelObj(object):
@@ -180,17 +181,17 @@ def interpolate_to_z_slice(p1, p0, z_low_utm, z_high_utm):
 
     # handle all cases:
 
-    # both points below (neither point meets low criteria)
+    # both points below (neither point meets low criteria, set to nan)
     set = ~q_p0[:, 0] & ~q_p1[:, 0]
     # set to nan
     z0[set, :] = z1[set, :] = np.nan
 
-    # both points above (neither point meets high criteria, throw out)
+    # both points above (neither point meets high criteria, set to nan)
     set = ~q_p0[:, 1] & ~q_p1[:, 1]
     # set to nan
     z0[set, :] = z1[set, :] = np.nan
 
-    # one above, one below (interpolate to high and low)
+    # one above, one below (interpolate above to high and below to low)
     # p0 below, p1 above
     set = ~q_p0[:, 0] & ~q_p1[:, 1]
     z0[set, :] = interp_to_z(p1[set, :], p0[set, :], z_low_utm)
@@ -200,7 +201,7 @@ def interpolate_to_z_slice(p1, p0, z_low_utm, z_high_utm):
     z1[set, :] = interp_to_z(p1[set, :], p0[set, :], z_low_utm)
     z0[set, :] = interp_to_z(p1[set, :], p0[set, :], z_high_utm)
 
-    # both in bounds (pass)
+    # both in bounds (pass as is)
     # set = q_p0[:, 0] & q_p0[:, 1] & q_p1[:, 0] & q_p1[:, 1]
 
     # one in, one below (interpolate below point to low)
@@ -1219,7 +1220,7 @@ def rs_hemigen(rshmeta, vox, initial_index=0):
     print(str(rshmeta.origin.shape[0] - initial_index) + " images generated in " + str(int(time.time() - tot_time)) + " seconds")
     return rshm
 
-def rshm_iterate(rshm, rshmeta, vox, log_path):
+def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, commentation=False):
 
     # subset voxel space
     if rshmeta.agg_method == 'beta_lookup':
@@ -1229,8 +1230,9 @@ def rshm_iterate(rshm, rshmeta, vox, log_path):
 
     vox_sub = subset_vox(rshm.loc[:, ['x_utm11n', 'y_utm11n', 'elevation_m']].values, vox, rshmeta.max_distance,
                          data=data_lookup)
-    for ii in range(0, len(rshm)):
-        print(str(ii + 1) + " of " + str(len(rshm)) + ': ', end='')
+    for ii in tqdm(range(0, len(rshm)), position=process_id, desc=str(process_id), leave=True, ncols=100):
+        if commentation:
+            print(str(ii + 1) + " of " + str(len(rshm)) + ': ', end='')
         it_time = time.time()
 
         iid = rshm.index[ii]
@@ -1248,7 +1250,7 @@ def rshm_iterate(rshm, rshmeta, vox, log_path):
         # commentation = True
         # method = rshmeta.agg_method
         rays_out = aggregate_voxels_over_rays(vox_sub, rays_in, rshmeta.ray_sample_length, rshmeta.prior,
-                                              rshmeta.ray_iterations, rshmeta.agg_method, commentation=True)
+                                              rshmeta.ray_iterations, rshmeta.agg_method, commentation)
 
         # format to image
         template = np.full((rshmeta.img_size, rshmeta.img_size, 2), np.nan)
@@ -1259,18 +1261,18 @@ def rshm_iterate(rshm, rshmeta, vox, log_path):
 
         # log meta
 
-        rshm[iid, "created_datetime"] = time.strftime('%Y-%m-%d %H:%M:%S')
-        rshm[iid, "computation_time_s"] = int(time.time() - it_time)
+        rshm.loc[iid, "created_datetime"] = time.strftime('%Y-%m-%d %H:%M:%S')
+        rshm.loc[iid, "computation_time_s"] = int(time.time() - it_time)
 
         # write to log file
         rshm.iloc[ii:ii + 1].to_csv(log_path, encoding='utf-8', mode='a', header=False, index=False)
 
-        print("done in " + str(rshm.computation_time_s.iloc[ii]) + " seconds")
+        if commentation:
+            print("done in " + str(rshm.computation_time_s.iloc[ii]) + " seconds")
 
     return rshm
 
-tile_count_1d = 5
-def rs_hemigen_tile(rshmeta, vox, tile_count_1d):
+def rs_hemigen_tile(rshmeta, vox, tile_count_1d, n_cores=os.cpu_count()):
 
     tot_time = time.time()
 
@@ -1326,20 +1328,47 @@ def rs_hemigen_tile(rshmeta, vox, tile_count_1d):
     if not os.path.exists(rshmeta.file_dir + "\\tile_logs\\"):
         os.makedirs(rshmeta.file_dir + "\\tile_logs\\")
 
+    from itertools import repeat
+    # from multiprocessing import Process
+    import multiprocessing.pool as mpp
+
+    rshm_list = []
+    log_path_list = []
     for tt in tiles:
 
         # preallocate tile log file
         log_path = rshmeta.file_dir + "\\tile_logs\\rshmetalog_tile_" + str(tt) + ".csv"
+        log_path_list.append(log_path)
         if not os.path.exists(log_path):
             with open(log_path, mode='w', encoding='utf-8') as log:
                 log.write(",".join(rshm.columns) + '\n')
             log.close()
 
         rshm_tile = rshm.loc[rshm.tile_id == tt, :].copy()
+        rshm_list.append(rshm_tile)
 
-        rshm_tile = rshm_iterate(rshm_tile, rshmeta, vox, log_path)
+    # import istarmap
 
-        rshm.loc[rshm.tile_id == tt, :] = rshm_tile  # this could be problematic... do I need to maintain this data stream?
+
+    with mpp.ThreadPool(processes=n_cores) as pool:
+        # for _ in tqdm.tqdm(pool.istarmap(rshm_iterate, zip(rshm_list, repeat(rshmeta), repeat(vox), log_path_list)), total=len(log_path_list)):
+        #     pass
+        mm = pool.starmap(rshm_iterate, zip(rshm_list, repeat(rshmeta), repeat(vox), log_path_list, np.arange(0, len(tiles))))
+
+
+    # rshm_tile = rshm_iterate(rshm_tile, rshmeta, vox, log_path)
+    # rshm.loc[rshm.tile_id == tt, :] = rshm_tile  # this could be problematic... do I need to maintain this data stream?
+
+    # compile log files
+    t_loglist = os.listdir(rshmeta.file_dir + "\\tile_logs\\")
+    log_comp = rshm.copy()
+    log_comp.drop(log_comp.index, inplace=True)
+
+    for ff in t_loglist:
+        temp_log = pd.read_csv(rshmeta.file_dir + "\\tile_logs\\" + ff)
+        log_comp = log_comp.append(temp_log, ignore_index=True)
+
+    log_comp.to_csv(rshmeta.file_dir + "rshmetalog.csv")
 
     print("-------- Ray Sample Hemigen completed--------")
     print(str(rshmeta.origin.shape[0]) + " images generated in " + str(
