@@ -84,11 +84,40 @@ def main():
     rshmeta.max_distance = 50  # meters
     rshmeta.min_distance = voxel_length * np.sqrt(3)  # meters
 
+    # create batch dir (with error handling)
+    # if batch file dir exists
+    if os.path.exists(batch_dir):
+        input_needed = True
+        while input_needed:
+            batch_exist_action = input("Batch file directory already exists. Would you like to: (P)roceed, (E)rase and proceed, or (A)bort? ")
+            if batch_exist_action.upper() == "P":
+                input_needed = False
+            elif batch_exist_action.upper() == "E":
+                file_count = sum(len(files) for _, _, files in os.walk(batch_dir))  # dir is your directory path as string
+                remove_confirmation = input("Remove batch folder with " + str(file_count) + " contained files (Y/N)? ")
+                if remove_confirmation.upper() == "Y":
+                    # delete folder and contents
+                    import shutil
+                    shutil.rmtree(batch_dir)
+                    # recreate dir
+                    os.makedirs(batch_dir)
+                    input_needed = False
+                else:
+                    # return to while loop
+                    pass
+            elif batch_exist_action.upper() == "A":
+                raise Exception("Execution aborted by user input.")
+            else:
+                print("Invalid user input.")
+    else:
+        # create dir
+        os.makedirs(batch_dir)
 
-    # output file dir
+    # create output file dir
     rshmeta.file_dir = batch_dir + "outputs\\"
     if not os.path.exists(rshmeta.file_dir):
         os.makedirs(rshmeta.file_dir)
+
 
     rshmeta.id = pts.id
     rshmeta.origin = np.array([pts.x_utm11n,
@@ -98,7 +127,7 @@ def main():
     rshmeta.file_name = ["las_19_149_id_" + str(id) + ".tif" for id in pts.id]
 
     # rshm = lrs.rs_hemigen(rshmeta, vox)
-    rshm = lrs.rs_hemigen_tile(rshmeta, vox, 5, n_cores=3)
+    rshm = lrs.rs_hemigen_tile(rshmeta, vox, tile_count_1d=5, n_cores=3)
 
     ###
     #

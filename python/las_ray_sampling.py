@@ -1272,7 +1272,7 @@ def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, commentation=False)
 
     return rshm
 
-def rs_hemigen_tile(rshmeta, vox, tile_count_1d, n_cores=os.cpu_count()):
+def rs_hemigen_tile(rshmeta, vox, tile_count_1d=1, n_cores=1):
 
     tot_time = time.time()
 
@@ -1318,13 +1318,12 @@ def rs_hemigen_tile(rshmeta, vox, tile_count_1d, n_cores=os.cpu_count()):
 
 
     # iterate here for batch tiling
-    ##
     import scipy.stats
     bin_counts, x_bins, y_bins, bin_num = scipy.stats.binned_statistic_2d(rshm.x_utm11n, rshm.y_utm11n, rshm.elevation_m, statistic='count', bins=tile_count_1d)
     rshm.loc[:, 'tile_id'] = bin_num
     tiles = np.unique(bin_num)
-    ##
 
+    # create dir for tile log files
     if not os.path.exists(rshmeta.file_dir + "\\tile_logs\\"):
         os.makedirs(rshmeta.file_dir + "\\tile_logs\\")
 
@@ -1347,25 +1346,25 @@ def rs_hemigen_tile(rshmeta, vox, tile_count_1d, n_cores=os.cpu_count()):
         rshm_tile = rshm.loc[rshm.tile_id == tt, :].copy()
         rshm_list.append(rshm_tile)
 
-    # import istarmap
+    if n_cores > 1:
+        with mpp.ThreadPool(processes=n_cores) as pool:
+            mm = pool.starmap(rshm_iterate, zip(rshm_list, repeat(rshmeta), repeat(vox), log_path_list, np.arange(0, len(tiles))))
+    else:
+        for ii in range(0, len(tiles)):
+            rshm_tile = rshm_iterate(rshm_list[ii], rshmeta, vox, log_path_list[ii], ii)
+            # rshm.loc[rshm.tile_id == tt, :] = rshm_tile  # this could be problematic... do I need to maintain this data stream?
 
 
-    with mpp.ThreadPool(processes=n_cores) as pool:
-        # for _ in tqdm.tqdm(pool.istarmap(rshm_iterate, zip(rshm_list, repeat(rshmeta), repeat(vox), log_path_list)), total=len(log_path_list)):
-        #     pass
-        mm = pool.starmap(rshm_iterate, zip(rshm_list, repeat(rshmeta), repeat(vox), log_path_list, np.arange(0, len(tiles))))
 
-
-    # rshm_tile = rshm_iterate(rshm_tile, rshmeta, vox, log_path)
-    # rshm.loc[rshm.tile_id == tt, :] = rshm_tile  # this could be problematic... do I need to maintain this data stream?
-
-    # compile log files
+    # compile img log files
     t_loglist = os.listdir(rshmeta.file_dir + "\\tile_logs\\")
     log_comp = rshm.copy()
     log_comp.drop(log_comp.index, inplace=True)
 
+    temp_log_count = []
     for ff in t_loglist:
         temp_log = pd.read_csv(rshmeta.file_dir + "\\tile_logs\\" + ff)
+        temp_log_count.append(len(temp_log))
         log_comp = log_comp.append(temp_log, ignore_index=True)
 
     log_comp.to_csv(rshmeta.file_dir + "rshmetalog.csv")
