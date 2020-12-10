@@ -44,7 +44,7 @@ def main():
 
     rshmeta = lrs.RaySampleGridMetaObj()
 
-    rshmeta.ray_sample_length = vox.sample_length
+    rshmeta.agg_sample_length = vox.sample_length
     rshmeta.agg_method = 'beta_lookup'
 
     print('Calculating prior... ', end='')

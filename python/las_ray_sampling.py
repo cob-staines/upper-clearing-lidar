@@ -472,7 +472,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
 
     return vox
 
-def beta_lookup_prior_calc(vox, ray_sample_length):
+def beta_lookup_prior_calc(vox, agg_sample_length):
     val = (vox.sample_data > 0)  # roughly 50% at .25m
     rate = vox.return_data[val] / vox.sample_data[val]
     mu = np.mean(rate)
@@ -483,7 +483,7 @@ def beta_lookup_prior_calc(vox, ray_sample_length):
 
 
     # calculate and write prior lookup
-    sample_length_correction = vox.sample_length / ray_sample_length
+    sample_length_correction = vox.sample_length / agg_sample_length
     post_dtype = np.float32
 
     with h5py.File(vox.vox_hdf5, mode='r+') as hf:
@@ -527,7 +527,7 @@ def beta_lookup(rays, path_samples, path_returns):
     return rays
 
 
-def single_ray_agg(vox, rays, agg_sample_length, prior, method, commentation=False):
+def single_ray_agg(vox, rays, agg_sample_length, lookup_db, prior, commentation=False):
 
     # pull points
     p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
@@ -587,17 +587,17 @@ def single_ray_agg(vox, rays, agg_sample_length, prior, method, commentation=Fal
     if commentation:
         print(' -- Calculating returns... ', end='')
 
-    if method == 'beta':
+    if lookup_db == 'count':
         rays_out = beta(rays, path_samples, path_returns, vox.sample_length, agg_sample_length, prior)
-    elif method == 'beta_lookup':
+    elif lookup_db == 'posterior':
         rays_out = beta_lookup(rays, path_samples, path_returns)
     else:
-        raise Exception('Not a valid method: ' + method)
+        raise Exception('Not a valid lookup_db: ' + lookup_db)
 
     return rays_out
 
 
-def agg_ray_chunk(chunksize, vox, rays, agg_sample_length, prior, ray_iterations, method, commentation=False):
+def agg_ray_chunk(chunksize, vox, rays, agg_method, agg_sample_length, lookup_db='posterior', prior=None, commentation=False):
 
     n_rays = len(rays)
 
@@ -610,7 +610,9 @@ def agg_ray_chunk(chunksize, vox, rays, agg_sample_length, prior, ray_iterations
     if n_chunks > 1:
         print("\n\t", end='')
 
-    # chunk las ray_sample
+    all_rays_out = rays[0:0].copy()
+
+    # chunk aggregation
     for ii in range(0, n_chunks):
         if n_chunks > 1:
             print('Chunk ' + str(ii + 1) + ' of ' + str(n_chunks) + ': ', end='')
@@ -622,21 +624,21 @@ def agg_ray_chunk(chunksize, vox, rays, agg_sample_length, prior, ray_iterations
         else:
             idx_end = n_rays
 
+        # extract ray chunk
         chunk_rays_in = rays.iloc[idx_start:idx_end, ]
-
         set_pts = np.concatenate((chunk_rays_in.loc[:, ['x0', 'y0', 'z0']].values, chunk_rays_in.loc[:, ['x1', 'y1', 'z1']].values), axis=0)
 
-        if method == 'beta_lookup':
-            vox_sub = subset_vox(set_pts, vox, 0, data='posterior')
-        else:
-            vox_sub = subset_vox(set_pts, vox, 0, data='counts')
+        # subset vox
+        vox_sub = subset_vox(set_pts, vox, 0, lookup_db)
 
-        chunk_rays_out = single_ray_agg(vox_sub, chunk_rays_in, agg_sample_length, prior, method, commentation)
-
-        if ii == 0:
-            all_rays_out = chunk_rays_out
+        # aggregate
+        if agg_method == "single_ray_agg":
+            chunk_rays_out = single_ray_agg(vox_sub, chunk_rays_in, agg_sample_length, lookup_db, prior, commentation)
         else:
-            all_rays_out = pd.concat([all_rays_out, chunk_rays_out])
+            raise Exception("Unknown agg_method: " + agg_method)
+
+        # concatenat output
+        all_rays_out = pd.concat([all_rays_out, chunk_rays_out])
 
         print("done\n\t", end='')
 
@@ -789,7 +791,7 @@ def hemi_rays_to_img(rays_out, img_path, img_size, area_factor):
     imageio.imsave(img_path, img)
 
 
-def las_to_vox(vox, z_slices, ray_sample_length, run_las_traj=True, fail_overflow=False):
+def las_to_vox(vox, z_slices, agg_sample_length, run_las_traj=True, fail_overflow=False):
     if run_las_traj:
         # interpolate trajectory
         laslib.las_traj(vox.las_in, vox.traj_in, vox.las_traj_hdf5, vox.las_traj_chunksize, vox.return_set, vox.drop_class)
@@ -798,12 +800,12 @@ def las_to_vox(vox, z_slices, ray_sample_length, run_las_traj=True, fail_overflo
     vox = las_ray_sample_by_z_slice(vox, z_slices, fail_overflow)
     vox.save()
 
-    beta_lookup_prior_calc(vox, ray_sample_length)
+    beta_lookup_prior_calc(vox, agg_sample_length)
 
     return vox
 
 
-def subset_vox(pts, vox, buffer, data='counts'):
+def subset_vox(pts, vox, buffer, lookup_db='posterior'):
 
     # inherit non-spatial attributes
     vox_sub = VoxelObj()
@@ -845,16 +847,16 @@ def subset_vox(pts, vox, buffer, data='counts'):
     vox_sub.ncells = vox_sub_max - vox_sub_min
 
 
-    if data == 'counts':
+    if lookup_db == 'count':
         with h5py.File(vox_sub.vox_hdf5, mode='r') as hf:
             vox_sub.sample_data = hf['sample_data'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
             vox_sub.return_data = hf['return_data'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
-    elif data == 'posterior':
+    elif lookup_db == 'posterior':
         with h5py.File(vox_sub.vox_hdf5, mode='r') as hf:
             vox_sub.sample_data = hf['posterior_beta'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
             vox_sub.return_data = hf['posterior_alpha'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
     else:
-        raise Exception('invalid specification for "data": ' + str(data))
+        raise Exception('invalid specification for "lookup_db": ' + str(lookup_db))
 
     return vox_sub
 
@@ -866,13 +868,14 @@ class RaySampleHemiMetaObj(object):
         self.file_name = None
         self.file_dir = None
         self.origin = None
-        self.ray_sample_length = None
+        self.agg_sample_length = None
         self.ray_iterations = None
         self.max_phi_rad = None
         self.max_distance = None
         self.min_distance = None
         self.img_size = None
         self.prior = None
+        self.lookup_db = None
         self.agg_method = None
 
 
@@ -884,26 +887,21 @@ class RaySampleGridMetaObj(object):
         self.file_dir = None
         self.src_ras_file = None
         self.mask_file = None
-        self.ray_sample_length = None
+        self.agg_sample_length = None
         self.ray_iterations = None
         self.phi = None
         self.theta = None
         self.max_distance = None
         self.min_distance = None
         self.prior = None
+        self.lookup_db = None
         self.agg_method = None
 
 
 def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, nrows=4, commentation=False):
 
-    # subset voxel space
-    if rshmeta.agg_method == 'beta_lookup':
-        data_lookup = 'posterior'
-    else:
-        data_lookup = 'counts'
+    vox_sub = subset_vox(rshm.loc[:, ['x_utm11n', 'y_utm11n', 'elevation_m']].values, vox, rshmeta.max_distance, rshmeta.lookup_db)
 
-    vox_sub = subset_vox(rshm.loc[:, ['x_utm11n', 'y_utm11n', 'elevation_m']].values, vox, rshmeta.max_distance,
-                         data=data_lookup)
     for ii in tqdm(range(0, len(rshm)), position=process_id, desc=str(process_id), leave=True, ncols=100, nrows=nrows):
         if commentation:
             print(str(ii + 1) + " of " + str(len(rshm)) + ': ', end='')
@@ -913,17 +911,21 @@ def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, nrows=4, commentati
 
         origin = (rshm.x_utm11n.iloc[ii], rshm.y_utm11n.iloc[ii], rshm.elevation_m.iloc[ii])
         # calculate rays
-        rays_in = point_to_hemi_rays(origin, vox_sub, rshmeta.img_size, rshmeta.max_phi_rad,
-                                     max_dist=rshmeta.max_distance, min_dist=rshmeta.min_distance)
+        rays_in = point_to_hemi_rays(origin, vox_sub, rshmeta.img_size, rshmeta.max_phi_rad, max_dist=rshmeta.max_distance, min_dist=rshmeta.min_distance)
 
         # # sample rays
         # rays = rays_in
-        # agg_sample_length = rshmeta.ray_sample_length
+        # agg_sample_length = rshmeta.agg_sample_length
         # prior = rshmeta.prior
         # ray_iterations = rshmeta.ray_iterations
         # commentation = True
         # method = rshmeta.agg_method
-        rays_out = single_ray_agg(vox_sub, rays_in, rshmeta.ray_sample_length, rshmeta.prior, rshmeta.agg_method, commentation)
+
+        if rshmeta.agg_method == "single_ray_agg":
+            rays_out = single_ray_agg(vox_sub, rays_in, rshmeta.agg_sample_length, rshmeta.lookup_db, rshmeta.prior, commentation)
+        else:
+            raise Exception("Unknown agg_method: " + rshmeta.agg_method)
+
 
         # format to image
         template = np.full((rshmeta.img_size, rshmeta.img_size, 2), np.nan)
@@ -945,68 +947,8 @@ def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, nrows=4, commentati
 
     return rshm
 
-#
-# def rs_hemigen(rshmeta, vox, initial_index=0):
-#
-#     tot_time = time.time()
-#
-#     # handle case with only one output
-#     if rshmeta.origin.shape.__len__() == 1:
-#         rshmeta.origin = np.array([rshmeta.origin])
-#     if type(rshmeta.file_name) == str:
-#         rshmeta.file_dir = [rshmeta.file_dir]
-#
-#     # QC: ensure origins and file_names have same length
-#     if rshmeta.origin.shape[0] != rshmeta.file_name.__len__():
-#         raise Exception('origin_coords and img_out_path have different lengths, execution halted.')
-#
-#     rshm = pd.DataFrame({"id": rshmeta.id,
-#                         "file_name": rshmeta.file_name,
-#                         "file_dir": rshmeta.file_dir,
-#                         "x_utm11n": rshmeta.origin[:, 0],
-#                         "y_utm11n": rshmeta.origin[:, 1],
-#                         "elevation_m": rshmeta.origin[:, 2],
-#                         "src_las_file": vox.las_in,
-#                         "vox_step": vox.step[0],
-#                         "vox_sample_length": vox.sample_length,
-#                         "src_return_set": vox.return_set,
-#                         "src_drop_class": vox.drop_class,
-#                         "ray_sample_length": rshmeta.ray_sample_length,
-#                         "ray_iterations": rshmeta.ray_iterations,
-#                         "img_size_px": rshmeta.img_size,
-#                         "max_phi_rad": rshmeta.max_phi_rad,
-#                         "min_distance_m": rshmeta.min_distance,
-#                         "max_distance_m": rshmeta.max_distance,
-#                         "agg_method": rshmeta.agg_method,
-#                         "prior": str(rshmeta.prior),
-#                         "created_datetime": None,
-#                         "computation_time_s": None})
-#
-#     # resent index in case of rollover indexing
-#     rshm = rshm.reset_index(drop=True)
-#
-#     # preallocate log file
-#     log_path = rshmeta.file_dir + "rshmetalog.csv"
-#     if not os.path.exists(log_path):
-#         with open(log_path, mode='w', encoding='utf-8') as log:
-#             log.write(",".join(rshm.columns) + '\n')
-#         log.close()
-#
-#     # export phi_theta_lookup of vectors in grid
-#     vector_set = hemi_vectors(rshmeta.img_size, rshmeta.max_phi_rad)
-#     vector_set.to_csv(rshm.file_dir[0] + "phi_theta_lookup.csv", index=False)
-#
-#     rshm = rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, commentation=False)
-#
-#     print("-------- Ray Sample Hemigen completed--------")
-#     print(str(rshmeta.origin.shape[0] - initial_index) + " images generated in " + str(int(time.time() - tot_time)) + " seconds")
-#     return rshm
-
-
 def rs_hemigen(rshmeta, vox, tile_count_1d=1, n_cores=1):
-    from scipy.stats import binned_statistic_2d
-    from itertools import repeat
-    import multiprocessing.pool as mpp
+
 
     tot_time = time.time()
 
@@ -1031,12 +973,13 @@ def rs_hemigen(rshmeta, vox, tile_count_1d=1, n_cores=1):
                         "vox_sample_length": vox.sample_length,
                         "src_return_set": vox.return_set,
                         "src_drop_class": vox.drop_class,
-                        "ray_sample_length": rshmeta.ray_sample_length,
+                        "agg_sample_length": rshmeta.agg_sample_length,
                         "ray_iterations": rshmeta.ray_iterations,
                         "img_size_px": rshmeta.img_size,
                         "max_phi_rad": rshmeta.max_phi_rad,
                         "min_distance_m": rshmeta.min_distance,
                         "max_distance_m": rshmeta.max_distance,
+                        "lookup_db": rshmeta.lookup_db,
                         "agg_method": rshmeta.agg_method,
                         "prior": str(rshmeta.prior),
                         "created_datetime": np.nan,
@@ -1048,11 +991,6 @@ def rs_hemigen(rshmeta, vox, tile_count_1d=1, n_cores=1):
     # export phi_theta_lookup of vectors in grid
     vector_set = hemi_vectors(rshmeta.img_size, rshmeta.max_phi_rad)
     vector_set.to_csv(rshm.file_dir[0] + "phi_theta_lookup.csv", index=False)
-
-    # batch tiling
-    bin_counts, x_bins, y_bins, bin_num = binned_statistic_2d(rshm.x_utm11n, rshm.y_utm11n, rshm.elevation_m, statistic='count', bins=tile_count_1d)
-    rshm.loc[:, 'tile_id'] = bin_num
-    tiles = np.unique(bin_num)
 
     if tile_count_1d == 1:
         # single tile, single core
@@ -1068,10 +1006,18 @@ def rs_hemigen(rshmeta, vox, tile_count_1d=1, n_cores=1):
 
     else:
         # multiple tiles
+        from scipy.stats import binned_statistic_2d
+        from itertools import repeat
+        import multiprocessing.pool as mpp
 
         # create dir for tile log files
         if not os.path.exists(rshmeta.file_dir + "\\tile_logs\\"):
             os.makedirs(rshmeta.file_dir + "\\tile_logs\\")
+
+        # batch tiling
+        bin_counts, x_bins, y_bins, bin_num = binned_statistic_2d(rshm.x_utm11n, rshm.y_utm11n, rshm.elevation_m, statistic='count', bins=tile_count_1d)
+        rshm.loc[:, 'tile_id'] = bin_num
+        tiles = np.unique(bin_num)
 
         rshm_list = []
         log_path_list = []
@@ -1116,7 +1062,7 @@ def rs_hemigen(rshmeta, vox, tile_count_1d=1, n_cores=1):
 
     return rshm
 
-def rs_gridgen(rsgmeta, vox, initial_index=0):
+def rs_gridgen(rsgmeta, vox, chunksize, commentation=False):
 
     tot_time = time.time()
 
@@ -1147,10 +1093,11 @@ def rs_gridgen(rsgmeta, vox, initial_index=0):
                         "vox_sample_length": vox.sample_length,
                         "src_return_set": vox.return_set,
                         "src_drop_class": vox.drop_class,
-                        "ray_sample_length": rsgmeta.ray_sample_length,
+                        "agg_sample_length": rsgmeta.agg_sample_length,
                         "ray_iterations": rsgmeta.ray_iterations,
                         "min_distance_m": rsgmeta.min_distance,
                         "max_distance_m": rsgmeta.max_distance,
+                        "lookup_db": rsgmeta.lookup_db,
                         "agg_method": rsgmeta.agg_method,
                         "prior": str(rsgmeta.prior),
                         "created_datetime": None,
@@ -1187,12 +1134,12 @@ def rs_gridgen(rsgmeta, vox, initial_index=0):
         # sample rays
         # chunksize = 100000
         # rays = rays_in
-        # agg_sample_length = rsgmeta.ray_sample_length
+        # agg_sample_length = rsgmeta.agg_sample_length
         # prior = rsgmeta.prior
         # ray_iterations = rsgmeta.ray_iterations
         # commentation = True
         # method = rsgmeta.agg_method
-        rays_out = agg_ray_chunk(100000, vox, rays_in, rsgmeta.ray_sample_length, rsgmeta.prior, rsgmeta.ray_iterations, rsgmeta.agg_method, commentation=True)
+        rays_out = agg_ray_chunk(chunksize, vox, rays_in, rsgmeta.agg_method, rsgmeta.agg_sample_length, rsgmeta.lookup_db, rsgmeta.prior, commentation)
 
         # format to image
         ras = rastools.raster_load(rsgmeta.src_ras_file)

@@ -55,12 +55,14 @@ def main():
 
     rshmeta = lrs.RaySampleGridMetaObj()
 
-    rshmeta.ray_sample_length = vox.sample_length
-    rshmeta.agg_method = 'beta_lookup'
+    rshmeta.agg_sample_length = vox.sample_length
 
-    # rshmeta.agg_method = 'single_ray_beta_lookup'
-    # rshmeta.agg_method = 'vox_beta_lookup'
-    # rshmeta.agg_method = 'multi_ray_beta_lookup'
+    #rshmeta.lookup_db = 'count'
+    rshmeta.lookup_db = 'posterior'
+
+    rshmeta.agg_method = 'single_ray_agg'
+    # rshmeta.agg_method = 'vox_agg'
+    # rshmeta.agg_method = 'multi_ray_agg'
 
 
     # ray geometry
