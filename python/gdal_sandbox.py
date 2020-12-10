@@ -169,3 +169,10 @@ plt.xlim(-20, 60)
 plt.subplot(2,2,3)
 plt.scatter(data.loc[:, "dce"], np.log(data.cn_weighted), s=1, alpha=.25)
 
+###
+
+plt.scatter(data.loc[:, "chm"], data.er_p0_mean, s=1, alpha=.25)
+plt.scatter(data.loc[:, "dswe_19_045-19_052"], np.log(data.loc[:, "chm"]), s=1, alpha=.25)
+plt.scatter(data.loc[:, "dswe_19_045-19_052"], np.log(data.loc[:, "er_p0_mean"]), s=1, alpha=.25)
+plt.scatter(data.loc[:, "dswe_19_045-19_052"], data.loc[:, "dce"], s=1, alpha=.25)
+plt.scatter(data.loc[:, "dswe_19_045-19_052"], np.log(data.cn_weighted), s=1, alpha=.05)

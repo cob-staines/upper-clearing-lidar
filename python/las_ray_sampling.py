@@ -494,167 +494,8 @@ def beta_lookup_prior_calc(vox, ray_sample_length):
         hf['posterior_beta'][()] = hf['sample_data'] * sample_length_correction + hf['return_data'][()] + prior_beta
 
 
-def nb_sample_sum_explicit(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation=False):
-    if commentation:
-        print('Aggregating samples over each ray...')
 
-    returns_mean = np.full(len(path_samples), np.nan)
-    returns_med = np.full(len(path_samples), np.nan)
-    returns_var = np.full(len(path_samples), np.nan)
-
-    for ii in range(0, len(path_samples)):
-        kk = path_returns[ii, 0:n_samples[ii]]
-        nn = path_samples[ii, 0:n_samples[ii]]
-
-        # posterior hyperparameters
-        post_a = kk + prior[0]
-        post_b = 1 - 1 / (1 + prior[1] + nn)
-
-        nb_samples = np.full([ray_iterations, n_samples[ii]], 0)
-        for jj in range(0, n_samples[ii] - 1):
-            nb_samples[:, jj] = np.random.negative_binomial(post_a[jj], post_b[jj], ray_iterations)
-
-        # correct for agg sample length
-        nb_samples = nb_samples * agg_sample_length
-
-        # sum modeled values along ray
-        return_sums = np.sum(nb_samples, axis=1)
-
-        #calculate stats
-        returns_mean[ii] = np.mean(return_sums)
-        returns_med[ii] = np.median(return_sums)
-        returns_var[ii] = np.var(return_sums)
-
-        if commentation:
-            print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
-
-    rays = rays.assign(returns_mean=returns_mean)
-    rays = rays.assign(returns_median=returns_med)
-    rays = rays.assign(returns_var=returns_var)
-
-    return rays
-
-
-def nb_sample_sum_combined(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation=False):
-    if commentation:
-        print('Aggregating samples over each ray')
-
-    # preallocate
-    returns_mean = np.full(len(path_samples), np.nan)
-    returns_med = np.full(len(path_samples), np.nan)
-    returns_std = np.full(len(path_samples), np.nan)
-
-    for ii in range(0, len(path_samples)):
-        kk = path_returns[ii, 0:n_samples[ii]]
-        nn = path_samples[ii, 0:n_samples[ii]]
-
-        # posterior hyperparameters
-        post_a = kk + prior[0]
-        post_b = 1 - 1 / (1 + prior[1] + nn)
-
-        unique_p = np.unique(post_b)
-        nb_samples = np.full([ray_iterations, len(unique_p)], 0)
-        for pp in range(0, len(unique_p)):
-            # sum alphas with corresponding probabilities (p)
-            alpha = np.sum(post_a[post_b == unique_p[pp]])
-            nb_samples[:, pp] = np.random.negative_binomial(alpha, unique_p[pp], ray_iterations)
-
-        # correct for agg sample length
-        nb_samples = nb_samples * agg_sample_length
-
-        # sum modeled values along ray
-        return_sums = np.sum(nb_samples, axis=1)
-
-        # calculate stats
-        returns_mean[ii] = np.mean(return_sums)
-        returns_med[ii] = np.median(return_sums)
-        returns_std[ii] = np.std(return_sums)
-
-        if commentation:
-            print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
-
-    rays = rays.assign(returns_mean=returns_mean)
-    rays = rays.assign(returns_median=returns_med)
-    rays = rays.assign(returns_std=returns_std)
-
-    return rays
-
-
-def nb_sample_sum_lookup(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation=False):
-    if commentation:
-        print('Aggregating samples over each ray')
-
-    # preallocate
-    returns_mean = np.full(len(path_samples), np.nan)
-    returns_med = np.full(len(path_samples), np.nan)
-    returns_std = np.full(len(path_samples), np.nan)
-
-    # lookup for unique pairs of post_a and post_b
-    post_a = prior[0] + path_returns
-    post_b = 1 - 1 / (1 + prior[1] + path_samples)
-
-    if commentation:
-        print('Building dictionary...', end='')
-
-    all_par = np.array((post_a.reshape(post_a.size), post_b.reshape(post_b.size))).swapaxes(0, 1)
-    unique_par = np.unique(all_par, axis=0)
-    unique_par = unique_par[~np.any(np.isnan(unique_par), axis=1)]
-    unique_par = list(zip(unique_par[:, 0], unique_par[:, 1]))
-
-    # calculate all possible values
-    lookup = {}
-    for dd in range(0, len(unique_par)):
-        lookup[unique_par[dd]] = np.random.negative_binomial(unique_par[dd][0], unique_par[dd][1], ray_iterations)
-    if commentation:
-        print('done')
-
-    # for each ray
-    for ii in range(0, len(path_samples)):
-        aa = post_a[ii, 0:n_samples[ii]]
-        bb = post_b[ii, 0:n_samples[ii]]
-
-        keys = list(zip(aa, bb))
-
-        nb_samples = np.full([ray_iterations, n_samples[ii]], 0)
-        for kk in range(0, n_samples[ii]):
-            nb_samples[:, kk] = lookup[keys[kk]]
-
-        # correct for agg sample length
-        nb_samples = nb_samples * agg_sample_length
-
-        # sum samples along ray
-        return_sums = np.sum(nb_samples, axis=1)
-
-        returns_mean[ii] = np.mean(return_sums)
-        returns_med[ii] = np.median(return_sums)
-        returns_std[ii] = np.std(return_sums)
-
-        if commentation:
-            print(str(ii + 1) + ' of ' + str(len(path_samples)) + ' rays')
-
-    rays = rays.assign(returns_mean=returns_mean)
-    rays = rays.assign(returns_median=returns_med)
-    rays = rays.assign(returns_std=returns_std)
-
-    return rays
-
-
-def linear_return_model(rays, path_samples, path_returns, agg_sample_length, prior, commentation=False):
-    if commentation:
-        print('Aggregating samples over each ray')
-
-    # handle case for zero-samples...
-    bref = path_returns / (path_samples + agg_sample_length)  # should be vox.sample_length, fix later
-    returns_mean = np.nansum(bref, axis=1) * agg_sample_length
-    returns_std = np.sqrt(prior / np.nansum(path_samples + agg_sample_length, axis=1))
-
-    rays = rays.assign(returns_mean=returns_mean)
-    rays = rays.assign(returns_std=returns_std)
-
-    return rays
-
-
-def beta_clt(rays, path_samples, path_returns, vox_sample_length, agg_sample_length, prior):
+def beta(rays, path_samples, path_returns, vox_sample_length, agg_sample_length, prior):
 
     kk = path_returns
     nn = path_samples * vox_sample_length / agg_sample_length
@@ -671,7 +512,7 @@ def beta_clt(rays, path_samples, path_returns, vox_sample_length, agg_sample_len
 
     return rays
 
-def beta_clt_lookup(rays, path_samples, path_returns):
+def beta_lookup(rays, path_samples, path_returns):
 
     post_a = path_returns
     post_b = path_samples
@@ -686,7 +527,7 @@ def beta_clt_lookup(rays, path_samples, path_returns):
     return rays
 
 
-def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior, ray_iterations, method, commentation=False):
+def single_ray_agg(vox, rays, agg_sample_length, prior, method, commentation=False):
 
     # pull points
     p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
@@ -747,125 +588,14 @@ def aggregate_voxels_over_rays(vox, rays, agg_sample_length, prior, ray_iteratio
         print(' -- Calculating returns... ', end='')
 
     if method == 'beta':
-        rays_out = beta_clt(rays, path_samples, path_returns, vox.sample_length, agg_sample_length, prior)
+        rays_out = beta(rays, path_samples, path_returns, vox.sample_length, agg_sample_length, prior)
     elif method == 'beta_lookup':
-        rays_out = beta_clt_lookup(rays, path_samples, path_returns)
+        rays_out = beta_lookup(rays, path_samples, path_returns)
     else:
         raise Exception('Not a valid method: ' + method)
 
-    # if method == 'nb_lookup':
-    #     # correct voxel sample distance with vox sample_length
-    #     path_samples = path_samples * vox.sample_length
-    #     rays_out = nb_sample_sum_lookup(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
-    # elif method == 'nb_combined':
-    #     # correct voxel sample distance with vox sample_length
-    #     path_samples = path_samples * vox.sample_length
-    #     rays_out = nb_sample_sum_combined(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
-    # elif method == 'nb_explicit':
-    #     # correct voxel sample distance with vox sample_length
-    #     path_samples = path_samples * vox.sample_length
-    #     rays_out = nb_sample_sum_explicit(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
-    # elif method == 'linear':
-    #     # correct voxel sample distance with vox sample_length
-    #     path_samples = path_samples * vox.sample_length
-    #     rays_out = linear_return_model(rays, path_samples, path_returns, agg_sample_length, prior, commentation)
-    # elif method == 'beta':
-    #     if commentation:
-    #         print(' -- Calculating returns... ', end='')
-    #     rays_out = beta_clt(rays, path_samples, path_returns, vox.sample_length, agg_sample_length, prior)
-    # else:
-    #     raise Exception('Aggregation method "' + method + '" not found, process aborted.')
-
     return rays_out
 
-#
-# def aggregate_voxels_over_rays_gpu(vox, rays, agg_sample_length, prior, ray_iterations, method, commentation=False):
-#
-#     # pull points
-#     p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
-#     p1 = rays.loc[:, ['x1', 'y1', 'z1']].values
-#
-#
-#     # calculate distance between ray start (ground) and end (sky)
-#     dist = np.sqrt(np.sum((p1 - p0) ** 2, axis=1))
-#     rays = rays.assign(path_length=dist)
-#
-#     # calc unit step along ray in x, y, z dims
-#     xyz_step = (p1 - p0) / dist[:, np.newaxis]
-#
-#     # random offset for each ray sample series
-#     offset = np.random.random(len(p0))
-#
-#     # calculate number of samples
-#     n_samples = ((dist - offset) / agg_sample_length).astype(int)
-#     max_steps = np.max(n_samples)
-#
-#     # preallocate aggregate lists
-#     path_samples = np.full([len(p0), max_steps], np.nan)  # precision could be lower if used -1 or...
-#     path_returns = np.full([len(p0), max_steps], np.nan)
-#
-#     # for each sample step
-#     if commentation:
-#         print('Sampling voxels', end='')
-#         cur_cent = 0
-#     for ii in range(0, max_steps):
-#         # distance from p0 along ray
-#         sample_dist = (ii + offset) * agg_sample_length
-#
-#         # select rays where t_dist is in range
-#         in_range = (dist > sample_dist)
-#
-#         # calculate tracer point coords for step
-#         sample_points = xyz_step[in_range, :] * sample_dist[in_range, np.newaxis] + p0[in_range]
-#
-#         if np.size(sample_points) != 0:
-#             # add voxel value to list
-#             sample_vox = utm_to_vox(vox, sample_points).astype(int)
-#             sample_address = (sample_vox[:, 0], sample_vox[:, 1], sample_vox[:, 2])
-#
-#             path_samples[in_range, ii] = vox.sample_data[sample_address]
-#             path_returns[in_range, ii] = vox.return_data[sample_address]
-#
-#         if commentation:
-#             past_cent = cur_cent
-#             cur_cent = int(100 * (ii + 1) / max_steps)
-#             if cur_cent > past_cent:
-#                 for jj in range(0, cur_cent - past_cent):
-#                     if (past_cent + jj + 1) % 10 == 0:
-#                         print(str(past_cent + jj + 1), end='')
-#                     else:
-#                         print('.', end='')
-#
-#     if commentation:
-#         print(' -- Calculating returns... ', end='')
-#
-#     rays_out = beta_clt(rays, path_samples, path_returns, vox.sample_length, agg_sample_length, prior)
-#
-#     # if method == 'nb_lookup':
-#     #     # correct voxel sample distance with vox sample_length
-#     #     path_samples = path_samples * vox.sample_length
-#     #     rays_out = nb_sample_sum_lookup(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
-#     # elif method == 'nb_combined':
-#     #     # correct voxel sample distance with vox sample_length
-#     #     path_samples = path_samples * vox.sample_length
-#     #     rays_out = nb_sample_sum_combined(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
-#     # elif method == 'nb_explicit':
-#     #     # correct voxel sample distance with vox sample_length
-#     #     path_samples = path_samples * vox.sample_length
-#     #     rays_out = nb_sample_sum_explicit(rays, path_samples, path_returns, n_samples, agg_sample_length, prior, ray_iterations, commentation)
-#     # elif method == 'linear':
-#     #     # correct voxel sample distance with vox sample_length
-#     #     path_samples = path_samples * vox.sample_length
-#     #     rays_out = linear_return_model(rays, path_samples, path_returns, agg_sample_length, prior, commentation)
-#     # elif method == 'beta':
-#     #     if commentation:
-#     #         print(' -- Calculating returns... ', end='')
-#     #     rays_out = beta_clt(rays, path_samples, path_returns, vox.sample_length, agg_sample_length, prior)
-#     # else:
-#     #     raise Exception('Aggregation method "' + method + '" not found, process aborted.')
-#
-#     return rays_out
-#
 
 def agg_ray_chunk(chunksize, vox, rays, agg_sample_length, prior, ray_iterations, method, commentation=False):
 
@@ -901,7 +631,7 @@ def agg_ray_chunk(chunksize, vox, rays, agg_sample_length, prior, ray_iterations
         else:
             vox_sub = subset_vox(set_pts, vox, 0, data='counts')
 
-        chunk_rays_out = aggregate_voxels_over_rays(vox_sub, chunk_rays_in, agg_sample_length, prior, ray_iterations, method, commentation)
+        chunk_rays_out = single_ray_agg(vox_sub, chunk_rays_in, agg_sample_length, prior, method, commentation)
 
         if ii == 0:
             all_rays_out = chunk_rays_out
@@ -1164,63 +894,7 @@ class RaySampleGridMetaObj(object):
         self.agg_method = None
 
 
-def rs_hemigen(rshmeta, vox, initial_index=0):
-
-    tot_time = time.time()
-
-    # handle case with only one output
-    if rshmeta.origin.shape.__len__() == 1:
-        rshmeta.origin = np.array([rshmeta.origin])
-    if type(rshmeta.file_name) == str:
-        rshmeta.file_dir = [rshmeta.file_dir]
-
-    # QC: ensure origins and file_names have same length
-    if rshmeta.origin.shape[0] != rshmeta.file_name.__len__():
-        raise Exception('origin_coords and img_out_path have different lengths, execution halted.')
-
-    rshm = pd.DataFrame({"id": rshmeta.id,
-                        "file_name": rshmeta.file_name,
-                        "file_dir": rshmeta.file_dir,
-                        "x_utm11n": rshmeta.origin[:, 0],
-                        "y_utm11n": rshmeta.origin[:, 1],
-                        "elevation_m": rshmeta.origin[:, 2],
-                        "src_las_file": vox.las_in,
-                        "vox_step": vox.step[0],
-                        "vox_sample_length": vox.sample_length,
-                        "src_return_set": vox.return_set,
-                        "src_drop_class": vox.drop_class,
-                        "ray_sample_length": rshmeta.ray_sample_length,
-                        "ray_iterations": rshmeta.ray_iterations,
-                        "img_size_px": rshmeta.img_size,
-                        "max_phi_rad": rshmeta.max_phi_rad,
-                        "min_distance_m": rshmeta.min_distance,
-                        "max_distance_m": rshmeta.max_distance,
-                        "agg_method": rshmeta.agg_method,
-                        "prior": str(rshmeta.prior),
-                        "created_datetime": None,
-                        "computation_time_s": None})
-
-    # resent index in case of rollover indexing
-    rshm = rshm.reset_index(drop=True)
-
-    # preallocate log file
-    log_path = rshmeta.file_dir + "rshmetalog.csv"
-    if not os.path.exists(log_path):
-        with open(log_path, mode='w', encoding='utf-8') as log:
-            log.write(",".join(rshm.columns) + '\n')
-        log.close()
-
-    # export phi_theta_lookup of vectors in grid
-    vector_set = hemi_vectors(rshmeta.img_size, rshmeta.max_phi_rad)
-    vector_set.to_csv(rshm.file_dir[0] + "phi_theta_lookup.csv", index=False)
-
-    rshm = rshm_iterate(rshm, rshmeta, vox, log_path)
-
-    print("-------- Ray Sample Hemigen completed--------")
-    print(str(rshmeta.origin.shape[0] - initial_index) + " images generated in " + str(int(time.time() - tot_time)) + " seconds")
-    return rshm
-
-def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, commentation=False):
+def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, nrows=4, commentation=False):
 
     # subset voxel space
     if rshmeta.agg_method == 'beta_lookup':
@@ -1230,7 +904,7 @@ def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, commentation=False)
 
     vox_sub = subset_vox(rshm.loc[:, ['x_utm11n', 'y_utm11n', 'elevation_m']].values, vox, rshmeta.max_distance,
                          data=data_lookup)
-    for ii in tqdm(range(0, len(rshm)), position=process_id, desc=str(process_id), leave=True, ncols=100):
+    for ii in tqdm(range(0, len(rshm)), position=process_id, desc=str(process_id), leave=True, ncols=100, nrows=nrows):
         if commentation:
             print(str(ii + 1) + " of " + str(len(rshm)) + ': ', end='')
         it_time = time.time()
@@ -1249,8 +923,7 @@ def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, commentation=False)
         # ray_iterations = rshmeta.ray_iterations
         # commentation = True
         # method = rshmeta.agg_method
-        rays_out = aggregate_voxels_over_rays(vox_sub, rays_in, rshmeta.ray_sample_length, rshmeta.prior,
-                                              rshmeta.ray_iterations, rshmeta.agg_method, commentation)
+        rays_out = single_ray_agg(vox_sub, rays_in, rshmeta.ray_sample_length, rshmeta.prior, rshmeta.agg_method, commentation)
 
         # format to image
         template = np.full((rshmeta.img_size, rshmeta.img_size, 2), np.nan)
@@ -1272,7 +945,68 @@ def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, commentation=False)
 
     return rshm
 
-def rs_hemigen_tile(rshmeta, vox, tile_count_1d=1, n_cores=1):
+#
+# def rs_hemigen(rshmeta, vox, initial_index=0):
+#
+#     tot_time = time.time()
+#
+#     # handle case with only one output
+#     if rshmeta.origin.shape.__len__() == 1:
+#         rshmeta.origin = np.array([rshmeta.origin])
+#     if type(rshmeta.file_name) == str:
+#         rshmeta.file_dir = [rshmeta.file_dir]
+#
+#     # QC: ensure origins and file_names have same length
+#     if rshmeta.origin.shape[0] != rshmeta.file_name.__len__():
+#         raise Exception('origin_coords and img_out_path have different lengths, execution halted.')
+#
+#     rshm = pd.DataFrame({"id": rshmeta.id,
+#                         "file_name": rshmeta.file_name,
+#                         "file_dir": rshmeta.file_dir,
+#                         "x_utm11n": rshmeta.origin[:, 0],
+#                         "y_utm11n": rshmeta.origin[:, 1],
+#                         "elevation_m": rshmeta.origin[:, 2],
+#                         "src_las_file": vox.las_in,
+#                         "vox_step": vox.step[0],
+#                         "vox_sample_length": vox.sample_length,
+#                         "src_return_set": vox.return_set,
+#                         "src_drop_class": vox.drop_class,
+#                         "ray_sample_length": rshmeta.ray_sample_length,
+#                         "ray_iterations": rshmeta.ray_iterations,
+#                         "img_size_px": rshmeta.img_size,
+#                         "max_phi_rad": rshmeta.max_phi_rad,
+#                         "min_distance_m": rshmeta.min_distance,
+#                         "max_distance_m": rshmeta.max_distance,
+#                         "agg_method": rshmeta.agg_method,
+#                         "prior": str(rshmeta.prior),
+#                         "created_datetime": None,
+#                         "computation_time_s": None})
+#
+#     # resent index in case of rollover indexing
+#     rshm = rshm.reset_index(drop=True)
+#
+#     # preallocate log file
+#     log_path = rshmeta.file_dir + "rshmetalog.csv"
+#     if not os.path.exists(log_path):
+#         with open(log_path, mode='w', encoding='utf-8') as log:
+#             log.write(",".join(rshm.columns) + '\n')
+#         log.close()
+#
+#     # export phi_theta_lookup of vectors in grid
+#     vector_set = hemi_vectors(rshmeta.img_size, rshmeta.max_phi_rad)
+#     vector_set.to_csv(rshm.file_dir[0] + "phi_theta_lookup.csv", index=False)
+#
+#     rshm = rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, commentation=False)
+#
+#     print("-------- Ray Sample Hemigen completed--------")
+#     print(str(rshmeta.origin.shape[0] - initial_index) + " images generated in " + str(int(time.time() - tot_time)) + " seconds")
+#     return rshm
+
+
+def rs_hemigen(rshmeta, vox, tile_count_1d=1, n_cores=1):
+    from scipy.stats import binned_statistic_2d
+    from itertools import repeat
+    import multiprocessing.pool as mpp
 
     tot_time = time.time()
 
@@ -1311,63 +1045,70 @@ def rs_hemigen_tile(rshmeta, vox, tile_count_1d=1, n_cores=1):
     # resent index in case of rollover indexing
     rshm = rshm.reset_index(drop=True)
 
-
     # export phi_theta_lookup of vectors in grid
     vector_set = hemi_vectors(rshmeta.img_size, rshmeta.max_phi_rad)
     vector_set.to_csv(rshm.file_dir[0] + "phi_theta_lookup.csv", index=False)
 
-
-    # iterate here for batch tiling
-    import scipy.stats
-    bin_counts, x_bins, y_bins, bin_num = scipy.stats.binned_statistic_2d(rshm.x_utm11n, rshm.y_utm11n, rshm.elevation_m, statistic='count', bins=tile_count_1d)
+    # batch tiling
+    bin_counts, x_bins, y_bins, bin_num = binned_statistic_2d(rshm.x_utm11n, rshm.y_utm11n, rshm.elevation_m, statistic='count', bins=tile_count_1d)
     rshm.loc[:, 'tile_id'] = bin_num
     tiles = np.unique(bin_num)
 
-    # create dir for tile log files
-    if not os.path.exists(rshmeta.file_dir + "\\tile_logs\\"):
-        os.makedirs(rshmeta.file_dir + "\\tile_logs\\")
+    if tile_count_1d == 1:
+        # single tile, single core
 
-    from itertools import repeat
-    # from multiprocessing import Process
-    import multiprocessing.pool as mpp
-
-    rshm_list = []
-    log_path_list = []
-    for tt in tiles:
-
-        # preallocate tile log file
-        log_path = rshmeta.file_dir + "\\tile_logs\\rshmetalog_tile_" + str(tt) + ".csv"
-        log_path_list.append(log_path)
+        # preallocate log file
+        log_path = rshmeta.file_dir + "rshmetalog.csv"
         if not os.path.exists(log_path):
             with open(log_path, mode='w', encoding='utf-8') as log:
                 log.write(",".join(rshm.columns) + '\n')
             log.close()
 
-        rshm_tile = rshm.loc[rshm.tile_id == tt, :].copy()
-        rshm_list.append(rshm_tile)
+        rshm = rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, commentation=False)
 
-    if n_cores > 1:
-        with mpp.ThreadPool(processes=n_cores) as pool:
-            mm = pool.starmap(rshm_iterate, zip(rshm_list, repeat(rshmeta), repeat(vox), log_path_list, np.arange(0, len(tiles))))
     else:
-        for ii in range(0, len(tiles)):
-            rshm_tile = rshm_iterate(rshm_list[ii], rshmeta, vox, log_path_list[ii], ii)
-            # rshm.loc[rshm.tile_id == tt, :] = rshm_tile  # this could be problematic... do I need to maintain this data stream?
+        # multiple tiles
 
+        # create dir for tile log files
+        if not os.path.exists(rshmeta.file_dir + "\\tile_logs\\"):
+            os.makedirs(rshmeta.file_dir + "\\tile_logs\\")
 
+        rshm_list = []
+        log_path_list = []
+        for tt in tiles:
 
-    # compile img log files
-    t_loglist = os.listdir(rshmeta.file_dir + "\\tile_logs\\")
-    log_comp = rshm.copy()
-    log_comp.drop(log_comp.index, inplace=True)
+            # preallocate tile log file
+            log_path = rshmeta.file_dir + "\\tile_logs\\rshmetalog_tile_" + str(tt) + ".csv"
+            log_path_list.append(log_path)
+            if not os.path.exists(log_path):
+                with open(log_path, mode='w', encoding='utf-8') as log:
+                    log.write(",".join(rshm.columns) + '\n')
+                log.close()
 
-    temp_log_count = []
-    for ff in t_loglist:
-        temp_log = pd.read_csv(rshmeta.file_dir + "\\tile_logs\\" + ff)
-        temp_log_count.append(len(temp_log))
-        log_comp = log_comp.append(temp_log, ignore_index=True)
+            rshm_tile = rshm.loc[rshm.tile_id == tt, :].copy()
+            rshm_list.append(rshm_tile)
 
-    log_comp.to_csv(rshmeta.file_dir + "rshmetalog.csv")
+        if n_cores > 1:
+            # multiple cores
+            with mpp.ThreadPool(processes=n_cores) as pool:
+                mm = pool.starmap(rshm_iterate, zip(rshm_list, repeat(rshmeta), repeat(vox), log_path_list, np.arange(0, len(tiles)), repeat(len(tiles) + 1)))
+        else:
+            # single core
+            for ii in range(0, len(tiles)):
+                rshm_tile = rshm_iterate(rshm_list[ii], rshmeta, vox, log_path_list[ii], ii, len(tiles) + 1)
+
+        # compile tile log files
+        t_loglist = os.listdir(rshmeta.file_dir + "\\tile_logs\\")
+        log_comp = rshm.copy()
+        log_comp.drop(log_comp.index, inplace=True)
+
+        temp_log_count = []
+        for ff in t_loglist:
+            temp_log = pd.read_csv(rshmeta.file_dir + "\\tile_logs\\" + ff)
+            temp_log_count.append(len(temp_log))
+            log_comp = log_comp.append(temp_log, ignore_index=True)
+
+        log_comp.to_csv(rshmeta.file_dir + "rshmetalog.csv")
 
     print("-------- Ray Sample Hemigen completed--------")
     print(str(rshmeta.origin.shape[0]) + " images generated in " + str(
@@ -1477,283 +1218,3 @@ def rs_gridgen(rsgmeta, vox, initial_index=0):
     print(str(len(rsgm) - initial_index) + " images generated in " + str(int(time.time() - tot_time)) + " seconds")
     return rsgm
 
-
-# def rsm_chunk(args):
-#     import tifffile as tiff
-#     rshm = args[0]
-#     log_path = args[1]
-#     vox = args[2]
-#
-#     # initialize empty log file
-#     with open(log_path, 'w') as input_file:
-#         pass
-#
-#     for ii in range(np.min(rshm.id), np.max(rshm.id) + 1):
-#         it_time = time.time()
-#
-#         origin = (rshm.x_utm11n[ii], rshm.y_utm11n[ii], rshm.elevation_m[ii])
-#         # calculate rays
-#         rays_in = point_to_hemi_rays(origin, rshm.img_size_px[ii], vox, max_phi=rshm.max_phi_rad[ii], max_dist=rshm.max_distance_m[ii], min_dist=rshm.min_distance_m[ii])
-#
-#         # sample rays
-#         rays_out = aggregate_voxels_over_rays(vox, rays_in, rshm.ray_sample_length[ii], [rshm.prior_a[ii], rshm.prior_b[ii]], rshm.ray_iterations[ii])
-#
-#         output = rays_out.loc[:, ['x_index', 'y_index', 'phi', 'theta', 'returns_mean', 'returns_median', 'returns_std']]
-#
-#         # format to image
-#         template = np.full((rshm.img_size_px, rshm.img_size_px, 3), np.nan)
-#         template[(rays_out.y_index.values, rays_out.x_index.values, 0)] = rays_out.returns_mean
-#         template[(rays_out.y_index.values, rays_out.x_index.values, 1)] = rays_out.returns_median
-#         template[(rays_out.y_index.values, rays_out.x_index.values, 2)] = rays_out.returns_std
-#
-#
-#         tiff.imsave(rshm.file_dir.iloc[ii] + rshm.file_name.iloc[ii], template)
-#
-#         # log meta
-#         rshm.loc[ii, "created_datetime"] = time.strftime('%Y-%m-%d %H:%M:%S')
-#         rshm.loc[ii, "computation_time_s"] = int(time.time() - it_time)
-#
-#         # write to log file
-#         rshm.iloc[ii:ii + 1].to_csv(log_path, encoding='utf-8', mode='a', header=False, index=False)
-#
-#         print(str(ii + 1) + " of " + str(len(rshm)) + " complete: " + str(rshm.computation_time_s[ii]) + " seconds")
-#
-# def rs_hemigen_multiproc(rshmeta, vox, initial_index=0, n_cores=4):
-#     import os
-#     import multiprocessing as mp
-#
-#     tot_time = time.time()
-#
-#     # handle case with only one output
-#     if rshmeta.origin.shape.__len__() == 1:
-#         rshmeta.origin = np.array([rshmeta.origin])
-#     if type(rshmeta.file_name) == str:
-#         rshmeta.file_dir = [rshmeta.file_dir]
-#
-#     # QC: ensure origins and file_names have same length
-#     if rshmeta.origin.shape[0] != rshmeta.file_name.__len__():
-#         raise Exception('origin_coords and img_out_path have different lengths, execution halted.')
-#
-#     rshm = pd.DataFrame({"id": rshmeta.id,
-#                         "file_name": rshmeta.file_name,
-#                         "file_dir": rshmeta.file_dir,
-#                         "x_utm11n": rshmeta.origin[:, 0],
-#                         "y_utm11n": rshmeta.origin[:, 1],
-#                         "elevation_m": rshmeta.origin[:, 2],
-#                         "src_las_file": vox.las_in,
-#                         "vox_step": vox.step[0],
-#                         "vox_sample_length": vox.sample_length,
-#                         "src_return_set": vox.return_set,
-#                         "src_drop_class": vox.drop_class,
-#                         "ray_sample_length": rshmeta.ray_sample_length,
-#                         "ray_iterations": rshmeta.ray_iterations,
-#                         "img_size_px": rshmeta.img_size,
-#                         "max_phi_rad": rshmeta.max_phi_rad,
-#                         "min_distance_m": rshmeta.min_distance,
-#                         "max_distance_m": rshmeta.max_distance,
-#                         "prior_a": rshmeta.prior[0],
-#                         "prior_b": rshmeta.prior[1],
-#                         "created_datetime": None,
-#                         "computation_time_s": None})
-#
-#     # resent index in case of rollover indexing
-#     rshm = rshm.reset_index(drop=True)
-#
-#
-#     # export table of rays in grid
-#     ii = 0
-#     origin = (rshm.x_utm11n[ii], rshm.y_utm11n[ii], rshm.elevation_m[ii])
-#     # calculate rays
-#     rays_in = point_to_hemi_rays(origin, rshmeta.img_size, vox, max_phi=rshmeta.max_phi_rad,
-#                                  max_dist=rshmeta.max_distance, min_dist=rshmeta.min_distance)
-#     phi_theta_lookup = rays_in.loc[:, ['x_index', 'y_index', 'phi', 'theta']]
-#     phi_theta_lookup.to_csv(rshm.file_dir[ii] + "phi_theta_lookup.csv", index=False)
-#
-#
-#     # initial_index = 0
-#
-#
-#
-#
-#     rshm_split = np.array_split(rshm, n_cores)
-#
-#     if not os.path.exists(rshmeta.file_dir + "templog\\"):
-#         os.makedirs(rshmeta.file_dir + "templog\\")
-#
-#     x = range(1, n_cores)
-#     names = [rshmeta.file_dir + "templog\\rshmetalog_temp_" + str(y) + ".csv" for y in x]
-#     voxlist = []
-#     for ii in range(0, n_cores):
-#         voxlist.append(vox)
-#     args = list(zip(rshm_split, names, voxlist))
-#     try:
-#         pool = mp.Pool(n_cores)
-#         pool.map(rsm_chunk, args)
-#     except Exception as e:
-#         pool.close()
-#         raise
-#     pool.close()
-#
-#     # compile temporary files
-#     log_path = rshmeta.file_dir + "rshmetalog.csv"
-#
-#     with open(log_path, mode='w', encoding='utf-8') as log:
-#         log.write(",".join(rshm.columns) + '\n')
-#         for o in rshmeta.file_dir + "templog\\":
-#             with open(o, 'r') as fin:
-#                 for line in fin:
-#                     log.write(line)
-#
-#     print("-------- Ray Sample Hemigen completed--------")
-#     print(str(rshmeta.origin.shape[0] - initial_index) + " images generated in " + str(int(time.time() - tot_time)) + " seconds")
-#     return rshm
-
-#
-#
-# # sample voxel space from dem
-# dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\DEM\\interpolated\\19_149_dem_r1.00m_q0.25_interpolated_min1.tif"
-# #dem_in = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_dem_res_.10m.bil"
-# ras_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\19_149_expected_first_returns_res_.25m_0-0_t_1.tif"
-# # ras_out = "C:\\Users\\jas600\\workzone\\data\\dem\\19_149_expected_returns_res_.10m.tif"
-# phi = 0
-# theta = 0
-# agg_sample_length = vox.sample_length
-# vec = [phi, theta]
-# rays_in = dem_to_vox_rays(dem_in, vec, vox)
-# rays_out = aggregate_voxels_over_rays(vox, rays_in, agg_sample_length)
-# ras = ray_stats_to_dem(rays_out, dem_in)
-# rastools.raster_save(ras, ras_out)
-#
-#
-# # sample voxel space as hemisphere
-# # import from hemi_grid_points
-# hemi_pts = pd.read_csv('C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\synthetic_hemis\\uf_1m_pr_.15_os_10\\1m_dem_points.csv')
-# hemi_pts = hemi_pts[hemi_pts.uf == 1]
-# hemi_pts = hemi_pts[hemi_pts.id == 20426]
-# pts = pd.DataFrame({'x0': hemi_pts.x_utm11n,
-#                     'y0': hemi_pts.y_utm11n,
-#                     'z0': hemi_pts.z_m})
-#
-# # # import from hemi-photo lookup
-# #
-# img_lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
-# # img_lookup_in = 'C:\\Users\\jas600\\workzone\\data\\las\\hemi_lookup_cleaned.csv'
-# max_quality = 4
-# las_day = "19_149"
-# # import hemi_lookup
-# img_lookup = pd.read_csv(img_lookup_in)
-# # filter lookup by quality
-# img_lookup = img_lookup[img_lookup.quality_code <= max_quality]
-# # filter lookup by las_day
-# img_lookup = img_lookup[img_lookup.folder == las_day]
-#
-# pts = pd.DataFrame({'x0': img_lookup.xcoordUTM1,
-#                     'y0': img_lookup.ycoordUTM1,
-#                     'z0': img_lookup.elevation})
-#
-#
-# # for each point
-# ii = 0
-# origin = (pts.iloc[ii].x0, pts.iloc[ii].y0, pts.iloc[ii].z0)
-# img_size = 200
-# agg_sample_length = vox.sample_length
-# rays_in = point_to_hemi_rays(origin, img_size, vox, max_phi=np.pi/2, max_dist=50)
-# start = time.time()
-# rays_out, nb_lookup = aggregate_voxels_over_rays(vox, rays_in, agg_sample_length, prior)
-# end = time.time()
-# print(end - start)
-
-#
-# area_factor = .005
-# img_path = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RSM\\ray_sampling_transmittance_' + str(img_lookup.index[ii]) + '_af' + str(area_factor) + '.png'
-# #img_path = 'C:\\Users\\jas600\\workzone\\data\\las\\' + str(img_lookup.index[ii]) + '_af' + str(area_factor) + '.png'
-# hemi_rays_to_img(rays_out, img_path, img_size, area_factor)
-#
-# #
-# #
-# #
-# import matplotlib
-# matplotlib.use('TkAgg')
-# import matplotlib.pyplot as plt
-#
-# plt.scatter(rays1.returns_mean, rays2.returns_mean)
-# plt.scatter(rays_trad.returns_median, rays_squared.returns_median)
-#
-#
-# #
-# #
-# # peace_1 = peace.data[0]
-# peace_1[peace_1 == peace.no_data] = -1
-# plt.imshow(peace_1, interpolation='nearest')
-#
-# peace_2 = peace.data[1]
-# peace_2[peace_2 == peace.no_data] = 1
-# plt.imshow(peace_2, interpolation='nearest')
-#
-# plt.imshow(ras.data[0], interpolation='nearest')
-#
-# ### VISUALIZATION
-# import rastools
-# import numpy as np
-# import matplotlib
-# matplotlib.use('TkAgg')
-# import matplotlib.pyplot as plt
-#
-# ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\19_149_expected_returns_res_.25m_0-0_t_1.tif"
-# ras = rastools.raster_load(ras_in)
-#
-#
-# plot_data = ras.data[0]
-# plot_data[plot_data == ras.no_data] = -10
-# fig = plt.imshow(plot_data, interpolation='nearest', cmap='binary_r')
-# plt.colorbar()
-# plt.title('Upper Forest expected returns from nadir scans with no occlusion\n(ray-sampling method)')
-# # plt.show(fig)
-#
-# plot_data = ras.data[2] / ras.data[0]
-# plot_data[ras.data[2] == ras.no_data] = 0
-# fig = plt.imshow(plot_data, interpolation='nearest', cmap='binary_r')
-# plt.colorbar()
-# plt.title('Upper Forest relative standard deviation of returns\n(ray-sampling method)')
-# # plt.show(fig)
-#
-#
-# plt.scatter(rays_out.x0, rays_out.y0)
-# plt.scatter(ground_dem[0], ground_dem[1])
-# plt.scatter(p0[:, 0], p0[:, 1])
-#
-# import matplotlib
-# matplotlib.use('TkAgg')
-# import matplotlib.pyplot as plt
-# plt.imshow(template[:, :, 0], interpolation='nearest')
-
-#
-# from scipy import misc
-# import imageio
-# img = np.rint(template * 255).astype(np.uint8)
-# img_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\DEM\\ray_sampling_transmittance.png'
-# imageio.imsave(img_out, img)
-#
-# import matplotlib
-# matplotlib.use('TkAgg')
-# import matplotlib.pyplot as plt
-# plt.scatter(uni, coo)
-# plt.scatter(runi, roo)
-# plt.scatter(uni, cumsoo)
-# plt.scatter(runi, rumsoo)
-#
-# import matplotlib
-# matplotlib.use('TkAgg')
-# import matplotlib.pyplot as plt
-#
-# plt.imshow(ras.data[1], interpolation='nearest')
-#
-# plt.plot(range(0, len(cs)), cs)
-#
-# result = lookup.items()
-# peace = list(result)
-# train = [[peace[ii][0][0], peace[ii][0][1], peace[ii][1]] for ii in range(0, len(peace))]
-# arr = np.array(train)
-# dft = pd.DataFrame(data=arr, columns={'alpha', 'p', 'cnt'})
-# lala = dft.sort_values('cnt')
-# cs = np.cumsum(np.flip(lala.cnt.values))
