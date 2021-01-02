@@ -2,21 +2,23 @@ import rastools
 import numpy as np
 import pandas as pd
 import tifffile as tif
+from scipy.stats import spearmanr
 
 batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_uf_.25m_180px\\outputs\\'
 # batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\mb_15_1m_pr.15_os10\\outputs\\'
 
-log_batch = True
+batch_type = 'lin'  # 'exp', 'log', 'lin'
 
-if log_batch:
+if batch_type == 'log':
     covar_out = batch_dir + "phi_theta_lookup_log_covar_training.csv"
-    weighted_cn_out = batch_dir + "rshmetalog_weighted_cn.csv"
-else:
-    covar_out = batch_dir + "phi_theta_lookup_covar.csv"
+    weighted_cv_out = batch_dir + "rshmetalog_log_weighted_cv.csv"
+elif batch_type == 'exp':
+    covar_out = batch_dir + "phi_theta_lookup_exp_covar_training.csv"
+    weighted_cv_out = batch_dir + "rshmetalog_exp_weighted_cv.csv"
+elif batch_type == 'lin':
+    covar_out = batch_dir + "phi_theta_lookup_lin_covar_training.csv"
+    weighted_cv_out = batch_dir + "rshmetalog_lin_weighted_cv.csv"
 
-# covar type
-globalBool = False
-localBool = True
 
 scaling_coef = 0.19546
 
@@ -26,7 +28,7 @@ hemimeta = pd.read_csv(batch_dir + 'rshmetalog.csv')
 imsize = hemimeta.img_size_px[0]
 
 # merge with covariant
-var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\19_045-19_052\\dswe_19_045-19_052_r.25m.tif'
+var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\19_045-19_050\\dswe_19_045-19_050_r.25m.tif'
 var = rastools.raster_to_pd(var_in, 'covariant')
 hemi_var = pd.merge(hemimeta, var, left_on=('x_utm11n', 'y_utm11n'), right_on=('x_coord', 'y_coord'), how='inner')
 
@@ -35,103 +37,76 @@ angle_lookup = pd.read_csv(batch_dir + "phi_theta_lookup.csv")
 phi = np.full((imsize, imsize), np.nan)
 phi[(np.array(angle_lookup.x_index), np.array(angle_lookup.y_index))] = angle_lookup.phi * 180 / np.pi
 max_phi = 90
-
+# calculate radius to avoid pixels outside of circle
+imrange = np.full((imsize, imsize), False)
+imrange[phi <= max_phi] = True
 
 # filter to desired images
 #hemiList = hemi_swe.loc[(hemi_swe.swe.values >= 0) & (hemi_swe.swe.values <= 150), :]
-
 # delineate training set and test set
 set_param = np.random.random(len(hemi_var))
-hemi_var.loc[:, 'training_set'] = set_param < 1
+hemi_var.loc[:, 'training_set'] = set_param < 1.00
 hemiList = hemi_var.loc[hemi_var.training_set, :].reset_index()
 
 
-
 imstack = np.full([imsize, imsize, len(hemiList)], np.nan)
-if log_batch:
-    for ii in range(0, len(hemiList)):
-        imstack[:, :, ii] = np.log(tif.imread(batch_dir + hemiList.file_name[ii])[:, :, 1] * scaling_coef)
-        print(str(ii + 1) + ' of ' + str(len(hemiList)))
-else:
-    for ii in range(0, len(hemiList)):
-        imstack[:, :, ii] = tif.imread(batch_dir + hemiList.file_name[ii])[:, :, 1] * scaling_coef
-        print(str(ii + 1) + ' of ' + str(len(hemiList)))
+for ii in range(0, len(hemiList)):
+    imstack[:, :, ii] = tif.imread(batch_dir + hemiList.file_name[ii])[:, :, 1] * scaling_coef
+    print(str(ii + 1) + ' of ' + str(len(hemiList)))
+
+if batch_type == 'log':
+    imstack = np.log(imstack)
+elif batch_type == 'exp':
+    imstack = np.exp(-imstack)
 
 
-# calculate radius to avoid pixels outside of circle
-# im_center = (imsize - 1)/2
-imrange = np.full((imsize, imsize), False)
-imrange[phi <= max_phi] = True
-# for ii in range(0, imsize):
-#         for jj in range(0, imsize):
-#             rr = np.sqrt((im_center - ii) ** 2 + (im_center - jj) ** 2)
-#             if rr <= imsize / 2:
-#                 imrange[jj, ii] = True
+covar = np.full((imsize, imsize), np.nan)
+corcoef = np.full((imsize, imsize), np.nan)
+sprank = np.full((imsize, imsize), np.nan)
 
-if globalBool:
-    globalCovar = np.full((imsize, imsize), np.nan)
-    global_mean_tray = np.full((imsize, imsize), np.nan)
-    for ii in range(0, imsize):
-        for jj in range(0, imsize):
-            if imrange[jj, ii]:
-                global_mean_tray[jj, ii] = np.mean(imstack[jj, ii, :])
-        print(ii)
-    global_mean = np.nanmean(global_mean_tray)
-    #np.save(batch_dir + '_global_mean_tray', global_mean_tray)
-
-if localBool:
-    localCovar = np.full((imsize, imsize), np.nan)
-
-var_mu = np.mean(hemiList.covariant)
 for ii in range(0, imsize):
     for jj in range(0, imsize):
         if imrange[jj, ii]:
-            can = imstack[jj, ii, :]
-            can_mu = np.mean(can)
+            # covar[jj, ii] = np.cov(hemiList.covariant, imstack[jj, ii, :])[0, 1]
+            # corcoef[jj, ii] = np.corrcoef(hemiList.covariant, imstack[jj, ii, :])[0, 1]
+            sprank[jj, ii] = spearmanr(hemiList.covariant, imstack[jj, ii, :])[0]
 
-            if localBool:
-                localCovar[jj, ii] = np.mean((can - np.mean(can)) * (hemiList.covariant - var_mu))
-            if globalBool:
-                globalCovar[jj, ii] = np.mean((can - global_mean) * (hemiList.covariant - var_mu))
     print(ii)
-    # save arrays to file every row, in event of crash
-    # np.save(batch_dir + '_local', localCovar)
-    # np.save(batch_dir + '_global', globalCovar)
 
-# localCovar = np.load(batch_dir + '_local.npy')
-# globalCovar = np.load(batch_dir + '_global.npy')
-
+# calculate weights by sqr or abs method
 angle_lookup_covar = angle_lookup.copy()
-if log_batch:
-    angle_lookup_covar.loc[:, 'log_covar'] = localCovar[angle_lookup_covar.y_index.values, angle_lookup_covar.x_index.values]
-else:
-    angle_lookup_covar.loc[:, 'linear_covar'] = localCovar[angle_lookup_covar.y_index.values, angle_lookup_covar.x_index.values]
 
-angle_lookup_covar.loc[:, "abs_log_covar"] = np.abs(angle_lookup_covar.log_covar)
-angle_lookup_covar.loc[:, "abs_log_covar_weight"] = angle_lookup_covar.log_covar / np.sum(angle_lookup_covar.loc[:, "abs_log_covar"])
-angle_lookup_covar.loc[:, "sqr_log_covar"] = angle_lookup_covar.log_covar ** 2
-angle_lookup_covar.loc[:, "sqr_log_covar_weight"] = angle_lookup_covar.log_covar / np.sum(angle_lookup_covar.loc[:, "sqr_log_covar"])
+angle_lookup_covar.loc[:, 'covar'] = localCovar[angle_lookup_covar.y_index.values, angle_lookup_covar.x_index.values]
+angle_lookup_covar.loc[:, "abs_covar"] = np.abs(angle_lookup_covar.covar)
+angle_lookup_covar.loc[:, "abs_covar_weight"] = angle_lookup_covar.covar / np.sum(angle_lookup_covar.loc[:, "abs_covar"])
+angle_lookup_covar.loc[:, "sqr_covar"] = angle_lookup_covar.covar ** 2
+angle_lookup_covar.loc[:, "sqr_covar_weight"] = angle_lookup_covar.covar / np.sum(angle_lookup_covar.loc[:, "sqr_covar"])
 
+# write weights to file
 angle_lookup_covar.to_csv(covar_out, index=False)
 
-# Calculate weighted CN for all images based on hemisphere
-
+# Calculate weighted value for all images
 abs_weight = np.full([imsize, imsize], np.nan)
-abs_weight[(angle_lookup_covar.y_index.values, angle_lookup_covar.x_index.values)] = angle_lookup_covar.abs_log_covar_weight.values
+abs_weight[(angle_lookup_covar.y_index.values, angle_lookup_covar.x_index.values)] = angle_lookup_covar.abs_covar_weight.values
 
 sqr_weight = np.full([imsize, imsize], np.nan)
-sqr_weight[(angle_lookup_covar.y_index.values, angle_lookup_covar.x_index.values)] = angle_lookup_covar.sqr_log_covar_weight.values
+sqr_weight[(angle_lookup_covar.y_index.values, angle_lookup_covar.x_index.values)] = angle_lookup_covar.sqr_covar_weight.values
 
-hemi_var.loc[:, "log_cn_abs_weighted"] = np.nan
-hemi_var.loc[:, "log_cn_sqr_weighted"] = np.nan
-if log_batch:
-    for ii in range(0, len(hemi_var)):
-        temp_im = np.log(tif.imread(batch_dir + hemi_var.file_name[ii])[:, :, 1] * scaling_coef)
-        hemi_var.log_cn_abs_weighted[ii] = np.nansum(-1 * temp_im * abs_weight)
-        hemi_var.log_cn_sqr_weighted[ii] = np.nansum(-1 * temp_im * sqr_weight)
-        print(str(ii + 1) + ' of ' + str(len(hemi_var)))
+hemi_var.loc[:, "cv_abs_weighted"] = np.nan
+hemi_var.loc[:, "cv_sqr_weighted"] = np.nan
 
-hemi_var.to_csv(weighted_cn_out, index=False)
+for ii in range(0, len(hemi_var)):
+    temp_im = tif.imread(batch_dir + hemi_var.file_name[ii])[:, :, 1] * scaling_coef
+    if batch_type == 'log':
+        temp_im = np.log(temp_im)
+    elif batch_type == 'exp':
+        temp_im = np.exp(-temp_im)
+    hemi_var.cv_abs_weighted[ii] = np.nansum(-1 * temp_im * abs_weight)
+    hemi_var.cv_sqr_weighted[ii] = np.nansum(-1 * temp_im * sqr_weight)
+    print(str(ii + 1) + ' of ' + str(len(hemi_var)))
+
+hemi_var.to_csv(weighted_cv_out, index=False)
+
 
 import matplotlib
 matplotlib.use('TkAgg')
@@ -150,13 +125,12 @@ plt.colorbar()
 
 
 ## visualize weights
-
 plt.imshow(abs_weight, cmap=plt.get_cmap('Purples_r'))
 plt.imshow(sqr_weight, cmap=plt.get_cmap('Purples_r'))
 
 
 # load data
-data_in ='C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_uf_.25m_180px\\outputs\\rshmetalog_weighted_cn.csv'
+data_in ='C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_uf_.25m_180px\\outputs\\rshmetalog_weighted_cv.csv'
 hemi_var = pd.read_csv(data_in)
 
 
@@ -167,64 +141,50 @@ plt.scatter(hemi_var.covariant[hemi_var.training_set.values], -hemi_var.log_cn_a
 # test set
 plt.scatter(hemi_var.covariant[~hemi_var.training_set.values], -hemi_var.log_cn_abs_weighted[~hemi_var.training_set.values], s=1, alpha=.25)
 
-plt.scatter(hemi_var.covariant[~hemi_var.training_set.values], -hemi_var.log_cn_sqr_weighted[~hemi_var.training_set.values], s=1, alpha=.25)
+plt.scatter(hemi_var.covariant[~hemi_var.training_set.values], -hemi_var.cv_sqr_weighted[~hemi_var.training_set.values], s=1, alpha=.25)
 
-
-##
-#
-# fig = plt.figure()
-# a = fig.add_subplot(1, 2, 1)
-# imgplot = plt.imshow(localCovar)
-# a.set_title('Covarience (local) of SWE (0-150mm) and Canopy presence')
-# plt.colorbar()
-# a = fig.add_subplot(1, 2, 2)
-# imgplot = plt.imshow(globalCovar)
-# a.set_title('Covarience (global) of SWE (0-150mm) and Canopy presence')
-# plt.colorbar()
-# fig.savefig(figout)
-
-
-
-
-#####
-
-# h5py takes way too long. attempting to wrestle in memory instead
-#
-# import h5py
-# hdf5_path = batch_dir + 'imstack_t' + str(threshold) + '_faulty.h5'
-#
-# with h5py.File(hdf5_path, 'w') as hf:
-#     hf.create_dataset('imstack', imstack.shape, data=imstack, dtype='bool', chunks=(1, 1, 25285))
-
-# with h5py.File(hdf5_path, 'r') as hf:
-#     mean_global = np.mean(hf['imstack'][1, 1, selection])
-
-# takes 5+ days to calculate mean. Not going to work. Can I do this in working memory instead?
-# if meantype == 'global':
-#     global_mean_tray = np.full((imsize, imsize), np.nan)
-#     for ii in range(0, imsize):
-#         #for jj in range(0, imsize):
-#         jj = 500
-#         rr = np.sqrt((im_center - ii) ** 2 + (im_center - jj) ** 2)
-#         if rr <= imsize / 2:
-#             with h5py.File(hdf5_path, 'r') as hf:
-#                 global_mean_tray[jj, ii] = np.mean(hf['imstack'][jj, ii, selection])
-#         print(ii)
-#     global_mean = np.nanmean(global_mean_tray)
-covar_global = covar
-covar_local = covar
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-plt.imshow(covar, interpolation='nearest')
-plt.colorbar
-
-fig = plt.figure()
-a = fig.add_subplot(1, 2, 1)
-imgplot = plt.imshow(covar_local)
-a.set_title('Covarience (local) of SWE (40-50mm) and Canopy presence')
+plt.imshow(sprank, cmap=plt.get_cmap('Purples_r'))
 plt.colorbar()
-a = fig.add_subplot(1, 2, 2)
-imgplot = plt.imshow(covar_global)
-a.set_title('Covarience (global) of SWE (40-50mm) and Canopy presence')
+
+# divergent colormap
+
+import matplotlib.colors as colors
+# set the colormap and centre the colorbar
+
+
+class MidpointNormalize(colors.Normalize):
+    """
+    Normalise the colorbar so that diverging bars work there way either side from a prescribed midpoint value)
+
+    e.g. im=ax1.imshow(array, norm=MidpointNormalize(midpoint=0.,vmin=-100, vmax=100))
+    """
+    def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
+        self.midpoint = midpoint
+        colors.Normalize.__init__(self, vmin, vmax, clip)
+
+    def __call__(self, value, clip=None):
+        # I'm ignoring masked values and all kinds of edge cases to make a
+        # simple example...
+        x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
+        return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
+
+val_min = np.min(sprank)
+val_max = np.max(sprank)
+val_mid = 0
+cmap = matplotlib.cm.RdBu_r
+
+plt.imshow(sprank, cmap=cmap, clim=(val_min, val_max), norm=MidpointNormalize(midpoint=val_mid, vmin=val_min, vmax=val_max))
 plt.colorbar()
+plt.show()
+
+ii = 39
+jj = 163
+plt.scatter(hemiList.covariant, imstack[jj, ii, :], alpha=0.05)
+# cumulative weights... this is all messed
+
+# angle_lookup_covar.sqr_covar_weighted
+# angle_lookup_covar.sort_values(phi)
+# peace = angle_lookup_covar.loc[~np.isnan(angle_lookup_covar.covar), :]
+# peace.loc[:, 'sqr_covar_weight_cumsum'] = np.cumsum(peace.sort_values('phi').sqr_covar_weight.values).copy()
+#
+# plt.scatter(peace.phi, peace.sqr_covar_weight_cumsum)

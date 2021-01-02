@@ -598,73 +598,226 @@ def single_ray_agg(vox, rays, agg_sample_length, lookup_db, prior, commentation=
 
 
 
-def vox_agg(origin, vox_sub, img_size, max_phi=np.pi/2, max_dist=50, min_dist=0, lookup_db='posterior'):
-    # use rays to record
-    rays = hemi_vectors(img_size, max_phi)
+def single_ray_group_agg(vox, rays, agg_sample_length, lookup_db, prior, commentation=False):
 
-    # convert min/vax to voxel units
+    # pull ray endpoints
+    p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
+    p1 = rays.loc[:, ['x1', 'y1', 'z1']].values
+
+
+    # calculate distance between ray start (ground) and end (sky)
+    dist = np.sqrt(np.sum((p1 - p0) ** 2, axis=1))
+    rays = rays.assign(path_length=dist)
+
+    # calc unit step along ray in x, y, z dims
+    xyz_step = (p1 - p0) / dist[:, np.newaxis]
+
+    # random offset for each ray sample series
+    offset = np.random.random(len(p0))
+
+    # calculate number of samples
+    n_samples = ((dist - offset) / agg_sample_length).astype(int)
+    max_steps = np.max(n_samples)
+
+    # preallocate aggregate lists
+    path_samples = np.full([len(p0), max_steps], np.nan)
+    path_returns = np.full([len(p0), max_steps], np.nan)
+
+    # for each sample step
+    if commentation:
+        print('Sampling voxels', end='')
+        cur_cent = 0
+    for ii in range(0, max_steps):
+        # distance from p0 along ray
+        sample_dist = (ii + offset) * agg_sample_length
+
+        # select rays where t_dist is in range
+        in_range = (dist > sample_dist)
+
+        # calculate tracer point coords for step
+        sample_points = xyz_step[in_range, :] * sample_dist[in_range, np.newaxis] + p0[in_range]
+
+        if np.size(sample_points) != 0:
+            # add voxel value to list
+            sample_vox = utm_to_vox(vox, sample_points).astype(int)
+            sample_address = (sample_vox[:, 0], sample_vox[:, 1], sample_vox[:, 2])
+
+            path_samples[in_range, ii] = vox.sample_data[sample_address]
+            path_returns[in_range, ii] = vox.return_data[sample_address]
+
+        if commentation:
+            past_cent = cur_cent
+            cur_cent = int(100 * (ii + 1) / max_steps)
+            if cur_cent > past_cent:
+                for jj in range(0, cur_cent - past_cent):
+                    if (past_cent + jj + 1) % 10 == 0:
+                        print(str(past_cent + jj + 1), end='')
+                    else:
+                        print('.', end='')
+
+    if commentation:
+        print(' -- Calculating returns... ', end='')
+
+    if lookup_db == 'count':
+        rays_out = beta(rays, path_samples, path_returns, vox.sample_length, agg_sample_length, prior)
+    elif lookup_db == 'posterior':
+        rays_out = beta_lookup(rays, path_samples, path_returns)
+    else:
+        raise Exception('Not a valid lookup_db: ' + lookup_db)
+
+    return rays_out
+
+
+def vox_agg(origin, vox_sub, img_size, max_phi=np.pi/2, max_dist=50, min_dist=0, ref="edge"):
+
+    # use rays to record
+    rays = hemi_vectors(img_size, max_phi, ref=ref)
+
+    # convert min/max to voxel units
     vr_max = max_dist / vox_sub.step[0]
     vr_min = min_dist / vox_sub.step[0]
 
     # convert origin to vox coords
     v0 = utm_to_vox(vox_sub, origin)
     v0 = v0 - (vox_sub.step / 2)  # shift origin to shift vox corners to vox centers
+    v0 = v0 + (np.random.random(3) * 2 - 1) / 10 ** 10  # add small noise to avoid alignment with vox grid -- can we solve this in a cleaner way please?
 
-    # all voxel corners
-    vx, vy, vz = np.indices(vox_sub.ncells)
-    vv = np.array([np.ravel(vx), np.ravel(vy), np.ravel(vz)]).swapaxes(0, 1)
+    tp = v0 + (0, 0, 1)  # test point for debugging
 
-    # convert to polar around origin
+    # all voxel corners within cartesian max_dist
+    ub = np.ceil(v0 + np.array([vr_max * np.sin(max_phi), vr_max * np.sin(max_phi), vr_max])).astype(int)
+    ub = np.min([vox_sub.ncells - 1, ub], axis=0)  # limit ub to vox_sub size
+
+    lb = np.floor(v0 - np.array([vr_max, vr_max, 0])).astype(int)
+    lb = np.max([(0, 0, 0), lb], axis=0)  # limit lb to 0
+
+    vx, vy, vz = np.indices(ub - lb + 1)
+    vv = np.array([np.ravel(vx), np.ravel(vy), np.ravel(vz)]).swapaxes(0, 1) + lb
+
+    # calculate distance from origin
     vr = np.sqrt(np.sum((vv - v0) ** 2, axis=1))
+    # tr = np.sqrt(np.sum((tp - v0) ** 2))
 
     # filter to within min/max dist range and in upper hemisphere
     in_range = (vr >= vr_min) & (vr <= vr_max) & (vv[:, 2] >= v0[2])
 
-    # calculate phi
-    v_phi = np.arccos((vv[in_range, 2] - v0[2])/vr[in_range])
-    # v_theta = np.arctan2(vv[:, 0] - v0[0], vv[:, 1] - v0[1])  # check this if errors persist!
+    # calculate polar coordinates
+    v_v = vv[in_range]
+    v_r = vr[in_range]
+    v_phi = np.arccos((v_v[:, 2] - v0[2])/v_r)
+    v_theta = np.arctan2(v_v[:, 0] - v0[0], v_v[:, 1] - v0[1])
 
-    # calculate angle groups (centers? corners? again...)
-    x_index = np.rint((v_phi * img_size/max_phi) / np.sqrt(1 + (vv[in_range, 1] - v0[1]) ** 2 / (vv[in_range, 0] - v0[0]) ** 2)).astype(int)
-    y_index = np.rint((v_phi * img_size / max_phi) / np.sqrt(1 + (vv[in_range, 0] - v0[0]) ** 2 / (vv[in_range, 1] - v0[1]) ** 2)).astype(int)
+    # t_phi = np.arccos((tp[2] - v0[2])/tr)
+    t_theta = np.arctan2(tp[0] - v0[0], tp[1] - v0[1])
 
-    bins, indices, inverse, vox_count = np.unique(np.array([x_index, y_index]), axis=1, return_counts=True, return_inverse=True, return_index=True)  # why are counts not ~uniform? This is problematic. either include more points below, or normalize by (weighted) number of points.
 
-    bins_df = pd.DataFrame({"x_index": bins[0],
-                         "y_index": bins[1],
-                         "vox_count": vox_count.astype(int)})
-    bins_df = bins_df.reset_index()
-    bins_df.columns = ['id', 'x_index', 'y_index', 'vox_count']
+    # x_index = np.rint((v_phi * img_size / max_phi) / np.sqrt(1 + (v_v[:, 1] - v0[1]) ** 2 / (v_v[:, 0] - v0[0]) ** 2)).astype(int)
 
-    rays_in = pd.merge(rays, bins_df, how="left", on=["x_index", "y_index"])  # getting nans out of this, something is wrong. The problem line above is a good indicator.
+    # y_index = np.rint((v_phi * img_size / max_phi) / np.sqrt(1 + (v_v[:, 0] - v0[0]) ** 2 / (v_v[:, 1] - v0[1]) ** 2)).astype(int)
 
-    vol_returns = np.full([len(rays), np.max(vox_count)], np.nan)
-    vol_samples = np.full([len(rays), np.max(vox_count)], np.nan)
-    vol_weights = np.full([len(rays), np.max(vox_count)], np.nan)
+    o_index = (img_size - 1) / 2
 
-    ii = 0
-    # for each ray (group by?)
-    for ii in range(0, len(rays_in)):
-        print(str(ii + 1) + ' of ' + str(len(rays_in)))
-        # weigh by 1/r^2
-
-        if not np.isnan(rays_in.id[ii]):  # wickedly slow!! this needs some serious rethinking if this is going to be functional, let alone faster than the single ray sampling....
-            # list of values
-            vox_coords = vv[in_range, :][inverse == rays_in.id[ii], :]
-            vox_address = (vox_coords[:, 0], vox_coords[:, 1], vox_coords[:, 2])
-
-            # pull values
-            vol_returns[ii, 0:rays_in.vox_count[ii].astype(int)] = vox_sub.return_data[vox_address]
-            vol_samples[ii, 0:rays_in.vox_count[ii].astype(int)] = vox_sub.sample_data[vox_address]
-            vol_weights[ii, 0:rays_in.vox_count[ii].astype(int)] = 1 / vr[in_range][inverse == rays_in.id[ii]] ** 2
-
-    if lookup_db == 'count':
-        #rays_out = beta(rays, vol_samples, vol_returns, vox_sub.sample_length, agg_sample_length, prior)
-        pass
-    elif lookup_db == 'posterior':
-        rays_out = beta_lookup(rays, vol_samples, vol_returns, weights=vol_weights)
+    if ref == "center":
+        phi_step = max_phi * 2 / (img_size)
+    elif ref == "edge":
+        phi_step = max_phi * 2 / (img_size - 1)
     else:
-        raise Exception('Not a valid lookup_db: ' + lookup_db)
+        raise Exception("'ref' only takes values of 'center' or 'edge'. Received: " + str(ref))
+
+    x_int = np.rint(o_index + np.sin(v_theta) * v_phi / phi_step).astype(int)
+    y_int = np.rint(o_index + np.cos(v_theta) * v_phi / phi_step).astype(int)
+
+    # t_x_int = np.rint(o_index + np.sin(t_theta) * t_phi / phi_step).astype(int)
+    # t_y_int = np.rint(o_index + np.cos(t_theta) * t_phi / phi_step).astype(int)
+
+
+    v_address = (v_v[:, 0], v_v[:, 1], v_v[:, 2])
+
+    samps = vox_sub.sample_data[v_address]
+    rets = vox_sub.return_data[v_address]
+
+    weights = np.prod(vox_sub.step) / (4 * phi_step * np.cos(phi_step) * v_r ** 2)
+    weights = np.prod(vox_sub.step) / (4 * phi_step * np.cos(phi_step) * vox_sub.sample_length * (v_r * vox_sub.step[0]) ** 2)
+
+
+    rays.loc[:, "id"] = rays.index
+    voxels = pd.DataFrame({"x_index": x_int,
+                           "y_index": y_int,
+                           "vox_mean": weights * rets / (rets + samps),
+                           "vox_var": weights * rets * samps / ((rets + samps) ** 2 * (rets + samps + 1)),
+                           "weights": weights})
+
+    peace = voxels.groupby(["x_index", "y_index"], as_index=False).agg(
+        x_index=pd.NamedAgg(column="x_index", aggfunc=np.mean),
+        y_index=pd.NamedAgg(column="y_index", aggfunc=np.mean),
+        returns_mean=pd.NamedAgg(column="vox_mean", aggfunc=np.sum),
+        returns_var=pd.NamedAgg(column="vox_var", aggfunc=np.sum),
+        voxel_count=pd.NamedAgg(column="weights", aggfunc=np.size),
+        weight_sum=pd.NamedAgg(column="weights", aggfunc=np.sum))
+    peace.loc[:, 'vol'] = peace.voxel_count * np.prod(vox_sub.step)
+    peace.loc[:, 'arr'] = (3 * peace.voxel_count * np.prod(vox_sub.step) / ((2 * max_phi) / img_size) ** 2) ** (1/3)
+
+    output = pd.merge(rays, peace, how="left", on=["x_index", "y_index"])
+
+    lala = pd.merge(rays_out, output, how="outer", on=["x_index", "y_index"])
+
+    import matplotlib
+    matplotlib.use("Qt5Agg")
+    import matplotlib.pyplot as plt
+
+    plt.scatter(lala.returns_mean_x, lala.returns_mean_y, alpha=.05)
+    plt.scatter(lala.path_length, lala.weight_sum)
+    plt.scatter(lala.path_length, lala.arr)  # this looks good! I think we are getting thr right number of voxels in the search area, quite reassuring.
+
+    #
+    # returns_mean = np.nansum(weights * post_a/(post_a + post_b), axis=1)
+    # returns_std = np.sqrt(np.nansum(weights * post_a * post_b / ((post_a + post_b) ** 2 * (post_a + post_b + 1)), axis=1))
+    #
+    #
+    # peace.agg(np.size)
+    #
+    # # save this for the end...
+    # peace = pd.merge(rays.loc[:, ["x_index", "y_index", "id"]], voxels, how="left", on=["x_index", "y_index"])  # some ids are missing values. why would this be?
+    #
+    #
+    #
+    # bins, indices, inverse, vox_count = np.unique(np.array([x_index, y_index]), axis=1, return_counts=True, return_inverse=True, return_index=True)  # why are counts not ~uniform? This is problematic. either include more points below, or normalize by (weighted) number of points.
+    #
+    # bins_df = pd.DataFrame({"x_index": bins[0],
+    #                      "y_index": bins[1],
+    #                      "vox_count": vox_count.astype(int)})
+    # bins_df = bins_df.reset_index()
+    # bins_df.columns = ['id', 'x_index', 'y_index', 'vox_count']
+    #
+    # rays_in = pd.merge(rays, bins_df, how="left", on=["x_index", "y_index"])  # getting nans out of this, something is wrong. The problem line above is a good indicator.
+    #
+    # vol_returns = np.full([len(rays), np.max(vox_count)], np.nan)
+    # vol_samples = np.full([len(rays), np.max(vox_count)], np.nan)
+    # vol_weights = np.full([len(rays), np.max(vox_count)], np.nan)
+    #
+    # ii = 0
+    # # for each ray (group by?)
+    # for ii in range(0, len(rays_in)):
+    #     print(str(ii + 1) + ' of ' + str(len(rays_in)))
+    #     # weigh by 1/r^2
+    #
+    #     if not np.isnan(rays_in.id[ii]):  # wickedly slow!! this needs some serious rethinking if this is going to be functional, let alone faster than the single ray sampling....
+    #         # list of values
+    #         vox_coords = vv[in_range, :][inverse == rays_in.id[ii], :]
+    #         vox_address = (vox_coords[:, 0], vox_coords[:, 1], vox_coords[:, 2])
+    #
+    #         # pull values
+    #         vol_returns[ii, 0:rays_in.vox_count[ii].astype(int)] = vox_sub.return_data[vox_address]
+    #         vol_samples[ii, 0:rays_in.vox_count[ii].astype(int)] = vox_sub.sample_data[vox_address]
+    #         vol_weights[ii, 0:rays_in.vox_count[ii].astype(int)] = 1 / vr[in_range][inverse == rays_in.id[ii]] ** 2
+    #
+    # if lookup_db == 'count':
+    #     #rays_out = beta(rays, vol_samples, vol_returns, vox_sub.sample_length, agg_sample_length, prior)
+    #     pass
+    # elif lookup_db == 'posterior':
+    #     rays_out = beta_lookup(rays, vol_samples, vol_returns, weights=vol_weights)
+    # else:
+    #     raise Exception('Not a valid lookup_db: ' + lookup_db)
 
     return rays_out
 
@@ -806,7 +959,7 @@ def ray_stats_to_dem(rays, dem_in, file_out):
     return ras
 
 
-def hemi_vectors(img_size, max_phi):
+def hemi_vectors(img_size, max_phi, ref="center"):
 
     # convert img index to phi/theta
     img_origin = (img_size - 1) / 2
@@ -818,8 +971,16 @@ def hemi_vectors(img_size, max_phi):
                          'y_index': index[1]})
 
     # calculate phi and theta
-    rays = rays.assign(phi=np.sqrt((rays.x_index - img_origin) ** 2 + (rays.y_index - img_origin) ** 2) * max_phi / img_origin)
+    if ref == "center":
+        rays = rays.assign(phi=np.sqrt((rays.x_index - img_origin) ** 2 + (rays.y_index - img_origin) ** 2) * max_phi * 2 / (img_size - 1))
+    elif ref == "edge":
+        rays = rays.assign(phi=np.sqrt((rays.x_index - img_origin) ** 2 + (rays.y_index - img_origin) ** 2) * max_phi * 2 / img_size)
+    else:
+        raise Exception("'ref' only takes values of 'center' or 'edge'. Received: " + str(ref))
     rays = rays.assign(theta=np.arctan2((rays.x_index - img_origin), (rays.y_index - img_origin)) + np.pi)
+
+    # fix division by zero case
+    rays.loc[np.isnan(rays.phi), 'phi'] = 0
 
     # remove rays which exceed max_phi (beyond image horizon)
     rays = rays[rays.phi <= max_phi]
@@ -997,6 +1158,13 @@ def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, nrows=4, commentati
             # method = rshmeta.agg_method
             rays_out = single_ray_agg(vox_sub, rays_in, rshmeta.agg_sample_length, rshmeta.lookup_db, rshmeta.prior, commentation)
         elif rshmeta.agg_method == "vox_agg":
+
+            # vox_bu = vox
+            # vox = vox_sub
+            # img_size = rshmeta.img_size
+            # max_phi = rshmeta.max_phi_rad
+            # max_dist = rshmeta.max_distance
+            # min_dist = rshmeta.min_distance
             rays_out = vox_agg(origin, vox_sub, rshmeta.img_size, rshmeta.max_phi_rad, rshmeta.max_distance, rshmeta.min_distance)
         else:
             raise Exception("Unknown agg_method: " + rshmeta.agg_method)

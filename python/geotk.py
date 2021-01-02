@@ -5,7 +5,7 @@ import laslib
 import numpy as np
 import pandas as pd
 
-def pnt_sample_semivar(pts_1, vals_1, dist_inv_func, n_samples, n_iters=1, pts_2=None, vals_2=None, self_ref=False):
+def pnt_sample_semivar(pts_1, vals_1, dist_inv_func, n_samples, n_iters=1, pts_2=None, vals_2=None, report_samp_vals=False, self_ref=False):
     if pts_2 is None:
         pts_2 = pts_1
 
@@ -23,6 +23,8 @@ def pnt_sample_semivar(pts_1, vals_1, dist_inv_func, n_samples, n_iters=1, pts_2
     true_dist = np.full((n_samples, n_iters), np.nan)
     dv = np.full((n_samples, n_iters), np.nan)
 
+    samp_vals_1 = np.full((n_samples, n_iters), np.nan)
+    samp_vals_2 = np.full((n_samples, n_iters), np.nan)
     for ii in range(0, n_samples):
         # for each sample calculate distances to all points
         dd = np.sqrt(np.sum((pts_2 - pts_1[samps[ii], :]) ** 2, axis=1))
@@ -32,12 +34,19 @@ def pnt_sample_semivar(pts_1, vals_1, dist_inv_func, n_samples, n_iters=1, pts_2
             idx = (np.abs(dd - targ_dist[ii, jj])).argmin()
             # record the actual distance between points
             true_dist[ii, jj] = dd[idx]
+            # record sample values
+            samp_vals_1[ii, jj] = vals_1[samps[ii]]
+            samp_vals_2[ii, jj] = vals_2[idx]
             # record value difference
-            dv[ii, jj] = vals_2[idx] - vals_2[samps[ii]]
+            dv[ii, jj] = samp_vals_2[ii, jj] - samp_vals_1[ii, jj]
         print(ii + 1)
 
     df = pd.DataFrame({'dist': true_dist.reshape(n_samples * n_iters),
                        'dvals': dv.reshape(n_samples * n_iters)})
+    if report_samp_vals:
+        df.loc[:, 'samp_vals_1'] = samp_vals_1.reshape(n_samples * n_iters)
+        df.loc[:, 'samp_vals_2'] = samp_vals_2.reshape(n_samples * n_iters)
+
     if not self_ref:
         # remove self-referencing values
         df = df[df.dist != 0]
@@ -46,7 +55,11 @@ def pnt_sample_semivar(pts_1, vals_1, dist_inv_func, n_samples, n_iters=1, pts_2
 
     return df, unif_bounds
 
-def bin_summarize(df, dist_inv_func, bounds, bin_count):
+def autocovar(vv):
+    pass
+
+
+def bin_summarize(df, dist_inv_func, bounds, bin_count, covar=False):
     dd = df.dist
     vv = df.dvals
 
@@ -63,6 +76,8 @@ def bin_summarize(df, dist_inv_func, bounds, bin_count):
                           'n': 0,
                           'mean_dist': np.nan,
                           'mean_bias': np.nan,
+                          'covariance': np.nan,
+                          'variance': np.nan,
                           'stdev': np.nan})
 
     # report groups with counts of 0
@@ -70,6 +85,8 @@ def bin_summarize(df, dist_inv_func, bounds, bin_count):
     stats.loc[non_empty, 'n'] = np.array(v_groups.count())
     stats.loc[non_empty, 'mean_dist'] = np.array(d_groups.mean())
     stats.loc[non_empty, 'mean_bias'] = np.array(v_groups.mean())
+    stats.loc[non_empty, 'covariance'] = np.array(v_groups.agg(('Item_MRP', np.mean)))
+    stats.loc[non_empty, 'variance'] = np.array(v_groups.var())
     stats.loc[non_empty, 'stdev'] = np.array(v_groups.std())
 
     return stats
@@ -87,18 +104,18 @@ def bin_summarize(df, dist_inv_func, bounds, bin_count):
 # # stats = geotk.bin_summarize(df, linear_ab, unif_bounds, 25)
 #
 
-import pandas as pd
-import numpy as np
-data_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.10m_canopy_19_149.csv'
-data = pd.read_csv(data_in)
-
-
-#### rejection sample points
-proposal = 'dswe_19_045-19_052'  # given these values
-sample = 'er_p0_mean'  # sample according to this distribution
-
-nbins = 25
-nsamps = 100000
+# import pandas as pd
+# import numpy as np
+# data_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.10m_canopy_19_149.csv'
+# data = pd.read_csv(data_in)
+#
+#
+# #### rejection sample points
+# proposal = 'dswe_19_045-19_052'  # given these values
+# sample = 'er_p0_mean'  # sample according to this distribution
+#
+# nbins = 25
+# nsamps = 100000
 
 # data
 def rejection_sample(data, proposal, sample, nbins, nsamps, original_df=True):
@@ -154,38 +171,38 @@ def rejection_sample(data, proposal, sample, nbins, nsamps, original_df=True):
 
 
 
-# evaluate final dist
-scrap, bins = np.histogram(data.loc[valid_samp, sample], bins=nbins)
-samp_count, bins = np.histogram(data.loc[valid_samp, sample], bins=bins)
-prop_count, bins = np.histogram(data.loc[valid_prop, sample], bins=bins)
-d_samp_count, bins = np.histogram(d_samp.loc[:, sample], bins=bins)
-
-eval = pd.DataFrame({'bin_low': bins[0:-1],
-                      'bin_mid': (bins[0:-1] + bins[1:]) / 2,
-                      'bin_high': bins[1:],
-                      'prop_dist': prop_count/np.sum(prop_count),
-                      'samp_dist': samp_count/np.sum(samp_count),
-                      'd_samp_dist': d_samp_count/np.sum(d_samp_count)})
-eval = eval.assign(prop_ratio=eval.prop_dist / eval.prop_dist)
-eval = eval.assign(samp_ratio=eval.prop_dist / eval.samp_dist)
-eval = eval.assign(d_samp_ratio=eval.prop_dist / eval.d_samp_dist)
-
-
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-
-plt.plot(stats.bin_mid, stats.prop_dist)
-plt.plot(stats.bin_mid, stats.samp_dist)
-plt.plot(stats.bin_mid, stats.d_samp_dist)
-plt.plot(stats.bin_mid, stats.dist_ratio)
-plt.plot(stats.bin_mid, stats.samp_scaled)
-plt.plot(stats.bin_mid, stats.acc_rate)
-
-plt.plot(eval.bin_mid, eval.prop_ratio)
-plt.plot(eval.bin_mid, eval.samp_ratio)
-plt.plot(eval.bin_mid, eval.d_samp_ratio)
-
-plt.plot(eval.bin_mid, eval.prop_dist)
-plt.plot(eval.bin_mid, eval.samp_dist)
-plt.plot(eval.bin_mid, eval.d_samp_dist)
+# # evaluate final dist
+# scrap, bins = np.histogram(data.loc[valid_samp, sample], bins=nbins)
+# samp_count, bins = np.histogram(data.loc[valid_samp, sample], bins=bins)
+# prop_count, bins = np.histogram(data.loc[valid_prop, sample], bins=bins)
+# d_samp_count, bins = np.histogram(d_samp.loc[:, sample], bins=bins)
+#
+# eval = pd.DataFrame({'bin_low': bins[0:-1],
+#                       'bin_mid': (bins[0:-1] + bins[1:]) / 2,
+#                       'bin_high': bins[1:],
+#                       'prop_dist': prop_count/np.sum(prop_count),
+#                       'samp_dist': samp_count/np.sum(samp_count),
+#                       'd_samp_dist': d_samp_count/np.sum(d_samp_count)})
+# eval = eval.assign(prop_ratio=eval.prop_dist / eval.prop_dist)
+# eval = eval.assign(samp_ratio=eval.prop_dist / eval.samp_dist)
+# eval = eval.assign(d_samp_ratio=eval.prop_dist / eval.d_samp_dist)
+#
+#
+# import matplotlib
+# matplotlib.use('TkAgg')
+# import matplotlib.pyplot as plt
+#
+# plt.plot(stats.bin_mid, stats.prop_dist)
+# plt.plot(stats.bin_mid, stats.samp_dist)
+# plt.plot(stats.bin_mid, stats.d_samp_dist)
+# plt.plot(stats.bin_mid, stats.dist_ratio)
+# plt.plot(stats.bin_mid, stats.samp_scaled)
+# plt.plot(stats.bin_mid, stats.acc_rate)
+#
+# plt.plot(eval.bin_mid, eval.prop_ratio)
+# plt.plot(eval.bin_mid, eval.samp_ratio)
+# plt.plot(eval.bin_mid, eval.d_samp_ratio)
+#
+# plt.plot(eval.bin_mid, eval.prop_dist)
+# plt.plot(eval.bin_mid, eval.samp_dist)
+# plt.plot(eval.bin_mid, eval.d_samp_dist)

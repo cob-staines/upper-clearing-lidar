@@ -15,13 +15,17 @@ for (ii in 1:5) {
   survey = rbind(survey, temp)
 }
 
-survey = survey[,c('snow_depth_cm', 'swe_raw_cm', 'swe_tare_cm', 'swe_quality_flag', 'standardized_survey_notes', 'doy')]
-
 survey$swe_mm = 10 * (survey$swe_raw_cm - survey$swe_tare_cm)
 survey$density = survey$swe_mm / (survey$snow_depth_cm * 0.01)
 survey$cover = survey$standardized_survey_notes
 
 survey$swe_quality_flag[is.na(survey$swe_quality_flag)] = 0
+
+ggplot(survey, aes(x=snow_depth_cm, y=density, color=as.factor(swe_quality_flag))) +
+  facet_grid(doy ~ .) +
+  geom_point()
+
+survey = survey[,c('snow_depth_cm', 'swe_raw_cm', 'swe_tare_cm', 'swe_quality_flag', 'doy', 'swe_mm', 'density', 'cover', 'swe_quality_flag')]
 
 survey = survey[!is.na(survey$swe_raw_cm),]
 survey = survey[survey$swe_quality_flag == 0,]
@@ -54,22 +58,35 @@ gd = 'C:/Users/Cob/index/educational/usask/research/masters/graphics/automated/'
 ggsave(paste0(gd, "snow_depth_v_density.pdf"), p_sden, width = 29.7, height = 21, units = "cm")
 
 survey %>%
-  filter(doy %in% c('19_045', '19_050', '19_052')) %>%
-  ggplot(., aes(x=snow_depth_cm, y=density, color=doy)) +
+  filter(doy %in% c("19_045", "19_050", "19_052")) %>%
+  ggplot(., aes(x=snow_depth_cm, y=density, color=as.factor(doy))) +
     facet_grid(. ~ cover) +
-    geom_point()
+    geom_point() +
+    geom_smooth(method='lm', formula=y~x)
 
 all_vals = survey
 all_vals$cover = 'all'
 
 for_all = rbind(survey[survey$cover == 'forest',], all_vals)
 
-ggplot(for_all, aes(x=snow_depth_cm, y=density)) +
+for_cle_all = rbind(survey[survey$cover == 'clearing',], for_all)
+
+ggplot(for_cle_all, aes(x=snow_depth_cm, y=density)) +
   facet_grid(cover ~ doy) +
   geom_point() +
   ylim(0, 350) +
   xlim(0, 85) +
   geom_smooth(method='lm', formula= y~x)
+
+for_cle_all %>%
+  filter(doy %in% c("19_045", "19_050", "19_052")) %>%
+  ggplot(., aes(x=snow_depth_cm, y=density, color=doy)) +
+    facet_grid(cover ~ .) +
+    geom_point() +
+    ylim(0, 350) +
+    xlim(0, 85) +
+    geom_smooth(method='lm', formula= y~x)
+
 
 
 ggplot(for_all, aes(x=snow_depth_cm, y=swe_mm)) +
@@ -79,17 +96,17 @@ ggplot(for_all, aes(x=snow_depth_cm, y=swe_mm)) +
     
 ## Linear models
 # build forest linear models
-f_045 = survey[(survey$standardized_survey_notes == 'forest') & (survey$doy == '19_045'),]
-f_050 = survey[(survey$standardized_survey_notes == 'forest') & (survey$doy == '19_050'),]
-f_052 = survey[(survey$standardized_survey_notes == 'forest') & (survey$doy == '19_052'),]
-f_107 = survey[(survey$standardized_survey_notes == 'forest') & (survey$doy == '19_107'),]
-f_123 = survey[(survey$standardized_survey_notes == 'forest') & (survey$doy == '19_123'),]
+f_045 = survey[(survey$cover == 'forest') & (survey$doy == '19_045'),]
+f_050 = survey[(survey$cover == 'forest') & (survey$doy == '19_050'),]
+f_052 = survey[(survey$cover == 'forest') & (survey$doy == '19_052'),]
+f_107 = survey[(survey$cover == 'forest') & (survey$doy == '19_107'),]
+f_123 = survey[(survey$cover == 'forest') & (survey$doy == '19_123'),]
 
-c_045 = survey[(survey$standardized_survey_notes == 'clearing') & (survey$doy == '19_045'),]
-c_050 = survey[(survey$standardized_survey_notes == 'clearing') & (survey$doy == '19_050'),]
-c_052 = survey[(survey$standardized_survey_notes == 'clearing') & (survey$doy == '19_052'),]
-c_107 = survey[(survey$standardized_survey_notes == 'clearing') & (survey$doy == '19_107'),]
-c_123 = survey[(survey$standardized_survey_notes == 'clearing') & (survey$doy == '19_123'),]
+c_045 = survey[(survey$cover == 'clearing') & (survey$doy == '19_045'),]
+c_050 = survey[(survey$cover == 'clearing') & (survey$doy == '19_050'),]
+c_052 = survey[(survey$cover == 'clearing') & (survey$doy == '19_052'),]
+c_107 = survey[(survey$cover == 'clearing') & (survey$doy == '19_107'),]
+c_123 = survey[(survey$cover == 'clearing') & (survey$doy == '19_123'),]
 
 a_045 = survey[(survey$doy == '19_045'),]
 a_050 = survey[(survey$doy == '19_050'),]
@@ -97,7 +114,9 @@ a_052 = survey[(survey$doy == '19_052'),]
 a_107 = survey[(survey$doy == '19_107'),]
 a_123 = survey[(survey$doy == '19_123'),]
 
-
+a_455052 = survey[(survey$doy %in% c('19_045', '19_050', '19_052')),]
+lm_a_455052 = lm(density ~ snow_depth_cm, data = a_455052)
+summary(lm_a_455052)
 
 
 
@@ -112,12 +131,6 @@ lm_f_050 = lm(density ~ 0 + swe_mm, data = f_050)
 lm_f_052 = lm(density ~ 0 + swe_mm, data = f_052)
 lm_f_107 = lm(density ~ 0 + swe_mm, data = f_107)
 lm_f_123 = lm(density ~ 0 + swe_mm, data = f_123)
-
-summary(lm_f_045)
-summary(lm_f_050)
-summary(lm_f_052)
-summary(lm_f_107)
-summary(lm_f_123)
 
 lm_c_045 = lm(density ~ snow_depth_cm, data = c_045)
 lm_c_050 = lm(density ~ snow_depth_cm, data = c_050)
@@ -136,6 +149,18 @@ lm_a_050 = lm(density ~ 0 + swe_mm, data = a_050)
 lm_a_052 = lm(density ~ 0 + swe_mm, data = a_052)
 lm_a_107 = lm(density ~ 0 + swe_mm, data = a_107)
 lm_a_123 = lm(density ~ 0 + swe_mm, data = a_123)
+
+summary(lm_f_045)
+summary(lm_f_050)
+summary(lm_f_052)
+summary(lm_f_107)
+summary(lm_f_123)
+
+summary(lm_c_045)
+summary(lm_c_050)
+summary(lm_c_052)
+summary(lm_c_107)
+summary(lm_c_123)
 
 summary(lm_a_045)
 summary(lm_a_050)

@@ -14,3 +14,8 @@ traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\l
 traj = pd.read_csv(traj_in)
 traj.columns = ['gpstime_s', 'roll_deg', 'pitch_deg', 'yaw_deg', 'x_m', 'y_m', 'z_m']
 plt.plot(traj.gpstime_s, traj.yaw_deg)
+plt.plot(traj.gpstime_s, traj.pitch_deg)
+plt.plot(traj.gpstime_s, traj.roll_deg)
+plt.plot(traj.gpstime_s, traj.z_m)
+plt.plot(traj.gpstime_s, traj.x_m)
+plt.plot(traj.gpstime_s, traj.y_m)

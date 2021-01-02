@@ -8,7 +8,7 @@ SET DIR_WORKING=C:\Users\Cob\index\educational\usask\research\masters\data\LiDAR
 pushd %DIR_WORKING%
 las2las -i 19_045_all_WGS84_utm11N_raw.las ^
 	-drop_gps_time_between  414067 414069 ^
-	-drop_gps_time_between  415602 415604 ^
+	-drop_gps_time_between  415602 415605 ^
 	-o 19_045_all_WGS84_utm11N.las
 
 SET DATE=19_050
