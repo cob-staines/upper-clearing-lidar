@@ -188,6 +188,7 @@ def hemigen(hdf5_path, hemimeta, initial_index=0):
                        "optimization_scalar": hemimeta.optimization_scalar,
                        "point_size_scalar": hemimeta.point_size_scalar,
                        "max_distance_m": hemimeta.max_distance,
+                       "min_distance_m": hemimeta.min_distance,
                        "img_size_in": hemimeta.img_size,
                        "img_res_dpi": hemimeta.img_resolution,
                        "created_datetime": None,

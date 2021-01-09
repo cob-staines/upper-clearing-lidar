@@ -168,8 +168,104 @@ summary(lm_a_052)
 summary(lm_a_107)
 summary(lm_a_123)
 
+# non linear SWE models
+library('nls.multstart')
+
+powfunc <- function(hs, a, b, c){
+  a * hs ^ b + c
+}
+
+p_045 = a_045[a_045$snow_depth_cm > 20, ]
+
+nls_a_045 <- nls_multstart(density ~ a  - (b / snow_depth_cm) * (1 - exp(snow_depth_cm * c)),
+                           data = a_045,
+                           lower=c(a=-1000, b=0, c=-10),
+                           upper=c(a=1000, b=1000000, c=10),
+                           start_lower = c(a=-1000, b=10000, c=-10),
+                           start_upper = c(a=1000, b=30000, c=10),
+                           iter = 500,
+                           supp_errors = "Y")
+
+nls_a_050 <- nls_multstart(density ~ a  - (b / snow_depth_cm) * (1 - exp(snow_depth_cm * c)),
+                           data = a_050,
+                           lower=c(a=-1000, b=0, c=-10),
+                           upper=c(a=1000, b=1000000, c=10),
+                           start_lower = c(a=-1000, b=10000, c=-10),
+                           start_upper = c(a=1000, b=30000, c=10),
+                           iter = 500,
+                           supp_errors = "Y")
+
+nls_a_052 <- nls_multstart(density ~ a  - (b / snow_depth_cm) * (1 - exp(snow_depth_cm * c)),
+                           data = a_052,
+                           lower=c(a=-1000, b=0, c=-10),
+                           upper=c(a=1000, b=1000000, c=10),
+                           start_lower = c(a=-1000, b=10000, c=-10),
+                           start_upper = c(a=1000, b=30000, c=10),
+                           iter = 500,
+                           supp_errors = "Y")
+
+
+
+nls_a_045 <- nls_multstart(density ~ a * (snow_depth_cm / 100) ^ b + c,
+                           data = a_045,
+                           lower=c(a=-100, b=-2, c=0),
+                           upper=c(a=100, b=2, c=1000),
+                           start_lower = c(a=-100, b=-2, c=0),
+                           start_upper = c(a=100, b=2, c=1000),
+                           iter = 500,
+                           supp_errors = "Y")
+
+nls_a_045 <- nls_multstart(density ~ a * (snow_depth_cm / 100) ^ b + c,
+                           data = p_045,
+                           lower=c(a=-100, b=-2, c=0),
+                           upper=c(a=100, b=2, c=1000),
+                           start_lower = c(a=-100, b=-3, c=0),
+                           start_upper = c(a=100, b=2, c=1000),
+                           iter = 500,
+                           supp_errors = "Y")
+
+nls_a_045 <- nls_multstart(density ~ b * snow_depth_cm  + c,
+                           data = a_045,
+                           lower=c(b=-3, c=0),
+                           upper=c(b=3, c=1000),
+                           start_lower = c(b=-3, c=0),
+                           start_upper = c(b=2, c=1000),
+                           iter = 500,
+                           supp_errors = "Y")
+
+
+
+summary(nls_a_045)
+summary(nls_a_050)
+summary(nls_a_052)
+
+plot_nls <- function(nls_object, data) {
+  predframe <- tibble(snow_depth_cm=seq(from=min(0), to=max(data$snow_depth_cm), length.out = 1024)) %>%
+    mutate(density = predict(nls_object, newdata = list(snow_depth_cm=.$snow_depth_cm)))
+  ggplot(data, aes(x=snow_depth_cm, y=density)) +
+    geom_point(size=3) +
+    geom_line(data = predframe, aes(x=snow_depth_cm, y=density)) +
+    xlim(0, max(data$snow_depth_cm * 1.05)) +
+    ylim(0, max(data$density * 1.05))
+}
+
+plot_nls(nls_a_045, a_045)
+plot_nls(nls_a_050, a_050)
+plot_nls(nls_a_052, a_052)
+
+nlm_a_045 <- nls(density ~ a * snow_depth_cm ^ b + c, start=list(a=10, b=1, c=150), data = a_045, trace = TRUE)
+
+nlm_a_045 <- nls(swe_mm ~ a * snow_depth_cm + b * (1 - exp(-snow_depth_cm/c)), start=list(a=7, b=-1177, c=200), data = a_045, trace = TRUE)
+nlm_a_045 <- nls(swe_mm ~ a * snow_depth_cm + b * (1 - exp(-snow_depth_cm/c)), start=list(a=4.88, b=-204.7, c=67.3), data = a_045, trace = TRUE, control=nls.control(maxiter=1000, minFactor = 1/2048))
+nlm_a_050 <- nls(swe_mm ~ a * snow_depth_cm + b * (1 - exp(-snow_depth_cm/c)), start=list(a=4.88, b=-204.7, c=67.3), data = a_050, trace=TRUE)
+nlm_a_052 <- nls(swe_mm ~ a * snow_depth_cm + b * (1 - exp(-snow_depth_cm/c)), start=list(a=4.88, b=-204.7, c=67.3), data = a_052, trace=TRUE, control=nls.control(maxiter=1000))
+nlm_a_107 <- nls(swe_mm ~ a * snow_depth_cm + b * (1 - exp(-snow_depth_cm/c)), start=list(a=4.88, b=-204.7, c=67.3), data = a_107)
+nlm_a_123 <- nls(swe_mm ~ a * snow_depth_cm + b * (1 - exp(-snow_depth_cm/c)), start=list(a=4.88, b=-204.7, c=67.3), data = a_123)
+
+print(1 - sum(resid(nlm_a_050)^2)/sum((a_050$swe_mm - mean(a_050$swe_mm))^2))
+
 library(lme4)
-mixed_lm_a_045 = lmer(density ~ snow_depth_cm + (1|standardized_survey_notes), data = a_045)
+mixed_lm_a_045 = lmer(density ~ snow_depth_cm + (1|standardized_survey_notes),data = a_045)
 summary(mixed_lm_a_045)
 
 ks.test(f_045$density, f_050$density)

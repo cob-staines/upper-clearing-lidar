@@ -8,11 +8,11 @@ all_dates = snow_on + snow_off
 
 resolution = [".05", ".10", ".25", "1.00"]
 
-depth_regression = 'density'
-
-# all veg, each day, depth-density
-depth_to_density_intercept = dict(zip(snow_on, [183.5431, 110.2249, 72.5015, 224.6406, 223.5683]))
-depth_to_density_slope = dict(zip(snow_on, 100*np.array([0.1485, 1.2212, 1.5346, 1.7833, 1.2072])))
+# depth_regression = 'density'
+#
+# # all veg, each day, depth-density
+# depth_to_density_intercept = dict(zip(snow_on, [183.5431, 110.2249, 72.5015, 224.6406, 223.5683]))
+# depth_to_density_slope = dict(zip(snow_on, 100*np.array([0.1485, 1.2212, 1.5346, 1.7833, 1.2072])))
 
 # # clearing, each day, depth-density
 # depth_to_density_intercept = dict(zip(snow_on, [109.1403, 79.0724, 75.2462, 284.3746, 291.7717]))
@@ -22,9 +22,11 @@ depth_to_density_slope = dict(zip(snow_on, 100*np.array([0.1485, 1.2212, 1.5346,
 # depth_to_density_intercept = dict(zip(snow_on, [120.248, 120.248, 120.248, 120.248, 120.248]))
 # depth_to_density_slope = dict(zip(snow_on, 100*np.array([1.029, 1.029, 1.029, 1.029, 1.029])))
 
+depth_regression = 'swe'
+
 # forest only, each day, depth-SWE
-# depth_to_swe_slope = dict(zip(snow_on, 100*np.array([2.695, 2.7394, 3.0604, 3.1913, 2.5946])))
-# all, each day, depth-SWE
+depth_to_swe_slope = dict(zip(snow_on, 100*np.array([2.695, 2.7394, 3.0604, 3.1913, 2.5946])))
+# # all, each day, depth-SWE
 # depth_to_swe_slope = dict(zip(snow_on, 100*np.array([2.695, 2.7394, 3.0604, 3.1913, 2.5946])))
 
 
