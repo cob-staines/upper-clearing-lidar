@@ -11,6 +11,7 @@ photos_meta$id <- as.numeric(rownames(photos_meta)) - 1
 
 photos = merge(photos_lai, photos_meta, by.x='original_file', by.y='filename', all.x=TRUE)
 photos = photos[, c("original_file", "contactnum_1", "contactnum_2", "contactnum_3", "contactnum_4", "contactnum_5")]
+# photos = photos[, c("original_file", "transmission_1", "transmission_2", "transmission_3", "transmission_4", "transmission_5")]
 
 
 rsm_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_beta_exp/outputs/contact_number_optimization.csv"
@@ -30,6 +31,7 @@ df = df %>%
 
 ggplot(df, aes(x=contactnum, y=rsm_mean, color=ring_number)) +
   geom_point()
+
 
 # remove 5th ring due to horizon clipping
 
@@ -51,6 +53,10 @@ ggplot(df_anal, aes(x=rsm_mean, y=contactnum, color=ring_number)) +
   labs(title="Contact number vs. modeled lidar returns\nby analysis ring", x='Lidar returns (modeled)', y='Contact number (photos)', color='Ring')
 
 
+
+ggplot(df, aes(x=exp(-0.195 * rsm_mean), y=exp(-contactnum), color=ring_number)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1)
 
 ##
 

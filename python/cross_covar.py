@@ -92,6 +92,8 @@ np.where(corcoef == np.nanmin(corcoef))
 np.where(sprank == np.nanmin(sprank))
 ########
 
+
+
 # methods for weighting
 imstack[np.isnan(imstack)] = 0  # careful here..
 imstack = np.swapaxes(np.swapaxes(imstack, 1, 2), 0, 1).reshape(imstack.shape[2], -1)
@@ -123,15 +125,10 @@ yid, xid = np.indices((imsize, imsize))
 radist = np.sqrt((yid - max_coord[0][0]) ** 2 + (xid - max_coord[1][0]) ** 2) * np.pi / 180
 
 p_list = np.linspace(0, 20, 101)
-w_data = pd.DataFrame(columns={"power", "corcoef", "sprank"})
+p_list = np.concatenate((p_list, np.linspace(25, 100, 16)))
+w_data = pd.DataFrame(columns={"power", "corcoef", "corcoef_e", "corcoef_l", "sprank"})
 
 for pp in p_list:
-    # # cos power
-    # weights = np.cos(radist)
-    # weights[weights < 0] = 0
-    # weights[np.isnan(phi)] = 0
-    # weights = weights ** pp
-
     # normal distribution
     weights = np.exp(- 0.5 * (pp * radist) ** 2)
     weights[np.isnan(phi)] = 0
@@ -142,12 +139,18 @@ for pp in p_list:
     w_stack = np.average(imstack, weights=weights.ravel(), axis=1)
 
     w_corcoef = np.corrcoef(hemiList.covariant, w_stack)[0, 1]
+    w_corcoef_e = np.corrcoef(hemiList.covariant, np.exp(-20 * w_stack))[0, 1]
+    w_corcoef_l = np.corrcoef(hemiList.covariant, np.log(w_stack))[0, 1]
     w_sprank = spearmanr(hemiList.covariant, w_stack)[0]
 
     new_row = {"power": pp,
                "corcoef": w_corcoef,
+               "corcoef_e": w_corcoef_e,
+               "corcoef_l": w_corcoef_l,
                "sprank": w_sprank}
     w_data = w_data.append(new_row, ignore_index=True, verify_integrity=True)
+
+    print(pp)
 
 
 # coef threshhold
@@ -215,40 +218,19 @@ for tt in t_list:
     w_data = w_data.append(new_row, ignore_index=True, verify_integrity=True)
 
 
+# optimize exp scalar
+c_list = np.linspace(1, 50, 300)
+c_data = pd.DataFrame(columns={"scalar", "corcoef"})
 
-# calculate weights by sqr or abs method
-angle_lookup_covar = angle_lookup.copy()
+for cc in c_list:
+    corcoef = np.corrcoef(hemiList.covariant, np.exp(-cc * w_stack))[0, 1]
 
-angle_lookup_covar.loc[:, 'covar'] = localCovar[angle_lookup_covar.y_index.values, angle_lookup_covar.x_index.values]
-angle_lookup_covar.loc[:, "abs_covar"] = np.abs(angle_lookup_covar.covar)
-angle_lookup_covar.loc[:, "abs_covar_weight"] = angle_lookup_covar.covar / np.sum(angle_lookup_covar.loc[:, "abs_covar"])
-angle_lookup_covar.loc[:, "sqr_covar"] = angle_lookup_covar.covar ** 2
-angle_lookup_covar.loc[:, "sqr_covar_weight"] = angle_lookup_covar.covar / np.sum(angle_lookup_covar.loc[:, "sqr_covar"])
+    new_row = {"scalar": cc,
+               "corcoef": corcoef}
+    c_data = c_data.append(new_row, ignore_index=True, verify_integrity=True)
 
-# write weights to file
-angle_lookup_covar.to_csv(covar_out, index=False)
+plt.plot(c_data.scalar, c_data.corcoef)
 
-# Calculate weighted value for all images
-abs_weight = np.full([imsize, imsize], np.nan)
-abs_weight[(angle_lookup_covar.y_index.values, angle_lookup_covar.x_index.values)] = angle_lookup_covar.abs_covar_weight.values
-
-sqr_weight = np.full([imsize, imsize], np.nan)
-sqr_weight[(angle_lookup_covar.y_index.values, angle_lookup_covar.x_index.values)] = angle_lookup_covar.sqr_covar_weight.values
-
-hemi_var.loc[:, "cv_abs_weighted"] = np.nan
-hemi_var.loc[:, "cv_sqr_weighted"] = np.nan
-
-for ii in range(0, len(hemi_var)):
-    temp_im = tif.imread(batch_dir + hemi_var.file_name[ii])[:, :, 1] * scaling_coef
-    if batch_type == 'log':
-        temp_im = np.log(temp_im)
-    elif batch_type == 'exp':
-        temp_im = np.exp(-temp_im)
-    hemi_var.cv_abs_weighted[ii] = np.nansum(-1 * temp_im * abs_weight)
-    hemi_var.cv_sqr_weighted[ii] = np.nansum(-1 * temp_im * sqr_weight)
-    print(str(ii + 1) + ' of ' + str(len(hemi_var)))
-
-hemi_var.to_csv(weighted_cv_out, index=False)
 
 
 import matplotlib
@@ -288,17 +270,23 @@ plt.scatter(hemi_var.covariant[~hemi_var.training_set.values], -hemi_var.log_cn_
 
 plt.scatter(hemi_var.covariant[~hemi_var.training_set.values], -hemi_var.cv_sqr_weighted[~hemi_var.training_set.values], s=1, alpha=.25)
 
+plt.scatter(hemi_var.covariant[hemi_var.training_set.values], np.exp(-25 * w_stack), s=1, alpha=.25)
 plt.scatter(hemi_var.covariant[hemi_var.training_set.values], w_stack, s=1, alpha=.25)
 
 ## plot of sd with angle
+
 fig = plt.figure()
-# fig.subplots_adjust(top=0.8)
+fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
 ax1 = fig.add_subplot(111)
-ax1.set_ylabel("Pearson's Correlation Coeficient\nfor Canopy Contact Number and dSWE")
-ax1.set_xlabel("Standard deviation of Gausian Contact Number field of view [degrees]\nCentered at hemisspherical maximum")
-ax1.set_title('Optimization of Canopy field of view')
+ax1.set_ylabel("Pearson's Correlation Coeficient\nfor dSWE and ln(Canopy Contact Number)")
+ax1.set_xlabel("Standard deviation of Gausian field of view of canopy [degrees]\n(Centered at maximum hemispherical correlation)")
+ax1.set_title('Optimization of canopy field of view\nfor predicting snow accumulation')
 
 plt.plot(180 / (np.pi * w_data.power), w_data.corcoef)
+plt.plot(180 / (np.pi * w_data.power), -w_data.corcoef_e)
+# plt.plot(180 / (np.pi * w_data.power), w_data.corcoef_l)
+# plt.plot(180 / (np.pi * w_data.power), -w_data.corcoef_e)
+# plt.plot(180 / (np.pi * w_data.power), w_data.sprank)
 # plt.plot(180 / (np.pi * w_data.power), w_data.sprank)
 plt.xlim(0, 180)
 
@@ -328,18 +316,31 @@ class MidpointNormalize(colors.Normalize):
         x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
         return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
 
-val_min = np.nanmin(sprank)
-val_max = np.nanmax(sprank)
+
+set = corcoef_l
+pre_min = np.nanmin(set)
+pre_max = np.nanmax(set)
+abs_max = np.max(np.abs((pre_min, pre_max)))
+val_min = -abs_max
+val_max = abs_max
 val_mid = 0
 cmap = matplotlib.cm.RdBu_r
 
-plt.imshow(corcoef, cmap=cmap, clim=(val_min, val_max), norm=MidpointNormalize(midpoint=val_mid, vmin=val_min, vmax=val_max))
+plt.imshow(set, cmap=cmap, clim=(val_min, val_max), norm=MidpointNormalize(midpoint=val_mid, vmin=val_min, vmax=val_max))
 plt.colorbar()
+plt.title("Pearsons Correlation with ln(Contact Number)\nover hemisphere")
 plt.show()
 
-ii = 95
-jj = 86
-plt.scatter(hemiList.covariant, np.exp(-imstack[jj, ii, :] * 50), alpha=0.05, s=5)
+matplotlib.rcParams['contour.negative_linestyle'] = 'solid'
+matplotlib.rcParams["lines.linewidth"] = 1
+CS = plt.contour(set, (-.4, -.3, -.2, -.1, 0), colors="k")
+plt.clabel(CS, inline=1, fontsize=8)
+
+plt.imshow(np.abs(corcoef_l) >= 0.1)
+
+ii = 161
+jj = 59
+plt.scatter(hemiList.covariant, imstack[jj, ii, :], alpha=0.05, s=5)
 # cumulative weights... this is all messed
 
 # angle_lookup_covar.sqr_covar_weighted
