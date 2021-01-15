@@ -30,11 +30,16 @@ df = df %>%
 # calculate error
 
 ggplot(df, aes(x=contactnum, y=rsm_mean, color=ring_number)) +
-  geom_point()
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1/rsm_mean_lm$coefficients['df_anal$rsm_mean']) +
+  geom_abline(intercept = 0, slope = 1/rsm_mean_lm_all$coefficients['df$rsm_mean'])
 
+
+
+rsm_mean_lm_all = lm(df$contactnum ~ 0 + df$rsm_mean)
+summary(rsm_mean_lm_all)
 
 # remove 5th ring due to horizon clipping
-
 df_anal = df[df$ring_number != 5,]
 rsm_mean_lm = lm(df_anal$contactnum ~ 0 + df_anal$rsm_mean)
 summary(rsm_mean_lm)
@@ -55,6 +60,10 @@ ggplot(df_anal, aes(x=rsm_mean, y=contactnum, color=ring_number)) +
 
 
 ggplot(df, aes(x=exp(-0.195 * rsm_mean), y=exp(-contactnum), color=ring_number)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1)
+
+ggplot(df, aes(x=exp(-0.166 * rsm_mean), y=exp(-contactnum), color=ring_number)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1)
 
