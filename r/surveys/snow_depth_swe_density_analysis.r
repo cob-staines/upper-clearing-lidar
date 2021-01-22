@@ -25,8 +25,9 @@ ggplot(survey, aes(x=snow_depth_cm, y=density, color=as.factor(swe_quality_flag)
   facet_grid(doy ~ .) +
   geom_point()
 
+# drop unnecesary columns
 survey = survey[,c('snow_depth_cm', 'swe_raw_cm', 'swe_tare_cm', 'swe_quality_flag', 'doy', 'swe_mm', 'density', 'cover', 'swe_quality_flag')]
-
+# filter to qc'ed swe entries
 survey = survey[!is.na(survey$swe_raw_cm),]
 survey = survey[survey$swe_quality_flag == 0,]
 # survey$day = paste0('19_', survey$doy)
@@ -86,6 +87,15 @@ for_cle_all %>%
     ylim(0, 350) +
     xlim(0, 85) +
     geom_smooth(method='lm', formula= y~x)
+
+for_cle_all %>%
+  filter(doy %in% c("19_045", "19_050", "19_052")) %>%
+  ggplot(., aes(x=snow_depth_cm, y=density)) +
+  facet_grid(cover ~ .) +
+  geom_point() +
+  ylim(0, 350) +
+  xlim(0, 85) +
+  geom_smooth(method='lm', formula= y~x)
 
 
 
@@ -204,6 +214,46 @@ nls_a_052 <- nls_multstart(density ~ a  - (b / snow_depth_cm) * (1 - exp(snow_de
                            iter = 500,
                            supp_errors = "Y")
 
+# fixed intercept PomGray
+ii = 67.92
+
+nls_a_045 <- nls_multstart(density ~ 67.92 + c/b  - (1 - exp(-snow_depth_cm * c))/(b * snow_depth_cm),
+                           data = a_045,
+                           lower=c(b=0, c=-10),
+                           upper=c(b=1, c=10),
+                           start_lower = c(b=0, c=-10),
+                           start_upper = c(b=1, c=10),
+                           iter = 500,
+                           supp_errors = "Y")
+
+nls_a_050 <- nls_multstart(density ~ 67.92 + c/b  - (1 - exp(-snow_depth_cm * c))/(b * snow_depth_cm),
+                           data = a_050,
+                           lower=c(b=0, c=-10),
+                           upper=c(b=1, c=10),
+                           start_lower = c(b=0, c=-10),
+                           start_upper = c(b=1, c=10),
+                           iter = 500,
+                           supp_errors = "Y")
+
+nls_a_052 <- nls_multstart(density ~ 67.92 + c/b  - (1 - exp(-snow_depth_cm * c))/(b * snow_depth_cm),
+                           data = a_052,
+                           lower=c(b=0, c=-10),
+                           upper=c(b=1, c=10),
+                           start_lower = c(b=0, c=-10),
+                           start_upper = c(b=1, c=10),
+                           iter = 500,
+                           supp_errors = "Y")
+
+
+nls_a_455052 <- nls_multstart(density ~ 67.92 + c/b  - (1 - exp(-snow_depth_cm * c))/(b * snow_depth_cm),
+                           data = a_455052,
+                           lower=c(b=0, c=-10),
+                           upper=c(b=1, c=10),
+                           start_lower = c(b=0, c=-10),
+                           start_upper = c(b=1, c=10),
+                           iter = 500,
+                           supp_errors = "Y")
+
 
 
 nls_a_045 <- nls_multstart(density ~ a * (snow_depth_cm / 100) ^ b + c,
@@ -238,9 +288,10 @@ nls_a_045 <- nls_multstart(density ~ b * snow_depth_cm  + c,
 summary(nls_a_045)
 summary(nls_a_050)
 summary(nls_a_052)
+summary(nls_a_455052)
 
 plot_nls <- function(nls_object, data) {
-  predframe <- tibble(snow_depth_cm=seq(from=min(0), to=max(data$snow_depth_cm), length.out = 1024)) %>%
+  predframe <- tibble(snow_depth_cm=seq(from=0, to=max(data$snow_depth_cm), length.out = 1024)) %>%
     mutate(density = predict(nls_object, newdata = list(snow_depth_cm=.$snow_depth_cm)))
   ggplot(data, aes(x=snow_depth_cm, y=density)) +
     geom_point(size=3) +
@@ -249,9 +300,29 @@ plot_nls <- function(nls_object, data) {
     ylim(0, max(data$density * 1.05))
 }
 
+
+ggplot(a_455052, aes(x=snow_depth_cm, y=density, color=doy)) +
+  geom_point(size=3)
+  geom_line(data = predframe, aes(x=snow_depth_cm, y=density)) +
+  xlim(0, max(data$snow_depth_cm * 1.05)) +
+  ylim(0, max(data$density * 1.05))
+
 plot_nls(nls_a_045, a_045)
 plot_nls(nls_a_050, a_050)
 plot_nls(nls_a_052, a_052)
+plot_nls(nls_a_455052, a_455052)
+
+plot_nls_swe <- function(nls_object, data) {
+  predframe <- tibble(snow_depth_cm=seq(from=0, to=max(data$snow_depth_cm), length.out = 1024)) %>%
+    mutate(swe_mmm = snow_depth_cm * predict(nls_object, newdata = list(snow_depth_cm=.$snow_depth_cm)) / 100)
+  ggplot(data, aes(x=snow_depth_cm, y=swe_mm)) +
+    geom_point(size=3) +
+    geom_line(data = predframe, aes(x=snow_depth_cm, y=swe_mmm)) +
+    xlim(0, max(data$snow_depth_cm * 1.05)) +
+    ylim(0, max(data$density * 1.05))
+}
+
+plot_nls_swe(nls_a_455052, a_455052)
 
 nlm_a_045 <- nls(density ~ a * snow_depth_cm ^ b + c, start=list(a=10, b=1, c=150), data = a_045, trace = TRUE)
 

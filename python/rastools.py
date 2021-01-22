@@ -2,6 +2,8 @@
 # import ogr
 import numpy as np
 
+gdal_dir = "C:\\Users\\Cob\\Miniconda3\\envs\\lidar_processing_03\\Lib\\site-packages\\GDAL-3.1.4-py3.7-win-amd64.egg-info\\scripts\\"
+
 #define class rasterObj
 class rasterObj(object):
     def __init__(self, raster):
@@ -46,7 +48,8 @@ def raster_load(ras_in):
         # ras.T1 -- affine transformation for cell centers
 
     # dependencies
-    import gdal
+    # import gdal
+    from osgeo import gdal
 
     import numpy as np
 
@@ -69,7 +72,7 @@ def raster_save(ras_object, file_path, file_format="GTiff", data_format="float32
     # data_format can be: "float32", "float64", "byte", "int16", "int32", "uint16", "uint32"
 
     # dependencies
-    import gdal
+    from osgeo import gdal
     import numpy as np
 
     if data_format == "float32":
@@ -118,45 +121,6 @@ def raster_save(ras_object, file_path, file_format="GTiff", data_format="float32
 
 
 
-# def raster_dif(ras_1_in, ras_2_in, inherit_from=1, dif_out=None):
-#     # Returns raster object as follows:
-#         # ras_dif.data = ras_1. data - ras_2.data
-#         # metadata inherited from "inherit_from" (1 or 2).
-#     # Rasters must be identical in location, scale, and size
-#
-#     # Dependencies
-#     import numpy as np
-#
-#     if inherit_from == 1:
-#         ras_A = ras = raster_load(ras_1_in)
-#         ras_B = ras = raster_load(ras_2_in)
-#         flip_factor = 1
-#     elif inherit_from == 2:
-#         ras_A = ras = raster_load(ras_2_in)
-#         ras_B = ras = raster_load(ras_1_in)
-#         flip_factor = -1
-#     else:
-#         raise Exception('"inherit_from" must be either "1" or "2."')
-#
-#     # check if identical origins and scales
-#     aff_dif = np.array(ras_A.T1) - np.array(ras_B.T1)
-#
-#     if np.sum(np.abs(aff_dif)) != 0:
-#         raise Exception('Rasters are of different scales or origins, no difference was taken. Cell shifting may be needed!')
-#
-#     ras_dif = ras_A
-#     # handle nas!
-#     mask = (ras_A.data == ras_A.no_data) | (ras_B.data == ras_B.no_data)
-#     ras_dif.data = (ras_A.data - ras_B.data) * flip_factor
-#     ras_dif.data[mask] = ras_A.no_data
-#
-#     if dif_out is not None:
-#         # output dif
-#         raster_save(ras_dif, dif_out, data_format='float32')
-#
-#     return ras_dif
-
-
 def raster_dif_gdal(ras_1_in, ras_2_in, dif_out=None, inherit_from=1):
     # Returns raster object/saves file as follows:
     # ras_dif.data = ras_1.data - ras_2.data
@@ -197,9 +161,6 @@ def raster_dif_gdal(ras_1_in, ras_2_in, dif_out=None, inherit_from=1):
     return ras_dif
 
 
-
-
-
 def raster_burn(ras_in, shp_in, burn_val):
     # burns "burn_val" into "ras_in" where overlaps with "shp_in"
 
@@ -210,7 +171,7 @@ def raster_burn(ras_in, shp_in, burn_val):
     burn_val = str(burn_val)
 
     # make gdal_rasterize command - will burn value to raster where polygon intersects
-    cmd = 'gdal_rasterize -burn ' + burn_val + ' ' + shp_in + ' ' + ras_in
+    cmd = 'python' + gdal_dir + 'gdal_rasterize.py -burn ' + burn_val + ' ' + shp_in + ' ' + ras_in
 
     # run command
     subprocess.call(cmd, shell=True)
@@ -221,18 +182,15 @@ def raster_merge(ras_in_dir, ras_in_ext, ras_out, no_data="-9999"):
 
     # Dependencies
     import subprocess
-    from os import listdir, chdir
+    import glob
 
-    dir_list = listdir(ras_in_dir)
-    file_list = [k for k in dir_list if k.endswith(ras_in_ext)]
-    file_str = ' '.join(file_list)
+    file_glob = glob.glob(ras_in_dir + "*" + ras_in_ext)
+    file_str = ' '.join(file_glob)
 
-    # make gdal_rasterize command - will burn value to raster where polygon intersects
-    #cd_cmd = "Set-Location -Path " + ras_in_dir
-    cmd = 'gdal_merge.py -init ' + no_data + ' -n ' + no_data + ' -a_nodata ' + no_data + ' -o ' + ras_out + ' ' + file_str
+    # build gdal command
+    cmd = "python " + gdal_dir + 'gdal_merge.py -init ' + no_data + ' -n ' + no_data + ' -a_nodata ' + no_data + ' -o ' + ras_out + ' ' + file_str
 
-    chdir(ras_in_dir)
-    # run command
+    # execute command
     subprocess.call(cmd, shell=True)
 
 

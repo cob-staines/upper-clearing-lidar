@@ -240,14 +240,6 @@ imstack_long = np.swapaxes(np.swapaxes(imstack_long, 1, 2), 0, 1).reshape(imstac
 # optimization of field of view and interaction number
 from scipy.optimize import fmin_bfgs
 
-# calculate distances from corcoef_e maximum...
-max_coord = np.where(corcoef_e == np.nanmax(corcoef_e))
-yid, xid = np.indices((imsize, imsize))
-radist = np.sqrt((yid - max_coord[0][0]) ** 2 + (xid - max_coord[1][0]) ** 2) * np.pi / 180
-# cp_phi = np.sqrt((((imsize - 1) / 2) - max_coord[0][0]) ** 2 + (((imsize - 1) / 2) - max_coord[1][0]) ** 2)
-# cp_theta = np.arctan2((((imsize - 1) / 2) - max_coord[1][0]), (((imsize - 1) / 2) - max_coord[0][0])) * 180 / np.pi
-cpy = max_coord[0][0]
-cpx = max_coord[1][0]
 
 def gbgf(x0):
     sig = x0[0]
@@ -263,19 +255,15 @@ def gbgf(x0):
     weights = weights / np.sum(weights)
 
     w_stack = np.average(imstack_long, weights=weights.ravel(), axis=1)
-    w_corcoef_e = np.corrcoef(hemiList.covariant, np.exp(-intnum * w_stack))[0, 1]
+
+    valid = (hemiList.covariant > 0) & (hemiList.covariant <=50)
+
+    # w_corcoef_e = np.corrcoef(hemiList.covariant, np.exp(-intnum * w_stack))[0, 1]
+    w_corcoef_e = np.corrcoef(hemiList.covariant[valid], np.exp(-intnum * w_stack[valid]))[0, 1]
 
     return -w_corcoef_e
 
-# x0 = np.array([0.25, 20])
-# res = minimize(gbgf, x0, method='CG')
-
-##
-
-
-
 Nfeval = 1
-
 def callbackF(Xi):
     global Nfeval
     print('{0:4d}   {1: 3.6f}   {2: 3.6f}   {3: 3.6f}   {4: 3.6f}   {5: 3.6f}'.format(Nfeval, Xi[0], Xi[1], Xi[2], Xi[3], gbgf(Xi)))
@@ -283,42 +271,17 @@ def callbackF(Xi):
 
 print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}'.format('Iter', ' X1', ' X2', 'X3', 'X4', 'f(X)'))
 x0 = np.array([0.11, 21.6, 96, 85], dtype=np.double)
-# x0 = np.array([0.1296497, 21.57953188, 96.95887751, 86.24391083])  # gaussian optimization, , cor = -0.4744932
-[xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflg] = \
-    fmin_bfgs(gbgf,
-              x0,
-              callback=callbackF,
-              maxiter=25,
-              full_output=True,
-              retall=False)
 
+[xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflg] = \
+    fmin_bfgs(gbgf, x0, callback=callbackF, maxiter=25, full_output=True, retall=False)
+# xopt = np.array([0.1296497, 21.57953188, 96.95887751, 86.24391083])  # gaussian optimization,
+# fopt = -0.4744932
 
 sig_out = xopt[0] * 180 / np.pi
 intnum_out = 1/xopt[1]
 phi_out = np.sqrt((xopt[2] - (imsize - 1)/2) ** 2 + (xopt[3] - (imsize - 1)/2) ** 2)
 theta_out = np.arctan2(-(xopt[3] - (imsize - 1)/2), -(xopt[2] - (imsize - 1)/2)) * 180 / np.pi
 
-# v_list = np.linspace(0.001, np.pi/2, 200)  # sig
-v_list = np.linspace(0.001, 1, 50)  # intnum
-v_list = np.linspace(0, 100, 50)  # intnum
-w_data = pd.DataFrame(columns={"sig", "intnum", "cpy", "cpx", "corcoef_e"})
-ii = 0
-for vv in v_list:
-    # x = np.array([0.1296497, 21.57953188, 96.95887751, 86.24391083])
-    # xx = np.array([vv, 21.57953188, 96.95887751, 86.24391083])
-    xx = np.array([0.1296497, vv, 96.95887751, 86.24391083])
-
-    w_corcoef_e = -gbgf(xx)
-
-    new_row = {"sig": xx[0],
-               "intnum": xx[1],
-               "cpy": xx[2],
-               "cpx": xx[3],
-               "corcoef_e": w_corcoef_e}
-    w_data = w_data.append(new_row, ignore_index=True, verify_integrity=True)
-
-    ii += 1
-    print(ii)
 
 
 
@@ -355,56 +318,46 @@ ax1.set_ylabel("<$T_s$> [-]")
 plt.scatter(hemi_var.covariant[hemi_var.training_set.values], np.exp(-intnum * w_stack), s=2, alpha=.25)
 plt.xlim(-50, 100)
 
-## interaction scalar across hemisphere
-plt.scatter(np.log(hemi_var.covariant[hemi_var.training_set.values]), -w_stack, s=2, alpha=.25)
-np.nanmean(-np.log(hemi_var.covariant[hemi_var.training_set.values]) / w_stack)
-
-from scipy.optimize import curve_fit
-
-corcoef_each = np.full((imsize, imsize), np.nan)
-is_each = np.full((imsize, imsize), np.nan)
-gg_each = np.full((imsize, imsize), np.nan)
-
-for ii in range(0, imsize):
-    for jj in range(0, imsize):
-        if imrange[jj, ii]:
-            def expfunc(p1):
-                return -np.corrcoef(hemi_var.covariant[hemi_var.training_set.values], np.exp(-p1 * imstack[jj, ii, :]))[0, 1]
-
-
-            [popt, ffopt, ggopt, BBopt, func_calls, grad_calls, warnflg] = \
-                fmin_bfgs(expfunc,
-                          1,
-                          maxiter=100,
-                          full_output=True,
-                          retall=False)
-
-            is_each[jj, ii] = popt[0]
-            corcoef_each[jj, ii] = -ffopt
-            gg_each[jj, ii] = ggopt
-
-    print(ii)
-
-is_each_qc = is_each.copy()
-is_each_qc[gg_each > .00001] = np.nan
-is_each_qc[is_each_qc < 0] = np.nan
-
-plt.imshow(is_each_qc)
-plt.imshow(gg_each)
-corcoef_each_qc = corcoef_each.copy()
-corcoef_each_qc[corcoef_each_qc == 1] = np.nan
-plt.imshow(corcoef_each_qc)
-plt.colorbar()
-
-np.nanmax(is_each_qc)
-
-p0 = np.array([1], dtype=np.double)
-[popt, ffopt, ggopt, BBopt, func_calls, grad_calls, warnflg] = \
-    fmin_bfgs(expfunc,
-              1,
-              maxiter=100,
-              full_output=True,
-              retall=False)
+# ## calculate interaction scalar across hemisphere
+# plt.scatter(np.log(hemi_var.covariant[hemi_var.training_set.values]), -w_stack, s=2, alpha=.25)
+# np.nanmean(-np.log(hemi_var.covariant[hemi_var.training_set.values]) / w_stack)
+#
+# from scipy.optimize import curve_fit
+#
+# corcoef_each = np.full((imsize, imsize), np.nan)
+# is_each = np.full((imsize, imsize), np.nan)
+# gg_each = np.full((imsize, imsize), np.nan)
+#
+# for ii in range(0, imsize):
+#     for jj in range(0, imsize):
+#         if imrange[jj, ii]:
+#             def expfunc(p1):
+#                 return -np.corrcoef(hemi_var.covariant[hemi_var.training_set.values], np.exp(-p1 * imstack[jj, ii, :]))[0, 1]
+#
+#
+#             [popt, ffopt, ggopt, BBopt, func_calls, grad_calls, warnflg] = \
+#                 fmin_bfgs(expfunc,
+#                           1,
+#                           maxiter=100,
+#                           full_output=True,
+#                           retall=False)
+#
+#             is_each[jj, ii] = popt[0]
+#             corcoef_each[jj, ii] = -ffopt
+#             gg_each[jj, ii] = ggopt
+#
+#     print(ii)
+#
+# is_each_qc = is_each.copy()
+# is_each_qc[gg_each > .00001] = np.nan
+# is_each_qc[is_each_qc < 0] = np.nan
+#
+# plt.imshow(is_each_qc)
+# plt.imshow(gg_each)
+# corcoef_each_qc = corcoef_each.copy()
+# corcoef_each_qc[corcoef_each_qc == 1] = np.nan
+# plt.imshow(corcoef_each_qc)
+# plt.colorbar()
 
 
 # Here you give the initial parameters for p0 which Python then iterates over
@@ -415,9 +368,32 @@ ii = 90
 popt, pcov = curve_fit(expfunc, w_stack, hemi_var.covariant[hemi_var.training_set.values], p0=(20.0), bounds=(0, np.inf))
 
 plt.scatter(hemi_var.covariant[hemi_var.training_set.values], np.exp(-popt[0] * w_stack), s=2, alpha=.25)
-## plot optimization
+
+## plot optimization topography
 
 # sigma
+
+# sample optimization topography for sigma
+
+v_list = np.linspace(0.001, np.pi/2, 200)  # sig
+w_data = pd.DataFrame(columns={"sig", "intnum", "cpy", "cpx", "corcoef_e"})
+ii = 0
+for vv in v_list:
+    # x = np.array([0.1296497, 21.57953188, 96.95887751, 86.24391083])
+    xx = np.array([vv, 21.57953188, 96.95887751, 86.24391083])
+
+    w_corcoef_e = -gbgf(xx)
+
+    new_row = {"sig": xx[0],
+               "intnum": xx[1],
+               "cpy": xx[2],
+               "cpx": xx[3],
+               "corcoef_e": w_corcoef_e}
+    w_data = w_data.append(new_row, ignore_index=True, verify_integrity=True)
+
+    ii += 1
+    print(ii)
+
 fig = plt.figure()
 fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
 ax1 = fig.add_subplot(111)
@@ -427,6 +403,28 @@ ax1.set_xlabel("Standard deviation of Gausian weight function $\sigma$ [$^{\circ
 plt.plot(w_data.sig * 180 / np.pi, w_data.corcoef_e)
 
 # interaction scalar
+
+# sample optimization topography for gamma
+
+v_list = np.linspace(1, 100, 100)  # intnum
+w_data = pd.DataFrame(columns={"sig", "intnum", "cpy", "cpx", "corcoef_e"})
+ii = 0
+for vv in v_list:
+    # x = np.array([0.1296497, 21.57953188, 96.95887751, 86.24391083])
+    xx = np.array([0.1296497, vv, 96.95887751, 86.24391083])
+
+    w_corcoef_e = -gbgf(xx)
+
+    new_row = {"sig": xx[0],
+               "intnum": xx[1],
+               "cpy": xx[2],
+               "cpx": xx[3],
+               "corcoef_e": w_corcoef_e}
+    w_data = w_data.append(new_row, ignore_index=True, verify_integrity=True)
+
+    ii += 1
+    print(ii)
+
 fig = plt.figure()
 fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
 ax1 = fig.add_subplot(111)
@@ -436,7 +434,7 @@ ax1.set_xlabel("Interaction factor <$\gamma$> [-]")
 plt.plot(w_data.intnum, w_data.corcoef_e)
 
 
-# plot hemispherical footprint
+## plot hemispherical footprint
 
 # rerun corcoef_e with optimized transmission scalar
 corcoef_e = np.full((imsize, imsize), np.nan)

@@ -1,5 +1,6 @@
 import rastools
 import numpy as np
+import pandas as pd
 import os
 
 snow_on = ["19_045", "19_050", "19_052", "19_107", "19_123"]
@@ -7,6 +8,12 @@ snow_off = ["19_149"]
 all_dates = snow_on + snow_off
 
 resolution = [".05", ".10", ".25", "1.00"]
+
+
+depth_regression = 'exp'
+bb = 2958.444
+cc = 17.96587
+aa = 67.92 + bb / cc
 
 # depth_regression = 'density'
 #
@@ -22,15 +29,18 @@ resolution = [".05", ".10", ".25", "1.00"]
 # depth_to_density_intercept = dict(zip(snow_on, [120.248, 120.248, 120.248, 120.248, 120.248]))
 # depth_to_density_slope = dict(zip(snow_on, 100*np.array([1.029, 1.029, 1.029, 1.029, 1.029])))
 
-depth_regression = 'swe'
-
-# forest only, each day, depth-SWE
-depth_to_swe_slope = dict(zip(snow_on, 100*np.array([2.695, 2.7394, 3.0604, 3.1913, 2.5946])))
+# depth_regression = 'swe'
+#
+# # forest only, each day, depth-SWE
+# depth_to_swe_slope = dict(zip(snow_on, 100*np.array([2.695, 2.7394, 3.0604, 3.1913, 2.5946])))
 # # all, each day, depth-SWE
 # depth_to_swe_slope = dict(zip(snow_on, 100*np.array([2.695, 2.7394, 3.0604, 3.1913, 2.5946])))
 
 
-ceiling_depths = [0.87, 0.96, 0.97, 0.93, 0.98]  # this is not very pretty... can I make this somehow cleaner?
+# ceiling_depths = [0.87, 0.96, 0.97, 0.93, 0.98]  # this is not very pretty... can I make this somehow cleaner?
+
+hs_clean_ceiling_res = resolution[0]  # use smallest resolution
+hs_clean_ceiling_quantile = 0.999  # determined visually...
 
 # las_in_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\LAS\\<DATE>_las_proc_classified_merged_ground.las'
 # dem_ref_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc_xx\\OUTPUT_FILES\\TEMPLATES\\19_149_all_point_density_r<RES>m.bil'
@@ -55,6 +65,12 @@ dem_int_merged_file_template = '<DATE>_dem_interpolated_r<RES>m.tif'
 
 dsm_can_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\CAN\\<DATE>_spike_free_dsm_can_r<RES>m.bil'
 
+hs_bias_file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_hs_point_samples_error.csv"
+hs_bias_file_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_hs_point_samples_error_ceiling.csv"
+
+hs_bc_dir_template = hs_merged_dir_template + 'bias_corrected\\'
+hs_bc_file_template = hs_merged_file_template.replace('.tif', '_bias_corrected.tif')
+
 hs_clean_dir_template = hs_merged_dir_template + 'clean\\'
 hs_clean_file_template = hs_merged_file_template.replace('.tif', '_clean.tif')
 
@@ -73,9 +89,16 @@ int_file_template = '<DATE>_dem_r<RES>m_q<QUANT>_interpolated_t<ITN>.tif'
 chm_dir_template = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\CHM\\"
 chm_file_template = "<DATE>_spike_free_chm_r<RES>m.tif"
 
+point_dens_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\RAS\\'
+point_dens_file_template = '<DATE>_ground_point_density_r<RES>m.bil'
+
 initial_pts_file = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\surveys\\all_ground_points_UTM11N_uid_flagged_cover.csv"
-hs_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_hs_point_samples.csv"
+hs_uncorrected_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_hs_point_samples_uncorrected.csv"
+hs_clean_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_hs_point_samples_clean.csv"
 swe_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_swe_point_samples.csv"
+point_dens_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_point_density_point_samples.csv"
+dem_int_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_dem_interpolated_point_samples.csv"
+
 
 def path_sub(path, dd=None, rr=None, qq=None, ddi=None, ddj=None, itn=None, mm=None, bb=None):
     if isinstance(path, str):
@@ -98,8 +121,8 @@ def path_sub(path, dd=None, rr=None, qq=None, ddi=None, ddj=None, itn=None, mm=N
 
     return ''.join(path)
 
-# merge snow off dems into single output
-for dd in snow_off:
+# merge all dems into single outputs (culled and interpolated)
+for dd in (snow_on + snow_off):
     # update file paths with date
     dem_out_dir = path_sub(dem_merged_dir_template, dd=dd)
     dem_int_out_dir = path_sub(dem_int_merged_dir_template, dd=dd)
@@ -153,20 +176,80 @@ for dd in snow_on:
         # calculate hs
         rastools.raster_merge(hs_in_dir, '.bil', hs_out_dir + hs_out_file, no_data="-9999")
 
-# clean snow depths (restrict to specified range)
+# point hs samples
+pts_file_in = initial_pts_file
+for dd in snow_on:
+    for rr in resolution:
+        hs_in_path = path_sub(hs_merged_dir_template + hs_merged_file_template, dd=dd, rr=rr)
+        colname = str(dd) + '_' + str(rr)
+        rastools.csv_sample_raster(hs_in_path, pts_file_in, hs_uncorrected_pts_path_out, "xcoordUTM11", "ycoordUTM11", colname,
+                                   sample_no_data_value='')
+        pts_file_in = hs_uncorrected_pts_path_out
+
+
+# run r script "snow_depth_bias_correction.r"
+
+# bias-correct snow depths
+hs_bias = pd.read_csv(hs_bias_file_in).loc[:, ["day", "lidar_res", "hs_mb"]]
+hs_bias.loc[:, "q_999"] = np.nan
 for dd in snow_on:
     # update file paths with date
     hs_in_dir = path_sub(hs_merged_dir_template, dd=dd)
+    hs_bc_dir = path_sub(hs_bc_dir_template, dd=dd)
+
+    # create DEM directory if does not exist
+    if not os.path.exists(hs_bc_dir):
+        os.makedirs(hs_bc_dir)
+
+    for rr in resolution:
+        hs_in_file = path_sub(hs_merged_file_template, dd=dd, rr=rr)
+
+        # load file
+        hs_bc_file = path_sub(hs_bc_file_template, dd=dd, rr=rr)
+
+        # mean bias value
+        mb = hs_bias.hs_mb[(hs_bias.day == dd) & (hs_bias.lidar_res == float(rr))]
+        if len(mb) != 1:
+            raise Exception("More than one (or no) match for snow depth bias, bias correction aborted.")
+        mb = mb.values[0]
+
+        # bias correct valid hs values
+        ras = rastools.raster_load(hs_in_dir + hs_in_file)
+        ras.data[ras.data != ras.no_data] += -mb
+
+        # save
+        rastools.raster_save(ras, hs_bc_dir + hs_bc_file)
+
+
+
+hs_bias = pd.read_csv(hs_bias_file_in).loc[:, ["day", "lidar_res", "hs_mb"]]
+hs_bias.loc[:, "ceiling_quantile"] = hs_clean_ceiling_quantile
+hs_bias.loc[:, "ceiling_res"] = hs_clean_ceiling_res
+hs_bias.loc[:, "ceiling_value"] = np.nan
+# clean snow depths (restrict to specified range)
+for dd in snow_on:
+    # update file paths with date
+    hs_in_dir = path_sub(hs_bc_dir_template, dd=dd)
     hs_clean_dir = path_sub(hs_clean_dir_template, dd=dd)
 
     # create DEM directory if does not exist
     if not os.path.exists(hs_clean_dir):
         os.makedirs(hs_clean_dir)
 
+    # determine ceiling value
+    rr = hs_clean_ceiling_res
 
-    ii = 0
+    # load file
+    hs_in_file = path_sub(hs_bc_file_template, dd=dd, rr=rr)
+    ras = rastools.raster_load(hs_in_dir + hs_in_file)
+
+
+    # record quantiles
+    cv = np.quantile(ras.data[ras.data != ras.no_data], hs_clean_ceiling_quantile)
+    hs_bias.loc[hs_bias.day == dd, "ceiling_value"] = cv
+
     for rr in resolution:
-        hs_in_file = path_sub(hs_merged_file_template, dd=dd, rr=rr)
+        hs_in_file = path_sub(hs_bc_file_template, dd=dd, rr=rr)
 
         # load file
         hs_clean_file = path_sub(hs_clean_file_template, dd=dd, rr=rr)
@@ -175,20 +258,13 @@ for dd in snow_on:
         ras = rastools.raster_load(hs_in_dir + hs_in_file)
         ras.data[(ras.data < 0) & (ras.data != ras.no_data)] = 0
 
-        # values = np.sort(ras.data[ras.data != ras.no_data])
-        # rank = (np.arange(0, len(values)) + 1) / (len(values))
-        # # calculate ceiling for res = '.10'
-        # ceiling = np.min(values[rank > .998])
-
         # send values beyond ceiling to no_data
-        ras.data[ras.data > ceiling_depths[ii]] = ras.no_data
+        ras.data[ras.data > cv] = ras.no_data
 
         # save
         rastools.raster_save(ras, hs_clean_dir + hs_clean_file)
 
-        # point samples
-
-        ii = ii + 1
+hs_bias.to_csv(hs_bias_file_out, index=False)
 
 # differential snow depth products
 for ii in range(0, len(snow_on)):
@@ -208,6 +284,8 @@ for ii in range(0, len(snow_on)):
             dhs_out = path_sub([dhs_dir_template, dhs_file_template], ddi=ddi, ddj=ddj, rr=rr)
 
             hs = rastools.raster_dif_gdal(ddj_in, ddi_in, inherit_from=2, dif_out=dhs_out)
+
+# run density analysis in r
 
 # calculate SWE products
 for dd in snow_on:
@@ -236,6 +314,9 @@ for dd in snow_on:
         elif depth_regression == 'swe':
             mm = depth_to_swe_slope[dd]
             swe = mm * depth
+        elif depth_regression == 'exp':
+            depth_cm = depth * 100
+            swe = aa * depth_cm / 100 - (bb / 100) * (1 - np.exp(-depth_cm / cc))
         else:
             raise Exception('Invalid specification for depth_regression.')
 
@@ -262,7 +343,7 @@ for ii in range(0, len(snow_on)):
 
             hs = rastools.raster_dif_gdal(ddj_in, ddi_in, inherit_from=2, dif_out=dswe_out)
 
-# spatial merge of tiled raster files
+# spatial merge of tiled dem raster files
 for dd in snow_off:
     # update file paths with date
     dem_out_dir = path_sub(dem_merged_dir_template, dd=dd)
@@ -287,18 +368,17 @@ for dd in snow_off:
         rastools.raster_merge(dem_int_in_dir, '.bil', dem_int_out_dir + dem_int_out_file, no_data="-9999")
 
 
-# point hs samples
+# point samples of hs
 pts_file_in = initial_pts_file
 for dd in snow_on:
     for rr in resolution:
         hs_clean_path = path_sub(hs_clean_dir_template + hs_clean_file_template, dd=dd, rr=rr)
         colname = str(dd) + '_' + str(rr)
-        rastools.csv_sample_raster(hs_clean_path, pts_file_in, hs_pts_path_out, "xcoordUTM11", "ycoordUTM11", colname,
+        rastools.csv_sample_raster(hs_clean_path, pts_file_in, hs_clean_pts_path_out, "xcoordUTM11", "ycoordUTM11", colname,
                                    sample_no_data_value='')
-        pts_file_in = hs_pts_path_out
+        pts_file_in = hs_clean_pts_path_out
 
-
-# point swe
+# point samples of swe
 pts_file_in = initial_pts_file
 for dd in snow_on:
     for rr in resolution:
@@ -308,6 +388,29 @@ for dd in snow_on:
         pts_file_in = swe_pts_path_out
 
 
+# point samples of point density
+pts_file_in = initial_pts_file
+for dd in snow_on + snow_off:
+    for rr in [".10", ".25"]:
+        point_dens_path = path_sub(point_dens_dir_template + point_dens_file_template, dd=dd, rr=rr)
+        colname = str(dd) + '_' + str(rr)
+
+        rastools.csv_sample_raster(point_dens_path, pts_file_in, point_dens_pts_path_out, "xcoordUTM11", "ycoordUTM11", colname, sample_no_data_value='')
+        pts_file_in = point_dens_pts_path_out
+
+        print(rr)
+
+# point samples of interpolated dem
+pts_file_in = initial_pts_file
+for dd in (snow_on + snow_off):
+    for rr in resolution:
+        dem_int_path = path_sub(dem_int_merged_dir_template + dem_int_merged_file_template, dd=dd, rr=rr)
+        colname = str(dd) + '_' + str(rr)
+
+        rastools.csv_sample_raster(dem_int_path, pts_file_in, dem_int_pts_path_out, "xcoordUTM11", "ycoordUTM11", colname, sample_no_data_value='')
+        pts_file_in = dem_int_pts_path_out
+
+        print(rr)
 
 # point sample HS products to merge with snow surveys
 
