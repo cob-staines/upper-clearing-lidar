@@ -2,67 +2,59 @@ import rastools
 import numpy as np
 import pandas as pd
 import tifffile as tif
-from scipy.stats import spearmanr
 
 batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_uf_.25m_180px\\outputs\\'
 # batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\mb_15_1m_pr.15_os10\\outputs\\'
 
-batch_type = 'lin'  # 'exp', 'log', 'lin'
+# # output files
+# covar_out = batch_dir + "phi_theta_lookup_covar_training.csv"
+# weighted_cv_out = batch_dir + "rshmetalog_weighted_cv.csv"
 
-if batch_type == 'log':
-    covar_out = batch_dir + "phi_theta_lookup_log_covar_training.csv"
-    weighted_cv_out = batch_dir + "rshmetalog_log_weighted_cv.csv"
-elif batch_type == 'exp':
-    covar_out = batch_dir + "phi_theta_lookup_exp_covar_training.csv"
-    weighted_cv_out = batch_dir + "rshmetalog_exp_weighted_cv.csv"
-elif batch_type == 'lin':
-    covar_out = batch_dir + "phi_theta_lookup_lin_covar_training.csv"
-    weighted_cv_out = batch_dir + "rshmetalog_lin_weighted_cv.csv"
-
+# scaling coefficient converts from expected returns to expected contact number
 # scaling_coef = 0.166104  # all rings
 scaling_coef = 0.194475  # dropping 5th ring
 
 # load img meta
 hemimeta = pd.read_csv(batch_dir + 'rshmetalog.csv')
-
 imsize = hemimeta.img_size_px[0]
 
-# merge with covariant
-# var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\19_045-19_050\\dswe_19_045-19_050_r.25m.tif'
-# var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\19_050-19_052\\dswe_19_050-19_052_r.25m.tif'
-var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\19_045-19_052\\dswe_19_045-19_052_r.25m.tif'
-# var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dHS\\19_045-19_050\\dhs_19_045-19_050_r.25m.tif'
+# load covariant
+var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\19_045-19_050\\dswe_19_045-19_050_r.25m.tif'
 var = rastools.raster_to_pd(var_in, 'covariant')
+# merge with image meta
 hemi_var = pd.merge(hemimeta, var, left_on=('x_utm11n', 'y_utm11n'), right_on=('x_coord', 'y_coord'), how='inner')
 
-# load angle template
+# load image pixel angle lookup
 angle_lookup = pd.read_csv(batch_dir + "phi_theta_lookup.csv")
+# build phi image (in radians)
 phi = np.full((imsize, imsize), np.nan)
-phi[(np.array(angle_lookup.x_index), np.array(angle_lookup.y_index))] = angle_lookup.phi * 180 / np.pi
-max_phi = 90
-# calculate radius to avoid pixels outside of circle
+phi[(np.array(angle_lookup.x_index), np.array(angle_lookup.y_index))] = angle_lookup.phi
+# build theta image (in radians)
+theta = np.full((imsize, imsize), np.nan)
+theta[(np.array(angle_lookup.x_index), np.array(angle_lookup.y_index))] = angle_lookup.theta
+
+# limit analysis by phi (in radians)
+max_phi = 90 * (np.pi / 180)
+# calculate radius range to avoid pixels outside of circle
 imrange = np.full((imsize, imsize), False)
 imrange[phi <= max_phi] = True
 
-# filter to desired images
-#hemiList = hemi_swe.loc[(hemi_swe.swe.values >= 0) & (hemi_swe.swe.values <= 150), :]
-# delineate training set and test set
-set_param = np.random.random(len(hemi_var))  # ommit this line if only reloading the covariant
-hemi_var.loc[:, 'training_set'] = set_param < .25
+# # filter hemimeta to desired images
+# THIS WOULD BE WHERE WE BIAS CORRECT ACCORDING TO A CERTAIN DISTRIBUTION
+# delineate training set (set_param < param_thresh) and test set (set_param >= param thresh)
+param_thresh = 0.25
+set_param = np.random.random(len(hemi_var))
+hemi_var.loc[:, 'training_set'] = set_param < param_thresh
+# build hemiList from training_set only
 hemiList = hemi_var.loc[hemi_var.training_set, :].reset_index()
 
-
+# load hemiList images to imstack
 imstack = np.full([imsize, imsize, len(hemiList)], np.nan)
 for ii in range(0, len(hemiList)):
     imstack[:, :, ii] = tif.imread(batch_dir + hemiList.file_name[ii])[:, :, 1] * scaling_coef
     print(str(ii + 1) + ' of ' + str(len(hemiList)))
 
-if batch_type == 'log':
-    imstack = np.log(imstack)
-elif batch_type == 'exp':
-    imstack = np.exp(-imstack)
-
-
+# preview of correlation coefficient
 # covar = np.full((imsize, imsize), np.nan)
 corcoef = np.full((imsize, imsize), np.nan)
 corcoef_e = np.full((imsize, imsize), np.nan)
@@ -80,188 +72,41 @@ for ii in range(0, imsize):
 
     print(ii)
 
-########
-# np.nanmax(corcoef_e)
-# np.nanmin(corcoef_l)
-# np.nanmin(corcoef)
-# np.nanmin(sprank)
-#
-# np.where(corcoef_e == np.nanmax(corcoef_e))
-# np.where(corcoef_l == np.nanmin(corcoef_l))
-# np.where(corcoef == np.nanmin(corcoef))
-# np.where(sprank == np.nanmin(sprank))
-########
 
 
-
-# methods for weighting
+# reshape imstack (as imstack_long) for optimization
 imstack_long = imstack
 imstack_long[np.isnan(imstack_long)] = 0  # careful here..
 imstack_long = np.swapaxes(np.swapaxes(imstack_long, 1, 2), 0, 1).reshape(imstack_long.shape[2], -1)
 
 
-# # phi threshhold
-# t_list = np.arange(0, 90, 5)
-# w_data = pd.DataFrame(columns={"threshold", "corcoef", "sprank"})
-#
-# for tt in t_list:
-#     weights = np.full((imsize, imsize), 0)
-#     weights[phi <= tt] = 1
-#     weights = weights / np.sum(weights)
-#
-#     w_stack = np.average(imstack, weights=weights.ravel(), axis=1)
-#
-#     w_corcoef = np.corrcoef(hemiList.covariant, w_stack)[0, 1]
-#     w_sprank = spearmanr(hemiList.covariant, w_stack)[0]
-#
-#     new_row = {"threshold": tt,
-#                "corcoef": w_corcoef,
-#                "sprank": w_sprank}
-#     w_data = w_data.append(new_row, ignore_index=True, verify_integrity=True)
-#
-# # phi dist from max
-# max_coord = np.where(corcoef == np.nanmin(corcoef))
-#
-# yid, xid = np.indices((imsize, imsize))
-# radist = np.sqrt((yid - max_coord[0][0]) ** 2 + (xid - max_coord[1][0]) ** 2) * np.pi / 180
-#
-# p_list = np.linspace(0, 20, 101)
-# p_list = np.concatenate((p_list, np.linspace(25, 100, 16)))
-# w_data = pd.DataFrame(columns={"power", "corcoef", "corcoef_e", "corcoef_l", "sprank"})
-#
-# for pp in p_list:
-#     # normal distribution
-#     weights = np.exp(- 0.5 * (pp * radist) ** 2)
-#     weights[np.isnan(phi)] = 0
-#     weights = weights ** pp
-#
-#     weights = weights / np.sum(weights)
-#
-#     w_stack = np.average(imstack_long, weights=weights.ravel(), axis=1)
-#
-#     w_corcoef = np.corrcoef(hemiList.covariant, w_stack)[0, 1]
-#     w_corcoef_e = np.corrcoef(hemiList.covariant, np.exp(-20 * w_stack))[0, 1]
-#     w_corcoef_l = np.corrcoef(hemiList.covariant, np.log(w_stack))[0, 1]
-#     w_sprank = spearmanr(hemiList.covariant, w_stack)[0]
-#
-#     new_row = {"power": pp,
-#                "corcoef": w_corcoef,
-#                "corcoef_e": w_corcoef_e,
-#                "corcoef_l": w_corcoef_l,
-#                "sprank": w_sprank}
-#     w_data = w_data.append(new_row, ignore_index=True, verify_integrity=True)
-#
-#     print(pp)
-#
-#
-# # coef threshhold
-# t_list = np.linspace(np.nanmin(corcoef), 0, 20)
-# w_data = pd.DataFrame(columns={"threshold", "corcoef", "sprank", "count"})
-#
-# for tt in t_list:
-#     weights = np.full((imsize, imsize), 0)
-#     weights[corcoef <= tt] = 1
-#     count = np.sum(weights)
-#     weights = weights / np.sum(weights)
-#
-#     w_stack = np.average(imstack_long, weights=weights.ravel(), axis=1)
-#
-#     w_corcoef = np.corrcoef(hemiList.covariant, w_stack)[0, 1]
-#     w_sprank = spearmanr(hemiList.covariant, w_stack)[0]
-#
-#     new_row = {"threshold": tt,
-#                "corcoef": w_corcoef,
-#                "sprank": w_sprank,
-#                "count": count}
-#     w_data = w_data.append(new_row, ignore_index=True, verify_integrity=True)
-#
-# # weighted coef power
-# w_data = pd.DataFrame(columns={"power", "corcoef", "sprank"})
-# p_list = np.linspace(3, 10, 20)
-# ii = 0
-# for pp in p_list:
-#     weights = np.full((imsize, imsize), 0.0)
-#     weights[corcoef_e >= 0] = corcoef_e[corcoef_e >= 0] ** pp
-#     #weights[~np.isnan(corcoef_e)] = corcoef_e[~np.isnan(corcoef_e)] ** pp
-#     # weights[corcoef <= tt] = corcoef[corcoef <= tt] ** 2
-#     # count = np.sum(corcoef <= tt)
-#     weights = weights / np.nansum(np.abs(weights))
-#
-#     w_stack = np.average(imstack_long, weights=weights.ravel(), axis=1)
-#
-#     w_corcoef = np.corrcoef(hemiList.covariant, w_stack)[0, 1]
-#     w_sprank = spearmanr(hemiList.covariant, w_stack)[0]
-#
-#     new_row = {"power": pp,
-#                "corcoef": w_corcoef,
-#                "sprank": w_sprank}
-#     w_data = w_data.append(new_row, ignore_index=True, verify_integrity=True)
-#
-#     print(ii)
-#     ii += 1
-#
-#
-# # weighted sprank threshhold
-# t_list = np.linspace(np.nanmin(sprank), 0, 20)
-# w_data = pd.DataFrame(columns={"threshold", "corcoef", "sprank", "count"})
-#
-# for tt in t_list:
-#     weights = np.full((imsize, imsize), 0.0)
-#     weights[sprank <= tt] = -sprank[sprank <= tt]
-#     count = np.sum(sprank <= tt)
-#     weights = weights / np.sum(weights)
-#
-#     w_stack = np.average(imstack_long, weights=weights.ravel(), axis=1)
-#
-#     w_corcoef = np.corrcoef(hemiList.covariant, w_stack)[0, 1]
-#     w_sprank = spearmanr(hemiList.covariant, w_stack)[0]
-#
-#     new_row = {"threshold": tt,
-#                "corcoef": w_corcoef,
-#                "sprank": w_sprank,
-#                "count": count}
-#     w_data = w_data.append(new_row, ignore_index=True, verify_integrity=True)
-#
-#
-# # optimize exp scalar
-# c_list = np.linspace(1, 50, 300)
-# c_data = pd.DataFrame(columns={"scalar", "corcoef"})
-#
-# for cc in c_list:
-#     corcoef = np.corrcoef(hemiList.covariant, np.exp(-cc * w_stack))[0, 1]
-#
-#     new_row = {"scalar": cc,
-#                "corcoef": corcoef}
-#     c_data = c_data.append(new_row, ignore_index=True, verify_integrity=True)
-#
-# plt.plot(c_data.scalar, c_data.corcoef)
-
-
 # optimization of field of view and interaction number
 from scipy.optimize import fmin_bfgs
 
-
+# optimization function
 def gbgf(x0):
-    sig = x0[0]
-    intnum = x0[1]
-    cpy = x0[2]
-    cpx = x0[3]
+    # unpack parameters
+    sig = x0[0]  # standard deviation of angular gaussian in radians
+    intnum = x0[1]  # interaction number
+    phi_0 = x0[2]  # central phi in radians
+    theta_0 = x0[3]  # central theta in radians
 
-    yid, xid = np.indices((imsize, imsize))
-    radist = np.sqrt((yid - cpy) ** 2 + (xid - cpx) ** 2) * np.pi / 180
+    # calculate angle of each pixel from (phi_0, theta_0)
+    radist = 2 * np.arcsin(np.sqrt((np.sin((phi_0 - phi) / 2) ** 2) + np.sin(phi_0) * np.sin(phi) * (np.sin((theta_0 - theta) / 2) ** 2)))
 
+    # calculate gaussian angle weights
     weights = np.exp(- 0.5 * (radist / sig) ** 2)  # gaussian
     weights[np.isnan(phi)] = 0
     weights = weights / np.sum(weights)
 
+    # calculate weighted mean of contact number for each ground points
     w_stack = np.average(imstack_long, weights=weights.ravel(), axis=1)
+    # calculate corrcoef with snowfall transmittance over all ground points
+    w_corcoef_e = np.corrcoef(hemiList.covariant, np.exp(-intnum * w_stack))[0, 1]
 
-    valid = (hemiList.covariant > 0) & (hemiList.covariant <=50)
-
-    # w_corcoef_e = np.corrcoef(hemiList.covariant, np.exp(-intnum * w_stack))[0, 1]
-    w_corcoef_e = np.corrcoef(hemiList.covariant[valid], np.exp(-intnum * w_stack[valid]))[0, 1]
-
+   # return negative for minimization method (we want to maximize corrcoef)
     return -w_corcoef_e
+
 
 Nfeval = 1
 def callbackF(Xi):
@@ -270,7 +115,7 @@ def callbackF(Xi):
     Nfeval += 1
 
 print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}'.format('Iter', ' X1', ' X2', 'X3', 'X4', 'f(X)'))
-x0 = np.array([0.11, 21.6, 96, 85], dtype=np.double)
+x0 = np.array([0.11, 21.6, phi[96, 85], theta[96, 85]], dtype=np.double)
 
 [xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflg] = \
     fmin_bfgs(gbgf, x0, callback=callbackF, maxiter=25, full_output=True, retall=False)
@@ -358,16 +203,16 @@ plt.xlim(-50, 100)
 # corcoef_each_qc[corcoef_each_qc == 1] = np.nan
 # plt.imshow(corcoef_each_qc)
 # plt.colorbar()
-
-
-# Here you give the initial parameters for p0 which Python then iterates over
-# to find the best fit
-jj = 90
-ii = 90
-
-popt, pcov = curve_fit(expfunc, w_stack, hemi_var.covariant[hemi_var.training_set.values], p0=(20.0), bounds=(0, np.inf))
-
-plt.scatter(hemi_var.covariant[hemi_var.training_set.values], np.exp(-popt[0] * w_stack), s=2, alpha=.25)
+#
+#
+# # Here you give the initial parameters for p0 which Python then iterates over
+# # to find the best fit
+# jj = 90
+# ii = 90
+#
+# popt, pcov = curve_fit(expfunc, w_stack, hemi_var.covariant[hemi_var.training_set.values], p0=(20.0), bounds=(0, np.inf))
+#
+# plt.scatter(hemi_var.covariant[hemi_var.training_set.values], np.exp(-popt[0] * w_stack), s=2, alpha=.25)
 
 ## plot optimization topography
 
@@ -484,6 +329,7 @@ set = corcoef_e  # this is what we are plotting
 val_min = np.nanmin(set)
 val_mid = 0
 val_max = np.nanmax(set)
+abs_max = np.max(np.abs([val_min, val_max]))
 cmap = matplotlib.cm.RdBu
 
 # main plot
