@@ -51,9 +51,23 @@ hs_clean_ceiling_quantile = 0.999  # determined visually...
 # hs_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\hs\\<DDI>-<DDJ>\\'
 # hs_file_template = 'hs_<DDI>-<DDJ>_r<RES>_q<QUANT>.tif'
 
-hs_in_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\TEMP_FILES\\15_hs\\res_<RES>\\'
-hs_merged_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\HS\\'
-hs_merged_file_template = '<DATE>_hs_r<RES>m.tif'
+# # hs debacle
+# ps - point surface
+# pst - point surface thinned
+# ss - surface surface
+# sst - surface surface thinned
+
+hs_in_dir_template_pst = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\TEMP_FILES\\15_hs\\res_<RES>\\'
+hs_merged_dir_template_pst = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\HS\\'
+hs_merged_file_template_pst = '<DATE>_hs_r<RES>m.tif'
+
+dhs_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dHS_pst\\<DDI>-<DDJ>\\'
+dhs_file_template = 'dhs_<DDI>-<DDJ>_r<RES>m.tif'
+
+hs_in_dir_template_sst = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\TEMP_FILES\\15_hs\\res_<RES>\\'
+hs_merged_dir_template_sst = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\HS_sst\\'
+hs_merged_file_template_sst = '<DATE>_hs_r<RES>m.tif'
+
 
 dem_in_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\TEMP_FILES\\12_dem\\res_<RES>\\'
 dem_merged_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\DEM\\'
@@ -74,9 +88,6 @@ hs_bc_file_template = hs_merged_file_template.replace('.tif', '_bias_corrected.t
 hs_clean_dir_template = hs_merged_dir_template + 'clean\\'
 hs_clean_file_template = hs_merged_file_template.replace('.tif', '_clean.tif')
 
-dhs_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dHS\\<DDI>-<DDJ>\\'
-dhs_file_template = 'dhs_<DDI>-<DDJ>_r<RES>m.tif'
-
 swe_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\SWE\\'
 swe_file_template = 'swe_<DATE>_r<RES>m.tif'
 
@@ -94,10 +105,11 @@ point_dens_file_template = '<DATE>_ground_point_density_r<RES>m.bil'
 
 initial_pts_file = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\surveys\\all_ground_points_UTM11N_uid_flagged_cover.csv"
 hs_uncorrected_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_hs_point_samples_uncorrected.csv"
+hs_uncorrected_pts_path_out_sst = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_hs_point_samples_uncorrected_sst.csv"
 hs_clean_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_hs_point_samples_clean.csv"
 swe_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_swe_point_samples.csv"
 point_dens_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_point_density_point_samples.csv"
-dem_int_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_dem_interpolated_point_samples.csv"
+dem_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_dem_point_samples.csv"
 
 
 def path_sub(path, dd=None, rr=None, qq=None, ddi=None, ddj=None, itn=None, mm=None, bb=None):
@@ -160,18 +172,18 @@ for dd in snow_off:
 
         hs = rastools.raster_dif_gdal(dsm_can_in, dem_int_in, inherit_from=2, dif_out=chm_out)
 
-# merge snow on snow depths into single output
+# merge snow on snow depths into single output (PST)
 for dd in snow_on:
     # update file paths with date
-    hs_out_dir = path_sub(hs_merged_dir_template, dd=dd)
+    hs_out_dir = path_sub(hs_merged_dir_template_pst, dd=dd)
 
     # create DEM directory if does not exist
     if not os.path.exists(hs_out_dir):
         os.makedirs(hs_out_dir)
 
     for rr in resolution:
-        hs_in_dir = path_sub(hs_in_dir_template, dd=dd, rr=rr)
-        hs_out_file = path_sub(hs_merged_file_template, dd=dd, rr=rr)
+        hs_in_dir = path_sub(hs_in_dir_template_pst, dd=dd, rr=rr)
+        hs_out_file = path_sub(hs_merged_file_template_pst, dd=dd, rr=rr)
 
         # calculate hs
         rastools.raster_merge(hs_in_dir, '.bil', hs_out_dir + hs_out_file, no_data="-9999")
@@ -180,11 +192,40 @@ for dd in snow_on:
 pts_file_in = initial_pts_file
 for dd in snow_on:
     for rr in resolution:
-        hs_in_path = path_sub(hs_merged_dir_template + hs_merged_file_template, dd=dd, rr=rr)
+        hs_in_path = path_sub(hs_merged_dir_template_pst + hs_merged_file_template_pst, dd=dd, rr=rr)
         colname = str(dd) + '_' + str(rr)
         rastools.csv_sample_raster(hs_in_path, pts_file_in, hs_uncorrected_pts_path_out, "xcoordUTM11", "ycoordUTM11", colname,
                                    sample_no_data_value='')
         pts_file_in = hs_uncorrected_pts_path_out
+
+
+# calculate snow depths (SST)
+ddj = snow_off[0]
+for ddi in snow_on:
+    hs_out_dir = path_sub(hs_merged_dir_template_sst, dd=ddi)
+
+    # create DEM directory if does not exist
+    if not os.path.exists(hs_out_dir):
+        os.makedirs(hs_out_dir)
+
+    for rr in resolution:
+
+        # calculate hs
+        ddi_in = path_sub(dem_merged_dir_template + dem_merged_file_template, dd=ddi, rr=rr)
+        ddj_in = path_sub(dem_merged_dir_template + dem_merged_file_template, dd=ddj, rr=rr)
+        hs_out_file = path_sub(hs_merged_file_template_sst, dd=ddi, rr=rr)
+
+        hs = rastools.raster_dif_gdal(ddi_in, ddj_in, inherit_from=1, dif_out=hs_out_dir + hs_out_file)
+
+# point hs samples (SST)
+pts_file_in = initial_pts_file
+for dd in snow_on:
+    for rr in resolution:
+        hs_in_path = path_sub(hs_merged_dir_template_sst + hs_merged_file_template_sst, dd=dd, rr=rr)
+        colname = str(dd) + '_' + str(rr)
+        rastools.csv_sample_raster(hs_in_path, pts_file_in, hs_uncorrected_pts_path_out_sst, "xcoordUTM11", "ycoordUTM11", colname,
+                                   sample_no_data_value='')
+        pts_file_in = hs_uncorrected_pts_path_out_sst
 
 
 # run r script "snow_depth_bias_correction.r"
@@ -284,6 +325,7 @@ for ii in range(0, len(snow_on)):
             dhs_out = path_sub([dhs_dir_template, dhs_file_template], ddi=ddi, ddj=ddj, rr=rr)
 
             hs = rastools.raster_dif_gdal(ddj_in, ddi_in, inherit_from=2, dif_out=dhs_out)
+
 
 # run density analysis in r
 
@@ -404,11 +446,11 @@ for dd in snow_on + snow_off:
 pts_file_in = initial_pts_file
 for dd in (snow_on + snow_off):
     for rr in resolution:
-        dem_int_path = path_sub(dem_int_merged_dir_template + dem_int_merged_file_template, dd=dd, rr=rr)
+        dem_path = path_sub(dem_merged_dir_template + dem_merged_file_template, dd=dd, rr=rr)
         colname = str(dd) + '_' + str(rr)
 
-        rastools.csv_sample_raster(dem_int_path, pts_file_in, dem_int_pts_path_out, "xcoordUTM11", "ycoordUTM11", colname, sample_no_data_value='')
-        pts_file_in = dem_int_pts_path_out
+        rastools.csv_sample_raster(dem_path, pts_file_in, dem_pts_path_out, "xcoordUTM11", "ycoordUTM11", colname, sample_no_data_value='')
+        pts_file_in = dem_pts_path_out
 
         print(rr)
 

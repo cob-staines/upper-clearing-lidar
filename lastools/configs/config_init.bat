@@ -31,4 +31,3 @@ call %DIR_BAT%\configs\las_proc_snow_on.bat
 SET DATE=19_123
 SET PRODUCT_ID=%DATE%_las_proc
 call %DIR_BAT%\configs\las_proc_snow_on.bat
-

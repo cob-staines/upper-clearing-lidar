@@ -472,7 +472,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
 
     return vox
 
-def beta_lookup_prior_calc(vox, agg_sample_length):
+def beta_lookup_prior_calc(vox):
     val = (vox.sample_data > 0)  # roughly 50% at .25m
     rate = vox.return_data[val] / vox.sample_data[val]
     mu = np.mean(rate)
@@ -483,7 +483,7 @@ def beta_lookup_prior_calc(vox, agg_sample_length):
 
 
     # calculate and write prior lookup
-    sample_length_correction = vox.sample_length / agg_sample_length
+    sample_length_correction = vox.sample_length / vox.agg_sample_length
     post_dtype = np.float32
 
     with h5py.File(vox.vox_hdf5, mode='r+') as hf:
@@ -534,12 +534,11 @@ def single_ray_agg(vox, rays, agg_sample_length, lookup_db, prior, commentation=
     p1 = rays.loc[:, ['x1', 'y1', 'z1']].values
 
 
-    # calculate distance between ray start (ground) and end (sky)
-    dist = np.sqrt(np.sum((p1 - p0) ** 2, axis=1))
-    rays = rays.assign(path_length=dist)
+    # distance between ray start (ground) and end (sky)
+    dist = rays.path_length.values
 
     # calc unit step along ray in x, y, z dims
-    xyz_step = (p1 - p0) / dist[:, np.newaxis]
+    xyz_step = ((p1 - p0).T / dist).T
 
     # random offset for each ray sample series
     offset = np.random.random(len(p0))
@@ -605,12 +604,11 @@ def single_ray_group_agg(vox, rays, agg_sample_length, lookup_db, prior, comment
     p1 = rays.loc[:, ['x1', 'y1', 'z1']].values
 
 
-    # calculate distance between ray start (ground) and end (sky)
-    dist = np.sqrt(np.sum((p1 - p0) ** 2, axis=1))
-    rays = rays.assign(path_length=dist)
+    # distance between ray start (ground) and end (sky)
+    dist = rays.path_length.values
 
     # calc unit step along ray in x, y, z dims
-    xyz_step = (p1 - p0) / dist[:, np.newaxis]
+    xyz_step = ((p1 - p0).T / dist).T
 
     # random offset for each ray sample series
     offset = np.random.random(len(p0))
@@ -671,7 +669,8 @@ def single_ray_group_agg(vox, rays, agg_sample_length, lookup_db, prior, comment
 def vox_agg(origin, vox_sub, img_size, max_phi=np.pi/2, max_dist=50, min_dist=0, ref="edge"):
 
     # use rays to record
-    rays = hemi_vectors(img_size, max_phi, ref=ref)
+    # rays = hemi_vectors(img_size, max_phi, ref=ref)
+    rays = point_to_hemi_rays(origin, vox_sub, img_size, max_phi, max_dist=max_dist, min_dist=min_dist)
 
     # convert min/max to voxel units
     vr_max = max_dist / vox_sub.step[0]
@@ -680,7 +679,7 @@ def vox_agg(origin, vox_sub, img_size, max_phi=np.pi/2, max_dist=50, min_dist=0,
     # convert origin to vox coords
     v0 = utm_to_vox(vox_sub, origin)
     v0 = v0 - (vox_sub.step / 2)  # shift origin to shift vox corners to vox centers
-    v0 = v0 + (np.random.random(3) * 2 - 1) / 10 ** 10  # add small noise to avoid alignment with vox grid -- can we solve this in a cleaner way please?
+    v0 = v0 + (np.random.random(3) * 2 - 1) / 10 ** 10  # add small noise to avoid alignment with vox grid (division by zero) -- can we solve this in a cleaner way please?
 
     tp = v0 + (0, 0, 1)  # test point for debugging
 
@@ -738,6 +737,9 @@ def vox_agg(origin, vox_sub, img_size, max_phi=np.pi/2, max_dist=50, min_dist=0,
 
     weights = np.prod(vox_sub.step) / (4 * phi_step * np.cos(phi_step) * v_r ** 2)
     weights = np.prod(vox_sub.step) / (4 * phi_step * np.cos(phi_step) * vox_sub.sample_length * (v_r * vox_sub.step[0]) ** 2)
+    weights = np.prod(vox_sub.step) / (4 * phi_step * np.sin(phi_step) * vox_sub.sample_length * (v_r * vox_sub.step[0]) ** 2)
+    weights = np.prod(vox_sub.step) / (phi_step * np.sin(phi_step) * (v_r * vox_sub.step[0]) ** 2)
+    # weights = 1 / (v_r * vox_sub.step[0]) ** 2
 
 
     rays.loc[:, "id"] = rays.index
@@ -747,9 +749,8 @@ def vox_agg(origin, vox_sub, img_size, max_phi=np.pi/2, max_dist=50, min_dist=0,
                            "vox_var": weights * rets * samps / ((rets + samps) ** 2 * (rets + samps + 1)),
                            "weights": weights})
 
+
     peace = voxels.groupby(["x_index", "y_index"], as_index=False).agg(
-        x_index=pd.NamedAgg(column="x_index", aggfunc=np.mean),
-        y_index=pd.NamedAgg(column="y_index", aggfunc=np.mean),
         returns_mean=pd.NamedAgg(column="vox_mean", aggfunc=np.sum),
         returns_var=pd.NamedAgg(column="vox_var", aggfunc=np.sum),
         voxel_count=pd.NamedAgg(column="weights", aggfunc=np.size),
@@ -766,8 +767,10 @@ def vox_agg(origin, vox_sub, img_size, max_phi=np.pi/2, max_dist=50, min_dist=0,
     import matplotlib.pyplot as plt
 
     plt.scatter(lala.returns_mean_x, lala.returns_mean_y, alpha=.05)
-    plt.scatter(lala.path_length, lala.weight_sum)
-    plt.scatter(lala.path_length, lala.arr)  # this looks good! I think we are getting thr right number of voxels in the search area, quite reassuring.
+    plt.scatter(lala.returns_mean_x, lala.returns_mean_y * lala.path_length_y / lala.weight_sum, alpha=.05)
+    plt.scatter(lala.path_length_y, lala.weight_sum)
+    plt.scatter(lala.path_length_y, lala.weight_sum / lala.path_length)
+    plt.scatter(lala.path_length_y, lala.arr)  # this looks good! I think we are getting the right number of voxels in the search area, quite reassuring.
 
     #
     # returns_mean = np.nansum(weights * post_a/(post_a + post_b), axis=1)
@@ -1010,6 +1013,7 @@ def point_to_hemi_rays(origin, vox, img_size, max_phi=np.pi/2, max_dist=50, min_
     p1_bb = interpolate_to_bounding_box(p0, p1, bb=[vox.origin, vox.max], cw_rotation=vox.cw_rotation)
     rays = rays.assign(x0=p0[:, 0], y0=p0[:, 1], z0=p0[:, 2])
     rays = rays.assign(x1=p1_bb[:, 0], y1=p1_bb[:, 1], z1=p1_bb[:, 2])
+    rays = rays.assign(path_length=np.sqrt(np.sum((p1_bb - p0) ** 2, axis=1)))
 
     return rays
 
@@ -1025,7 +1029,7 @@ def hemi_rays_to_img(rays_out, img_path, img_size, area_factor):
     imageio.imsave(img_path, img)
 
 
-def las_to_vox(vox, z_slices, agg_sample_length, run_las_traj=True, fail_overflow=False):
+def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False):
     if run_las_traj:
         # interpolate trajectory
         laslib.las_traj(vox.las_in, vox.traj_in, vox.las_traj_hdf5, vox.las_traj_chunksize, vox.return_set, vox.drop_class)
@@ -1034,7 +1038,7 @@ def las_to_vox(vox, z_slices, agg_sample_length, run_las_traj=True, fail_overflo
     vox = las_ray_sample_by_z_slice(vox, z_slices, fail_overflow)
     vox.save()
 
-    beta_lookup_prior_calc(vox, agg_sample_length)
+    beta_lookup_prior_calc(vox)
 
     return vox
 

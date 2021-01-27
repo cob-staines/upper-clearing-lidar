@@ -19,10 +19,11 @@ def main():
     voxel_length = .25
     vox.step = np.full(3, voxel_length)
     vox.sample_length = voxel_length/np.pi
+    vox.agg_sample_length = vox.sample_length
     vox.vox_hdf5 = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '_r' + str(voxel_length) + 'm_vox.h5')
 
     z_slices = 4
-    vox = lrs.las_to_vox(vox, z_slices, run_las_traj=False, fail_overflow=False)
+    # vox = lrs.las_to_vox(vox, z_slices, run_las_traj=False, fail_overflow=False)
 
 
     # # LOAD VOX
