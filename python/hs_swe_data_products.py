@@ -11,9 +11,27 @@ resolution = [".05", ".10", ".25", "1.00"]
 
 
 depth_regression = 'exp'
-bb = 2958.444
-cc = 17.96587
+# bb = 1 / 0.0004215
+# cc = 1 / 0.0657602
+# aa = 67.92 + bb / cc
+
+
+# # each day
+# cc = np.array([0.267892, 0.0392898, 0.01628000, 1.000000, 0.2004976])
+# bb = np.array([0.001987, 0.0002041, 0.00005863, 0.004345, 0.0007910])
+
+# merged 50-52
+cc = np.array([0.267892, 0.0262895130, 0.0262895130, 1.000000, 0.2004976])
+bb = np.array([0.001987, 0.0001192949, 0.0001192949, 0.004345, 0.0007910])
+
+cc = 1.0 / cc
+bb = 1.0 / bb
 aa = 67.92 + bb / cc
+
+aa = dict(zip(snow_on, aa))
+bb = dict(zip(snow_on, bb))
+cc = dict(zip(snow_on, cc))
+
 
 # depth_regression = 'density'
 #
@@ -57,17 +75,12 @@ hs_clean_ceiling_quantile = 0.999  # determined visually...
 # ss - surface surface
 # sst - surface surface thinned
 
-hs_in_dir_template_pst = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\TEMP_FILES\\15_hs\\res_<RES>\\'
-hs_merged_dir_template_pst = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\HS\\'
-hs_merged_file_template_pst = '<DATE>_hs_r<RES>m.tif'
+hs_in_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\TEMP_FILES\\15_hs\\res_<RES>\\'
+hs_merged_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\HS\\'
+hs_merged_file_template = '<DATE>_hs_r<RES>m.tif'
 
-dhs_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dHS_pst\\<DDI>-<DDJ>\\'
+dhs_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dHS\\<DDI>-<DDJ>\\'
 dhs_file_template = 'dhs_<DDI>-<DDJ>_r<RES>m.tif'
-
-hs_in_dir_template_sst = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\TEMP_FILES\\15_hs\\res_<RES>\\'
-hs_merged_dir_template_sst = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\HS_sst\\'
-hs_merged_file_template_sst = '<DATE>_hs_r<RES>m.tif'
-
 
 dem_in_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\TEMP_FILES\\12_dem\\res_<RES>\\'
 dem_merged_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\DEM\\'
@@ -175,15 +188,15 @@ for dd in snow_off:
 # merge snow on snow depths into single output (PST)
 for dd in snow_on:
     # update file paths with date
-    hs_out_dir = path_sub(hs_merged_dir_template_pst, dd=dd)
+    hs_out_dir = path_sub(hs_merged_dir_template, dd=dd)
 
     # create DEM directory if does not exist
     if not os.path.exists(hs_out_dir):
         os.makedirs(hs_out_dir)
 
     for rr in resolution:
-        hs_in_dir = path_sub(hs_in_dir_template_pst, dd=dd, rr=rr)
-        hs_out_file = path_sub(hs_merged_file_template_pst, dd=dd, rr=rr)
+        hs_in_dir = path_sub(hs_in_dir_template, dd=dd, rr=rr)
+        hs_out_file = path_sub(hs_merged_file_template, dd=dd, rr=rr)
 
         # calculate hs
         rastools.raster_merge(hs_in_dir, '.bil', hs_out_dir + hs_out_file, no_data="-9999")
@@ -192,40 +205,11 @@ for dd in snow_on:
 pts_file_in = initial_pts_file
 for dd in snow_on:
     for rr in resolution:
-        hs_in_path = path_sub(hs_merged_dir_template_pst + hs_merged_file_template_pst, dd=dd, rr=rr)
+        hs_in_path = path_sub(hs_merged_dir_template + hs_merged_file_template, dd=dd, rr=rr)
         colname = str(dd) + '_' + str(rr)
         rastools.csv_sample_raster(hs_in_path, pts_file_in, hs_uncorrected_pts_path_out, "xcoordUTM11", "ycoordUTM11", colname,
                                    sample_no_data_value='')
         pts_file_in = hs_uncorrected_pts_path_out
-
-
-# calculate snow depths (SST)
-ddj = snow_off[0]
-for ddi in snow_on:
-    hs_out_dir = path_sub(hs_merged_dir_template_sst, dd=ddi)
-
-    # create DEM directory if does not exist
-    if not os.path.exists(hs_out_dir):
-        os.makedirs(hs_out_dir)
-
-    for rr in resolution:
-
-        # calculate hs
-        ddi_in = path_sub(dem_merged_dir_template + dem_merged_file_template, dd=ddi, rr=rr)
-        ddj_in = path_sub(dem_merged_dir_template + dem_merged_file_template, dd=ddj, rr=rr)
-        hs_out_file = path_sub(hs_merged_file_template_sst, dd=ddi, rr=rr)
-
-        hs = rastools.raster_dif_gdal(ddi_in, ddj_in, inherit_from=1, dif_out=hs_out_dir + hs_out_file)
-
-# point hs samples (SST)
-pts_file_in = initial_pts_file
-for dd in snow_on:
-    for rr in resolution:
-        hs_in_path = path_sub(hs_merged_dir_template_sst + hs_merged_file_template_sst, dd=dd, rr=rr)
-        colname = str(dd) + '_' + str(rr)
-        rastools.csv_sample_raster(hs_in_path, pts_file_in, hs_uncorrected_pts_path_out_sst, "xcoordUTM11", "ycoordUTM11", colname,
-                                   sample_no_data_value='')
-        pts_file_in = hs_uncorrected_pts_path_out_sst
 
 
 # run r script "snow_depth_bias_correction.r"
@@ -250,6 +234,7 @@ for dd in snow_on:
 
         # mean bias value
         mb = hs_bias.hs_mb[(hs_bias.day == dd) & (hs_bias.lidar_res == float(rr))]
+
         if len(mb) != 1:
             raise Exception("More than one (or no) match for snow depth bias, bias correction aborted.")
         mb = mb.values[0]
@@ -358,7 +343,7 @@ for dd in snow_on:
             swe = mm * depth
         elif depth_regression == 'exp':
             depth_cm = depth * 100
-            swe = aa * depth_cm / 100 - (bb / 100) * (1 - np.exp(-depth_cm / cc))
+            swe = aa[dd] * depth_cm / 100 - (bb[dd] / 100) * (1 - np.exp(-depth_cm / cc[dd]))
         else:
             raise Exception('Invalid specification for depth_regression.')
 

@@ -30,6 +30,8 @@ survey = survey[,c('snow_depth_cm', 'swe_raw_cm', 'swe_tare_cm', 'swe_quality_fl
 # filter to qc'ed swe entries
 survey = survey[!is.na(survey$swe_raw_cm),]
 survey = survey[survey$swe_quality_flag == 0,]
+# filter to depths greater than 20cm
+survey = survey[survey$snow_depth_cm >= 20,]
 # survey$day = paste0('19_', survey$doy)
 # calculate density
 # facet grid plot of density vs depth for all dates
@@ -38,7 +40,9 @@ survey = survey[survey$swe_quality_flag == 0,]
 p_swe = ggplot(survey, aes(x=snow_depth_cm, y=swe_mm, color=cover)) +
   facet_grid(. ~ doy) +
   geom_point() +
-  labs(title='Snow depth vs. SWE across survey days', x='Snow depth (cm)', y='SWE (mm)')
+  labs(title='Snow depth vs. SWE across survey days', x='Snow depth (cm)', y='SWE (mm)') +
+  xlim(0, NA) +
+  ylim(0, NA)
 
 p_den = ggplot(survey, aes(x=snow_depth_cm, y=density, color=cover)) +
   facet_grid(. ~ doy) +
@@ -56,7 +60,7 @@ p_for = ggplot(foreststuff, aes(x=snow_depth_cm, y=density, color=cover)) +
 
 p_sden = grid.arrange(p_swe, p_den, p_for, nrow=3)
 gd = 'C:/Users/Cob/index/educational/usask/research/masters/graphics/automated/'
-ggsave(paste0(gd, "snow_depth_v_density.pdf"), p_sden, width = 29.7, height = 21, units = "cm")
+# ggsave(paste0(gd, "snow_depth_v_density.pdf"), p_sden, width = 29.7, height = 21, units = "cm")
 
 survey %>%
   filter(doy %in% c("19_045", "19_050", "19_052")) %>%
@@ -125,94 +129,113 @@ a_107 = survey[(survey$doy == '19_107'),]
 a_123 = survey[(survey$doy == '19_123'),]
 
 a_455052 = survey[(survey$doy %in% c('19_045', '19_050', '19_052')),]
-lm_a_455052 = lm(density ~ snow_depth_cm, data = a_455052)
-summary(lm_a_455052)
+a_5052 = survey[(survey$doy %in% c('19_050', '19_052')),]
 
 
 
-lm_f_045 = lm(density ~ snow_depth_cm, data = f_045)
-lm_f_050 = lm(density ~ snow_depth_cm, data = f_050)
-lm_f_052 = lm(density ~ snow_depth_cm, data = f_052)
-lm_f_107 = lm(density ~ snow_depth_cm, data = f_107)
-lm_f_123 = lm(density ~ snow_depth_cm, data = f_123)
 
-lm_f_045 = lm(density ~ 0 + swe_mm, data = f_045)
-lm_f_050 = lm(density ~ 0 + swe_mm, data = f_050)
-lm_f_052 = lm(density ~ 0 + swe_mm, data = f_052)
-lm_f_107 = lm(density ~ 0 + swe_mm, data = f_107)
-lm_f_123 = lm(density ~ 0 + swe_mm, data = f_123)
+# forest linear density
+lm_flin_045 = lm(density ~ snow_depth_cm, data = f_045)
+lm_flin_050 = lm(density ~ snow_depth_cm, data = f_050)
+lm_flin_052 = lm(density ~ snow_depth_cm, data = f_052)
+lm_flin_107 = lm(density ~ snow_depth_cm, data = f_107)
+lm_flin_123 = lm(density ~ snow_depth_cm, data = f_123)
 
-lm_c_045 = lm(density ~ snow_depth_cm, data = c_045)
-lm_c_050 = lm(density ~ snow_depth_cm, data = c_050)
-lm_c_052 = lm(density ~ snow_depth_cm, data = c_052)
-lm_c_107 = lm(density ~ snow_depth_cm, data = c_107)
-lm_c_123 = lm(density ~ snow_depth_cm, data = c_123)
+# forest constant density
+lm_fc_045 = lm(swe_mm ~ 0 + snow_depth_cm, data = f_045)
+lm_fc_050 = lm(swe_mm ~ 0 + snow_depth_cm, data = f_050)
+lm_fc_052 = lm(swe_mm ~ 0 + snow_depth_cm, data = f_052)
+lm_fc_107 = lm(swe_mm ~ 0 + snow_depth_cm, data = f_107)
+lm_fc_123 = lm(swe_mm ~ 0 + snow_depth_cm, data = f_123)
 
-lm_a_045 = lm(density ~ snow_depth_cm, data = a_045)
-lm_a_050 = lm(density ~ snow_depth_cm, data = a_050)
-lm_a_052 = lm(density ~ snow_depth_cm, data = a_052)
-lm_a_107 = lm(density ~ snow_depth_cm, data = a_107)
-lm_a_123 = lm(density ~ snow_depth_cm, data = a_123)
+# all linear density
+lm_alin_045 = lm(density ~ snow_depth_cm, data = a_045)
+lm_alin_050 = lm(density ~ snow_depth_cm, data = a_050)
+lm_alin_052 = lm(density ~ snow_depth_cm, data = a_052)
+lm_alin_107 = lm(density ~ snow_depth_cm, data = a_107)
+lm_alin_123 = lm(density ~ snow_depth_cm, data = a_123)
 
-lm_a_045 = lm(density ~ 0 + swe_mm, data = a_045)
-lm_a_050 = lm(density ~ 0 + swe_mm, data = a_050)
-lm_a_052 = lm(density ~ 0 + swe_mm, data = a_052)
-lm_a_107 = lm(density ~ 0 + swe_mm, data = a_107)
-lm_a_123 = lm(density ~ 0 + swe_mm, data = a_123)
+# all constant density
+lm_ac_045 = lm(swe_mm ~ 0 + snow_depth_cm, data = a_045)
+lm_ac_050 = lm(swe_mm ~ 0 + snow_depth_cm, data = a_050)
+lm_ac_052 = lm(swe_mm ~ 0 + snow_depth_cm, data = a_052)
+lm_ac_107 = lm(swe_mm ~ 0 + snow_depth_cm, data = a_107)
+lm_ac_123 = lm(swe_mm ~ 0 + snow_depth_cm, data = a_123)
 
-summary(lm_f_045)
-summary(lm_f_050)
-summary(lm_f_052)
-summary(lm_f_107)
-summary(lm_f_123)
+# all combines linear density
+lm_alin_455052 = lm(density ~ snow_depth_cm, data = a_455052)
 
-summary(lm_c_045)
-summary(lm_c_050)
-summary(lm_c_052)
-summary(lm_c_107)
-summary(lm_c_123)
+# define model funtion
+# linear density
+swelindensfunc <- function(lmobj, hs) {
+  swe = hs * (summary(lmobj)$coefficients[2] * hs + summary(lmobj)$coefficients[1]) * 0.01
+  swe
+}
+# constant density
+swecdensfunc <- function(lmobj, hs) {
+  swe = summary(lmobj)$coefficients[1] * hs
+  swe
+}
+# exponential density
+sweexpdensfunc <- function(nls_obj, hs) {
+  swe = hs * predict(nls_obj, newdata=hs) * 0.01
+  swe
+}
 
-summary(lm_a_045)
-summary(lm_a_050)
-summary(lm_a_052)
-summary(lm_a_107)
-summary(lm_a_123)
+# now plot it out
+# forest linear
+survey_c = survey
+survey_c$swe_flin = NA
+survey_c$swe_flin[survey_c$doy == "19_045"] = swelindensfunc(lm_flin_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
+survey_c$swe_flin[survey_c$doy == "19_050"] = swelindensfunc(lm_flin_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
+survey_c$swe_flin[survey_c$doy == "19_052"] = swelindensfunc(lm_flin_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
+survey_c$swe_flin[survey_c$doy == "19_107"] = swelindensfunc(lm_flin_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
+survey_c$swe_flin[survey_c$doy == "19_123"] = swelindensfunc(lm_flin_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
+
+survey_c$swe_fc = NA
+survey_c$swe_fc[survey_c$doy == "19_045"] = swecdensfunc(lm_fc_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
+survey_c$swe_fc[survey_c$doy == "19_050"] = swecdensfunc(lm_fc_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
+survey_c$swe_fc[survey_c$doy == "19_052"] = swecdensfunc(lm_fc_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
+survey_c$swe_fc[survey_c$doy == "19_107"] = swecdensfunc(lm_fc_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
+survey_c$swe_fc[survey_c$doy == "19_123"] = swecdensfunc(lm_fc_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
+
+survey_c$swe_alin = NA
+survey_c$swe_alin[survey_c$doy == "19_045"] = swelindensfunc(lm_alin_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
+survey_c$swe_alin[survey_c$doy == "19_050"] = swelindensfunc(lm_alin_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
+survey_c$swe_alin[survey_c$doy == "19_052"] = swelindensfunc(lm_alin_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
+survey_c$swe_alin[survey_c$doy == "19_107"] = swelindensfunc(lm_alin_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
+survey_c$swe_alin[survey_c$doy == "19_123"] = swelindensfunc(lm_alin_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
+
+survey_c$swe_ac = NA
+survey_c$swe_ac[survey_c$doy == "19_045"] = swecdensfunc(lm_ac_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
+survey_c$swe_ac[survey_c$doy == "19_050"] = swecdensfunc(lm_ac_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
+survey_c$swe_ac[survey_c$doy == "19_052"] = swecdensfunc(lm_ac_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
+survey_c$swe_ac[survey_c$doy == "19_107"] = swecdensfunc(lm_ac_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
+survey_c$swe_ac[survey_c$doy == "19_123"] = swecdensfunc(lm_ac_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
+
+survey_c$swe_ax = NA
+survey_c$swe_ax[survey_c$doy == "19_045"] = sweexpdensfunc(nls_a_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
+survey_c$swe_ax[survey_c$doy == "19_050"] = sweexpdensfunc(nls_a_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
+survey_c$swe_ax[survey_c$doy == "19_052"] = sweexpdensfunc(nls_a_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
+survey_c$swe_ax[survey_c$doy == "19_107"] = sweexpdensfunc(nls_a_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
+survey_c$swe_ax[survey_c$doy == "19_123"] = sweexpdensfunc(nls_a_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
+
+ggplot(survey_c, aes(x=snow_depth_cm, y=swe_mm)) +
+  facet_grid(. ~ doy) +
+  geom_point() +
+  #geom_line(aes(x = snow_depth_cm, y=swe_flin, color="f_linear")) +
+  #geom_line(aes(x = snow_depth_cm, y=swe_fc, color="f_const")) +
+  geom_line(aes(x = snow_depth_cm, y=swe_alin, color="a_linear")) +
+  geom_line(aes(x = snow_depth_cm, y=swe_ac, color="a_const")) +
+  geom_line(aes(x = snow_depth_cm, y=swe_ax, color="a_exp")) +
+  labs(title='Snow depth vs. SWE across survey days', x='Snow depth (cm)', y='SWE (mm)') +
+  xlim(0, NA) +
+  ylim(0, NA)
+
+
 
 # non linear SWE models
 library('nls.multstart')
-
-powfunc <- function(hs, a, b, c){
-  a * hs ^ b + c
-}
-
-p_045 = a_045[a_045$snow_depth_cm > 20, ]
-
-nls_a_045 <- nls_multstart(density ~ a  - (b / snow_depth_cm) * (1 - exp(snow_depth_cm * c)),
-                           data = a_045,
-                           lower=c(a=-1000, b=0, c=-10),
-                           upper=c(a=1000, b=1000000, c=10),
-                           start_lower = c(a=-1000, b=10000, c=-10),
-                           start_upper = c(a=1000, b=30000, c=10),
-                           iter = 500,
-                           supp_errors = "Y")
-
-nls_a_050 <- nls_multstart(density ~ a  - (b / snow_depth_cm) * (1 - exp(snow_depth_cm * c)),
-                           data = a_050,
-                           lower=c(a=-1000, b=0, c=-10),
-                           upper=c(a=1000, b=1000000, c=10),
-                           start_lower = c(a=-1000, b=10000, c=-10),
-                           start_upper = c(a=1000, b=30000, c=10),
-                           iter = 500,
-                           supp_errors = "Y")
-
-nls_a_052 <- nls_multstart(density ~ a  - (b / snow_depth_cm) * (1 - exp(snow_depth_cm * c)),
-                           data = a_052,
-                           lower=c(a=-1000, b=0, c=-10),
-                           upper=c(a=1000, b=1000000, c=10),
-                           start_lower = c(a=-1000, b=10000, c=-10),
-                           start_upper = c(a=1000, b=30000, c=10),
-                           iter = 500,
-                           supp_errors = "Y")
 
 # fixed intercept PomGray
 ii = 67.92
@@ -244,6 +267,34 @@ nls_a_052 <- nls_multstart(density ~ 67.92 + c/b  - (1 - exp(-snow_depth_cm * c)
                            iter = 500,
                            supp_errors = "Y")
 
+nls_a_107 <- nls_multstart(density ~ 67.92 + c/b  - (1 - exp(-snow_depth_cm * c))/(b * snow_depth_cm),
+                           data = a_107,
+                           lower=c(b=0, c=-10),
+                           upper=c(b=1, c=10),
+                           start_lower = c(b=0, c=-10),
+                           start_upper = c(b=1, c=10),
+                           iter = 500,
+                           supp_errors = "Y")
+
+nls_a_123 <- nls_multstart(density ~ 67.92 + c/b  - (1 - exp(-snow_depth_cm * c))/(b * snow_depth_cm),
+                           data = a_123,
+                           lower=c(b=0, c=-10),
+                           upper=c(b=1, c=10),
+                           start_lower = c(b=0, c=-10),
+                           start_upper = c(b=1, c=10),
+                           iter = 500,
+                           supp_errors = "Y")
+
+
+nls_a_5052 <- nls_multstart(density ~ 67.92 + c/b  - (1 - exp(-snow_depth_cm * c))/(b * snow_depth_cm),
+                              data = a_5052,
+                              lower=c(b=0, c=-10),
+                              upper=c(b=1, c=10),
+                              start_lower = c(b=0, c=-10),
+                              start_upper = c(b=1, c=10),
+                              iter = 500,
+                              supp_errors = "Y")
+
 
 nls_a_455052 <- nls_multstart(density ~ 67.92 + c/b  - (1 - exp(-snow_depth_cm * c))/(b * snow_depth_cm),
                            data = a_455052,
@@ -255,39 +306,12 @@ nls_a_455052 <- nls_multstart(density ~ 67.92 + c/b  - (1 - exp(-snow_depth_cm *
                            supp_errors = "Y")
 
 
-
-nls_a_045 <- nls_multstart(density ~ a * (snow_depth_cm / 100) ^ b + c,
-                           data = a_045,
-                           lower=c(a=-100, b=-2, c=0),
-                           upper=c(a=100, b=2, c=1000),
-                           start_lower = c(a=-100, b=-2, c=0),
-                           start_upper = c(a=100, b=2, c=1000),
-                           iter = 500,
-                           supp_errors = "Y")
-
-nls_a_045 <- nls_multstart(density ~ a * (snow_depth_cm / 100) ^ b + c,
-                           data = p_045,
-                           lower=c(a=-100, b=-2, c=0),
-                           upper=c(a=100, b=2, c=1000),
-                           start_lower = c(a=-100, b=-3, c=0),
-                           start_upper = c(a=100, b=2, c=1000),
-                           iter = 500,
-                           supp_errors = "Y")
-
-nls_a_045 <- nls_multstart(density ~ b * snow_depth_cm  + c,
-                           data = a_045,
-                           lower=c(b=-3, c=0),
-                           upper=c(b=3, c=1000),
-                           start_lower = c(b=-3, c=0),
-                           start_upper = c(b=2, c=1000),
-                           iter = 500,
-                           supp_errors = "Y")
-
-
-
 summary(nls_a_045)
 summary(nls_a_050)
 summary(nls_a_052)
+summary(nls_a_107)
+summary(nls_a_123)
+summary(nls_a_5052)
 summary(nls_a_455052)
 
 plot_nls <- function(nls_object, data) {
@@ -310,6 +334,9 @@ ggplot(a_455052, aes(x=snow_depth_cm, y=density, color=doy)) +
 plot_nls(nls_a_045, a_045)
 plot_nls(nls_a_050, a_050)
 plot_nls(nls_a_052, a_052)
+plot_nls(nls_a_107, a_107)
+plot_nls(nls_a_123, a_123)
+plot_nls(nls_a_5052, a_5052)
 plot_nls(nls_a_455052, a_455052)
 
 plot_nls_swe <- function(nls_object, data) {
