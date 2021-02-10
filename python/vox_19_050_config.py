@@ -19,6 +19,6 @@ vox.step = np.full(3, voxel_length)
 vox.sample_length = voxel_length / np.pi
 vox.vox_hdf5 = vox.las_in.replace('.las', config_id + '_r' + str(voxel_length) + '_vox.h5')
 
-z_slices = 4
+z_slices = 16
 
 
