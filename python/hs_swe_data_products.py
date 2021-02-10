@@ -55,8 +55,10 @@ hs_clean_ceiling_quantile = 0.999  # determined visually...
 # ss - surface surface
 # sst - surface surface thinned
 
-hs_in_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\TEMP_FILES\\15_hs\\res_<RES>\\'
-hs_merged_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\HS\\'
+hs_interp_len = ["1", "2", "3"]
+
+hs_in_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\TEMP_FILES\\15_hs\\interp_<INTLEN>x\\res_<RES>\\'
+hs_merged_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\HS\\interp_<INTLEN>x\\'
 hs_merged_file_template = '<DATE>_hs_r<RES>m.tif'
 
 dhs_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dHS\\<DDI>-<DDJ>\\'
@@ -105,7 +107,7 @@ point_dens_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\
 dem_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_dem_point_samples.csv"
 
 
-def path_sub(path, dd=None, rr=None, qq=None, ddi=None, ddj=None, itn=None, ass=None):
+def path_sub(path, dd=None, rr=None, qq=None, ddi=None, ddj=None, itn=None, ass=None, intlen=None):
     if isinstance(path, str):
         # nest pure strings in list
         path = [path]
@@ -125,6 +127,8 @@ def path_sub(path, dd=None, rr=None, qq=None, ddi=None, ddj=None, itn=None, ass=
             path[ii] = path[ii].replace('<ITN>', str(itn))
         if ass is not None:
             path[ii] = path[ii].replace('<ASS>', str(ass))
+        if intlen is not None:
+            path[ii] = path[ii].replace('<INTLEN>', str(intlen))
 
     return ''.join(path)
 
@@ -169,19 +173,20 @@ for dd in snow_off:
 
 # merge snow on snow depths into single output (PST)
 for dd in snow_on:
-    # update file paths with date
-    hs_out_dir = path_sub(hs_merged_dir_template, dd=dd)
+    for intlen in hs_interp_len:
+        # update file paths with date
+        hs_out_dir = path_sub(hs_merged_dir_template, dd=dd, intlen=intlen)
 
-    # create DEM directory if does not exist
-    if not os.path.exists(hs_out_dir):
-        os.makedirs(hs_out_dir)
+        # create DEM directory if does not exist
+        if not os.path.exists(hs_out_dir):
+            os.makedirs(hs_out_dir)
 
-    for rr in resolution:
-        hs_in_dir = path_sub(hs_in_dir_template, dd=dd, rr=rr)
-        hs_out_file = path_sub(hs_merged_file_template, dd=dd, rr=rr)
+        for rr in resolution:
+            hs_in_dir = path_sub(hs_in_dir_template, dd=dd, rr=rr, intlen=intlen)
+            hs_out_file = path_sub(hs_merged_file_template, dd=dd, rr=rr, intlen=intlen)
 
-        # calculate hs
-        rastools.raster_merge(hs_in_dir, '.bil', hs_out_dir + hs_out_file, no_data="-9999")
+            # calculate hs
+            rastools.raster_merge(hs_in_dir, '.bil', hs_out_dir + hs_out_file, no_data="-9999")
 
 # point hs samples
 pts_file_in = initial_pts_file
