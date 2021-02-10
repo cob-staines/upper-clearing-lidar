@@ -18,12 +18,7 @@ for (ii in 1:5) {
 survey$swe_mm = 10 * (survey$swe_raw_cm - survey$swe_tare_cm)
 survey$density = survey$swe_mm / (survey$snow_depth_cm * 0.01)
 survey$cover = survey$standardized_survey_notes
-
 survey$swe_quality_flag[is.na(survey$swe_quality_flag)] = 0
-
-ggplot(survey, aes(x=snow_depth_cm, y=density, color=as.factor(swe_quality_flag))) +
-  facet_grid(doy ~ .) +
-  geom_point()
 
 # drop unnecesary columns
 survey = survey[,c('snow_depth_cm', 'swe_raw_cm', 'swe_tare_cm', 'swe_quality_flag', 'doy', 'swe_mm', 'density', 'cover', 'swe_quality_flag')]
@@ -32,9 +27,6 @@ survey = survey[!is.na(survey$swe_raw_cm),]
 survey = survey[survey$swe_quality_flag == 0,]
 # filter to depths greater than 20cm
 survey = survey[survey$snow_depth_cm >= 20,]
-# survey$day = paste0('19_', survey$doy)
-# calculate density
-# facet grid plot of density vs depth for all dates
 
 
 p_swe = ggplot(survey, aes(x=snow_depth_cm, y=swe_mm, color=cover)) +
@@ -162,6 +154,10 @@ lm_ac_052 = lm(swe_mm ~ 0 + snow_depth_cm, data = a_052)
 lm_ac_107 = lm(swe_mm ~ 0 + snow_depth_cm, data = a_107)
 lm_ac_123 = lm(swe_mm ~ 0 + snow_depth_cm, data = a_123)
 
+summary(lm_ac_123)
+
+
+
 # all combines linear density
 lm_alin_455052 = lm(density ~ snow_depth_cm, data = a_455052)
 
@@ -223,11 +219,11 @@ survey_c$swe_ax[survey_c$doy == "19_123"] = sweexpdensfunc(nls_a_123, survey_c$s
 ggplot(survey_c, aes(x=snow_depth_cm, y=swe_mm)) +
   facet_grid(. ~ doy) +
   geom_point() +
-  #geom_line(aes(x = snow_depth_cm, y=swe_flin, color="f_linear")) +
-  #geom_line(aes(x = snow_depth_cm, y=swe_fc, color="f_const")) +
+  geom_line(aes(x = snow_depth_cm, y=swe_flin, color="f_linear")) +
+  geom_line(aes(x = snow_depth_cm, y=swe_fc, color="f_const")) +
   geom_line(aes(x = snow_depth_cm, y=swe_alin, color="a_linear")) +
   geom_line(aes(x = snow_depth_cm, y=swe_ac, color="a_const")) +
-  geom_line(aes(x = snow_depth_cm, y=swe_ax, color="a_exp")) +
+  # geom_line(aes(x = snow_depth_cm, y=swe_ax, color="a_exp")) +
   labs(title='Snow depth vs. SWE across survey days', x='Snow depth (cm)', y='SWE (mm)') +
   xlim(0, NA) +
   ylim(0, NA)

@@ -1029,7 +1029,7 @@ def hemi_rays_to_img(rays_out, img_path, img_size, area_factor):
     imageio.imsave(img_path, img)
 
 
-def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False):
+def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False, calc_prior=True):
     if run_las_traj:
         # interpolate trajectory
         laslib.las_traj(vox.las_in, vox.traj_in, vox.las_traj_hdf5, vox.las_traj_chunksize, vox.return_set, vox.drop_class)
@@ -1038,7 +1038,8 @@ def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False):
     vox = las_ray_sample_by_z_slice(vox, z_slices, fail_overflow)
     vox.save()
 
-    beta_lookup_prior_calc(vox)
+    if calc_prior:
+        beta_lookup_prior_calc(vox)
 
     return vox
 
