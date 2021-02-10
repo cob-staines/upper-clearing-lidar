@@ -7,7 +7,7 @@ def main():
     # build voxel space
     import vox_19_050_config as vc
     vox = vc.vox
-    vox = lrs.las_to_vox(vox, vc.z_slices, run_las_traj=True, fail_overflow=False, calc_prior=False)
+    vox = lrs.las_to_vox(vox, vc.z_slices, run_las_traj=False, fail_overflow=False, calc_prior=False)
 
 
     # # LOAD VOX

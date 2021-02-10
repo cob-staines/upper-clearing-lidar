@@ -284,7 +284,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
         x_min = y_min = x_max = y_max = np.nan
         with h5py.File(vox.las_traj_hdf5, 'r') as hf:
             for ii in range(0, n_chunks):
-                print('Chunk ' + str(ii) + '... ', end='')
+                print('Chunk ' + str(ii) + '... ')
 
                 # chunk start and end
                 idx_start = ii * vox.las_traj_chunksize
