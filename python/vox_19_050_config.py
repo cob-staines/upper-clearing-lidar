@@ -10,8 +10,8 @@ vox.traj_in = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\sources\\19_050_
 vox.return_set = 'first'
 vox.drop_class = 7
 vox.las_traj_hdf5 = vox.las_in.replace('.las', '_ray_sampling_' + vox.return_set + '_returns_drop_' + str(vox.drop_class) + '_las_traj.h5')
-vox.sample_precision = np.uint32
-vox.return_precision = np.uint32
+vox.sample_dtype = np.uint32
+vox.return_dtype = np.uint32
 vox.las_traj_chunksize = 1000000
 vox.cw_rotation = -34 * np.pi / 180
 voxel_length = .25
@@ -19,6 +19,6 @@ vox.step = np.full(3, voxel_length)
 vox.sample_length = voxel_length / np.pi
 vox.vox_hdf5 = vox.las_in.replace('.las', config_id + '_r' + str(voxel_length) + '_vox.h5')
 
-z_slices = 4
+z_slices = 16
 
 
