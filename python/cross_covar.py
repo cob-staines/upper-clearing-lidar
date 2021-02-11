@@ -20,8 +20,8 @@ hemimeta = pd.read_csv(batch_dir + 'rshmetalog.csv')
 imsize = hemimeta.img_size_px[0]
 
 # load covariant
-# var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\19_045-19_050\\dswe_ajli_19_045-19_050_r.25m.tif'
-var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\19_050-19_052\\dswe_ajli_19_050-19_052_r.25m.tif'
+var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\19_045-19_050\\dswe_ajli_19_045-19_050_r.25m.tif'
+# var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\interp_1x\\ajli\\19_050-19_052\\dswe_ajli_19_050-19_052_r.25m.tif'
 var = rastools.raster_to_pd(var_in, 'covariant')
 
 # merge with image meta

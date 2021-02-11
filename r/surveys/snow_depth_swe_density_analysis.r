@@ -120,8 +120,13 @@ a_052 = survey[(survey$doy == '19_052'),]
 a_107 = survey[(survey$doy == '19_107'),]
 a_123 = survey[(survey$doy == '19_123'),]
 
-a_455052 = survey[(survey$doy %in% c('19_045', '19_050', '19_052')),]
+a_4550 = survey[(survey$doy %in% c('19_045', '19_050')),]
 a_5052 = survey[(survey$doy %in% c('19_050', '19_052')),]
+a_5207 = survey[(survey$doy %in% c('19_052', '19_107')),]
+a_0723 = survey[(survey$doy %in% c('19_107', '19_123')),]
+
+a_455052 = survey[(survey$doy %in% c('19_045', '19_050', '19_052')),]
+
 
 
 
@@ -154,11 +159,15 @@ lm_ac_052 = lm(swe_mm ~ 0 + snow_depth_cm, data = a_052)
 lm_ac_107 = lm(swe_mm ~ 0 + snow_depth_cm, data = a_107)
 lm_ac_123 = lm(swe_mm ~ 0 + snow_depth_cm, data = a_123)
 
-summary(lm_ac_123)
+# adjacent combined
+lm_acli_4550 = lm(density ~ snow_depth_cm, data = a_4550)
+lm_acli_5052 = lm(density ~ snow_depth_cm, data = a_5052)
+lm_acli_5207 = lm(density ~ snow_depth_cm, data = a_5207)
+lm_acli_0723 = lm(density ~ snow_depth_cm, data = a_0723)
 
+summary(lm_acli_5052)
 
-
-# all combines linear density
+# all combined linear density
 lm_alin_455052 = lm(density ~ snow_depth_cm, data = a_455052)
 
 # define model funtion
