@@ -461,13 +461,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
                 hf['sample_data'][:, :, z_low:z_high][fix] = hf['return_data'][:, :, z_low:z_high][fix]
         print('done', end='')
 
-    with h5py.File(vox.vox_hdf5, mode='r') as hf:
-        sample_count = np.sum(hf['sample_data'][()])
-        return_count = np.sum(hf['return_data'][()])
-    vox_count = np.prod(vox.step)
-
     print("-------- Las Ray Sampling completed--------")
-    print(str(return_count) + " return points and " + str(sample_count) + " sample points stored in " + str(vox_count) + ' voxels.')
     print('Total time: ' + str(int(time.time() - start_time)) + " seconds")
 
     return vox
