@@ -171,7 +171,7 @@ def raster_burn(ras_in, shp_in, burn_val):
     burn_val = str(burn_val)
 
     # make gdal_rasterize command - will burn value to raster where polygon intersects
-    cmd = 'python' + gdal_dir + 'gdal_rasterize.py -burn ' + burn_val + ' ' + shp_in + ' ' + ras_in
+    cmd = 'gdal_rasterize -burn ' + burn_val + ' ' + shp_in + ' ' + ras_in
 
     # run command
     subprocess.call(cmd, shell=True)
@@ -341,7 +341,7 @@ def raster_to_pd(ras, colnames, include_nans=False):
     return pts
 
 
-def gdal_raster_reproject(src, match, nodatavalue=np.nan):
+def gdal_raster_reproject(src, match, nodatavalue=np.nan, mode="nearest"):
     from osgeo import gdal, gdalconst
     import numpy as np
 
@@ -376,12 +376,22 @@ def gdal_raster_reproject(src, match, nodatavalue=np.nan):
     for ii in range(1, band_count + 1):
         dest.GetRasterBand(ii).WriteArray(np.full((high, wide), nodatavalue), 0, 0)
 
+    # Set mode
+    if mode == "nearest":
+        gdal_mode = gdal.GRA_NearestNeighbour
+    elif mode == "mean":
+        gdal_mode = gdal.GRA_Average
+    elif mode == "median":
+        gdal_mode = gdal.GRA_Med
+    else:
+        raise Exception("Mode not yet defined. Will you do the honors.")
+
     # Set the geotransform
     dest.SetGeoTransform(match_geotrans)
     dest.SetProjection(match_proj)
     # Perform the projection/resampling
     # res = gdal.ReprojectImage(src, dest, src_proj, match_proj, gdal.GRA_Bilinear)
-    res = gdal.ReprojectImage(src, dest, src_proj, match_proj, gdal.GRA_NearestNeighbour)
+    res = gdal.ReprojectImage(src, dest, src_proj, match_proj, gdal_mode)
 
     rp_array = np.full((high, wide, band_count), nodatavalue)
     for ii in range(1, band_count + 1):
@@ -392,7 +402,7 @@ def gdal_raster_reproject(src, match, nodatavalue=np.nan):
     return rp_array
 
 
-def pd_sample_raster_gdal(data_dict, include_nans=False, nodatavalue=np.nan):
+def pd_sample_raster_gdal(data_dict, include_nans=False, nodatavalue=np.nan, mode="nearest"):
     files = list(data_dict.values())
     colnames = list(data_dict.keys())
 
@@ -404,7 +414,7 @@ def pd_sample_raster_gdal(data_dict, include_nans=False, nodatavalue=np.nan):
     # for remaining items in files
     for ii in range(1, len(files)):
         print('Loading ' + str(colnames[ii]) + "... ", end='')
-        rs_array = gdal_raster_reproject(files[ii], files[0], nodatavalue=nodatavalue)
+        rs_array = gdal_raster_reproject(files[ii], files[0], nodatavalue=nodatavalue, mode=mode)
 
         band_count = rs_array.shape[2]
         if band_count == 1:

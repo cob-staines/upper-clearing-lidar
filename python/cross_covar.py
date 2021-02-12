@@ -20,9 +20,18 @@ hemimeta = pd.read_csv(batch_dir + 'rshmetalog.csv')
 imsize = hemimeta.img_size_px[0]
 
 # load covariant
-var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\19_045-19_050\\dswe_ajli_19_045-19_050_r.25m.tif'
-# var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\interp_1x\\ajli\\19_050-19_052\\dswe_ajli_19_050-19_052_r.25m.tif'
-var = rastools.raster_to_pd(var_in, 'covariant')
+# temp_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\interp_2x\\19_045-19_050\\masked\\dswe_ajli_19_045-19_050_r.25m_interp2x_masked.tif'
+# var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\interp_2x\\19_045-19_050\\masked\\dswe_ajli_19_045-19_050_r.05m_interp2x_masked.tif'
+temp_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\interp_2x\\19_050-19_052\\masked\\dswe_ajli_19_050-19_052_r.25m_interp2x_masked.tif'
+var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\interp_2x\\19_050-19_052\\masked\\dswe_ajli_19_050-19_052_r.05m_interp2x_masked.tif'
+
+# var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\interp_1x\\19_050-19_052\\masked\\dswe_ajli_19_050-19_052_r.25m_interp2x_masked.tif'
+# var = rastools.raster_to_pd(var_in, 'covariant')
+
+ddict = {'template': temp_in,
+         'covariant': var_in}
+var = rastools.pd_sample_raster_gdal(ddict, mode="median")
+var = var.loc[~np.isnan(var.covariant), :]
 
 # merge with image meta
 hemi_var = pd.merge(hemimeta, var, left_on=('x_utm11n', 'y_utm11n'), right_on=('x_coord', 'y_coord'), how='inner')
@@ -83,45 +92,45 @@ imstack_long[np.isnan(imstack_long)] = 0  # careful here..
 imstack_long = np.swapaxes(np.swapaxes(imstack_long, 1, 2), 0, 1).reshape(imstack_long.shape[2], -1)
 
 
-# optimization function
-def gbgf(x0):
-    # unpack parameters
-    sig = x0[0]  # standard deviation of angular gaussian in radians
-    intnum = x0[1]  # interaction number
-    phi_0 = x0[2]  # central phi in radians
-    theta_0 = x0[3]  # central theta in radians
-    offset = x0[4]
-
-    # calculate angle of each pixel from (phi_0, theta_0)
-    radist = 2 * np.arcsin(np.sqrt((np.sin((phi_0 - phi) / 2) ** 2) + np.sin(phi_0) * np.sin(phi) * (np.sin((theta_0 - theta) / 2) ** 2)))
-
-    # calculate gaussian angle weights
-    weights = np.exp(- 0.5 * (radist / sig) ** 2)  # gaussian
-    weights[np.isnan(phi)] = 0
-    weights = weights / np.sum(weights)
-
-    # calculate weighted mean of contact number for each ground points
-    w_stack = np.average(imstack_long, weights=weights.ravel(), axis=1)
-    # calculate corrcoef with snowfall transmittance over all ground points
-    w_corcoef_e = np.corrcoef(hemiList.covariant + offset, np.exp(-intnum * w_stack))[0, 1]
-
-   # return negative for minimization method (we want to maximize corrcoef)
-    return -w_corcoef_e
-
-
-Nfeval = 1
-def callbackF(Xi):
-    global Nfeval
-    print('{0:4d}   {1: 3.6f}   {2: 3.6f}   {3: 3.6f}   {4: 3.6f}   {5: 3.6f}   {6: 3.6f}'.format(Nfeval, Xi[0], Xi[1], Xi[2], Xi[3], Xi[4], gbgf(Xi)))
-    Nfeval += 1
-
-print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}   {6:9s}'.format('Iter', ' X1', ' X2', 'X3', 'X4', 'X5', 'f(X)'))
-x0 = np.array([0.11, 21.6, phi[96, 85], theta[96, 85], 0], dtype=np.double)
-x0 = np.array([9.73075682e-02, 1.53251521e+01, 1.20260398e-01, 5.40964306e+00, -1.21090673e-02])  # 19_045-19_050
-[xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflg] = \
-    fmin_bfgs(gbgf, x0, callback=callbackF, maxiter=25, full_output=True, retall=False)
-# xopt = np.array([0.1296497, 21.57953188, 96.95887751, 86.24391083])  # gaussian optimization,
-# fopt = -0.4744932
+# # optimization function
+# def gbgf(x0):
+#     # unpack parameters
+#     sig = x0[0]  # standard deviation of angular gaussian in radians
+#     intnum = x0[1]  # interaction number
+#     phi_0 = x0[2]  # central phi in radians
+#     theta_0 = x0[3]  # central theta in radians
+#     offset = x0[4]
+#
+#     # calculate angle of each pixel from (phi_0, theta_0)
+#     radist = 2 * np.arcsin(np.sqrt((np.sin((phi_0 - phi) / 2) ** 2) + np.sin(phi_0) * np.sin(phi) * (np.sin((theta_0 - theta) / 2) ** 2)))
+#
+#     # calculate gaussian angle weights
+#     weights = np.exp(- 0.5 * (radist / sig) ** 2)  # gaussian
+#     weights[np.isnan(phi)] = 0
+#     weights = weights / np.sum(weights)
+#
+#     # calculate weighted mean of contact number for each ground points
+#     w_stack = np.average(imstack_long, weights=weights.ravel(), axis=1)
+#     # calculate corrcoef with snowfall transmittance over all ground points
+#     w_corcoef_e = np.corrcoef(hemiList.covariant + offset, np.exp(-intnum * w_stack))[0, 1]
+#
+#    # return negative for minimization method (we want to maximize corrcoef)
+#     return -w_corcoef_e
+#
+#
+# Nfeval = 1
+# def callbackF(Xi):
+#     global Nfeval
+#     print('{0:4d}   {1: 3.6f}   {2: 3.6f}   {3: 3.6f}   {4: 3.6f}   {5: 3.6f}   {6: 3.6f}'.format(Nfeval, Xi[0], Xi[1], Xi[2], Xi[3], Xi[4], gbgf(Xi)))
+#     Nfeval += 1
+#
+# print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}   {6:9s}'.format('Iter', ' X1', ' X2', 'X3', 'X4', 'X5', 'f(X)'))
+# x0 = np.array([0.11, 21.6, phi[96, 85], theta[96, 85], 0], dtype=np.double)
+# x0 = np.array([9.73075682e-02, 1.53251521e+01, 1.20260398e-01, 5.40964306e+00, -1.21090673e-02])  # 19_045-19_050
+# [xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflg] = \
+#     fmin_bfgs(gbgf, x0, callback=callbackF, maxiter=5, full_output=True, retall=False)
+# # xopt = np.array([0.1296497, 21.57953188, 96.95887751, 86.24391083])  # gaussian optimization,
+# # fopt = -0.4744932
 
 def dwst(p0):
     # unpack parameters
@@ -129,9 +138,8 @@ def dwst(p0):
     intnum = p0[1]  # interaction number
     phi_0 = p0[2]  # central phi in radians
     theta_0 = p0[3]  # central theta in radians
-    mm = p0[4]
-    bb = p0[5]
-
+    bb = p0[4]
+    mm = p0[5]
 
     # calculate angle of each pixel from (phi_0, theta_0)
     radist = 2 * np.arcsin(np.sqrt((np.sin((phi_0 - phi) / 2) ** 2) + np.sin(phi_0) * np.sin(phi) * (np.sin((theta_0 - theta) / 2) ** 2)))
@@ -169,9 +177,10 @@ def callbackF(Xi):
     print('{0:4d}   {1: 3.6f}   {2: 3.6f}   {3: 3.6f}   {4: 3.6f}   {5: 3.6f}   {6: 3.6f}   {7: 3.6f}   {8: 3.6f}'.format(Nfeval, Xi[0], Xi[1], Xi[2], Xi[3], Xi[4], Xi[5],dwst(Xi), rsq(Xi)))
     Nfeval += 1
 
-print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}   {6:9s}   {7:9s}   {8:9s}'.format('Iter', ' sig', ' intnum', 'phi', 'theta', 'mm', 'bb','f(X)', 'R2'))
+print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}   {6:9s}   {7:9s}   {8:9s}'.format('Iter', ' sig', ' intnum', 'phi', 'theta', 'bb', 'mm','f(X)', 'R2'))
 # p0 = np.array([0.11, 21.6, phi[96, 85], theta[96, 85], 1, 0], dtype=np.double)
-p0 = np.array([0.10, 20, phi[93, 86], theta[93, 86], 1, 0], dtype=np.double)  # 19_045-19_050
+p0 = np.array([0.10, 20, phi[93, 86], theta[93, 86], 0, 1], dtype=np.double)  # 19_045-19_050
+p0 = np.array([0.11023094, 16.6389078, -0.10218383,  2.24085629,  0.0575356, 7.87297525])  # 19_045-19_050
 # p0 = np.array([0.10, 20, 0, 0, 1, 0], dtype=np.double)  # 19_050-19_052
 # p0 = np.array([ 0.29878481, 26.21328774, -0.8909651, 1.92826801, 15.72645243, -1.93992498])
 # p0 = np.array([ 0.29878481, 26.21328774, 1.3, 2.75, 15.72645243, -1.93992498])
@@ -206,8 +215,9 @@ sig = p0[0]  # standard deviation of angular gaussian in radians
 intnum = p0[1]  # interaction number
 phi_0 = p0[2]  # central phi in radians
 theta_0 = p0[3]  # central theta in radians
-mm = p0[4]
-bb = p0[5]
+bb = p0[4]
+# mm = p0[5]
+
 
 # calculate angle of each pixel from (phi_0, theta_0)
 radist = 2 * np.arcsin(
@@ -231,10 +241,8 @@ ax1 = fig.add_subplot(111)
 ax1.set_title('dSWE vs. directionally weighted snowfall transmission <$T_s$>\n Upper Forest, 14-21 Feb. 2019, 25cm resolution')
 ax1.set_xlabel("dSWE (mm)")
 ax1.set_ylabel("<$T_s$> [-]")
-
 # covariant = dswe = hemiList.h2 * (a2 * hemiList.h2 * 100 + b2) - hemiList.h1 * (a1 * hemiList.h1 * 100 + b1)
 plt.scatter(hemiList.covariant - bb, transmittance, s=2, alpha=.25)
-plt.xlim(-50, 100)
 
 
 # ## calculate interaction scalar across hemisphere
@@ -353,14 +361,17 @@ ax1.set_xlabel("Interaction factor <$\gamma$> [-]")
 plt.plot(w_data.intnum, w_data.corcoef_e)
 
 
+################################################
 ## plot hemispherical footprint
+
+intnum = popt[1]
 
 # rerun corcoef_e with optimized transmission scalar
 corcoef_e = np.full((imsize, imsize), np.nan)
 for ii in range(0, imsize):
     for jj in range(0, imsize):
         if imrange[jj, ii]:
-            corcoef_e[jj, ii] = np.corrcoef(hemiList.covariant, np.exp(-popt[1] * imstack[jj, ii, :]))[0, 1]
+            corcoef_e[jj, ii] = np.corrcoef(hemiList.covariant, np.exp(-intnum * imstack[jj, ii, :]))[0, 1]
 
     print(ii)
 
