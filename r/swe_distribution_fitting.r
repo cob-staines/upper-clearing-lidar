@@ -4,6 +4,127 @@ library('ggplot2')
 library('grid')
 library('gridExtra')
 
+plot_out_dir = "C:/Users/Cob/index/educational/usask/research/masters/graphics/thesis_graphics/frequency distributions/swe_distribution_fitting/"
+p_width = 8  # inches
+p_height = 5.7  # inches
+dpi = 100
+
+d_045_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_045_ajli_1_r.05m_interp2x_by_contact-number.csv'
+d_045 = read.csv(d_045_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
+  rename(swe = swe_19_045_1)
+
+d_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_050_ajli_2_r.05m_interp2x_by_contact-number.csv'
+d_050 = read.csv(d_050_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
+  rename(swe = swe_19_050_2)
+
+d_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_052_ajli_2_r.05m_interp2x_by_contact-number.csv'
+d_052 = read.csv(d_052_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
+  rename(swe = swe_19_052_2)
+
+
+# coefficient of variation
+cv_045 = sd(d_045$swe)/mean(d_045$swe)
+cv_050 = sd(d_050$swe)/mean(d_050$swe)
+cv_052 = sd(d_052$swe)/mean(d_052$swe)
+
+
+# shook 1995
+qq_func = function(data){
+  swe = data$swe
+  
+  # calculate mean and standard deviation in transformed distribution
+  s_y = sqrt(log(1 + (sd(swe)/mean(swe))^2))
+  y_bar = log(mean(swe)) - s_y^2/2
+  
+  # rank by decreasing quantile
+  p_ = rank(-1 * swe)/(nrow(data) + 1)
+  f_ = 1 - p_
+  
+  # calculate k_value frequency factor
+  k_y = qnorm(f_, mean=0, sd=1)
+  k_ = (exp(s_y * k_y - (s_y^2)/2) - 1)/sqrt(exp(s_y^2) - 1)
+  
+  data$k_vals = k_
+  
+  data
+}
+
+
+k_045 = qq_func(d_045)
+k_050 = qq_func(d_050)
+k_052 = qq_func(d_052)
+
+
+
+# 045
+ggplot(k_045, aes(x=k_vals, y=swe)) +
+  geom_point(size=.75) +
+  labs(x='K', y='SWE (mm)', title='SWE - lognormal Q-Q plot for 14 Feb. 2019 (n=298831)\nUpper Forest, 5cm resolution, bias corrected with LAI') + 
+  theme_minimal()
+ggsave(paste0(plot_out_dir, "swe_19_045_ajli1_lognormal_qq.png"), width=p_width, height=p_height, dpi=dpi)
+
+# 050
+ggplot(k_050, aes(x=k_vals, y=swe)) +
+  geom_point(size=.75) +
+  labs(x='K', y='SWE (mm)', title='SWE - lognormal Q-Q plot for 19 Feb. 2019 (n=296589)\nUpper Forest, 5cm resolution, bias corrected with LAI') +
+  theme_minimal()
+ggsave(paste0(plot_out_dir, "swe_19_050_ajli2_lognormal_qq.png"), width=p_width, height=p_height, dpi=dpi)
+
+# 052
+ggplot(k_052, aes(x=k_vals, y=swe)) +
+  geom_point(size=.75) +
+  labs(x='K', y='SWE (mm)', title='SWE - lognormal Q-Q plot for 21 Feb. 2019 (n=174647)\nUpper Forest, 5cm resolution, bias corrected with LAI') +
+  theme_minimal()
+ggsave(paste0(plot_out_dir, "swe_19_052_ajli2_lognormal_qq.png"), width=p_width, height=p_height, dpi=dpi)
+
+
+# linear fitting
+lm_045 = lm(swe ~ k_vals, data=k_045)
+lm_050 = lm(swe ~ k_vals, data=k_050)
+lm_052 = lm(swe ~ k_vals, data=k_052)
+
+summary(lm_045)
+summary(lm_050)
+summary(lm_052)
+
+
+lognorm_model = function(k_data, lm){
+  x_vals = seq(min(k_data$swe), max(k_data$swe), by = 0.1)
+
+  mu = summary(lm)$coefficients[1]
+  sig = summary(lm)$coefficients[2]
+  
+  lmu = log(mu^2/sqrt(mu^2 + sig^2))
+  lsig = sqrt(log(1 + sig^2/mu^2))
+  
+  y_vals = dlnorm(x_vals, meanlog=lmu, sdlog=lsig)
+  m_data = data.frame(x_vals, y_vals)
+}
+
+m_045 = lognorm_model(k_045, lm_045)
+ggplot(k_045, aes(x=swe)) +
+  geom_histogram(aes(y=..density..), fill='cornflowerblue', alpha=1, binwidth = 1) +
+  geom_line(data=m_045, aes(x=x_vals, y=y_vals), size=1) +
+  labs(x='SWE [mm]', y='Density [-]', title='SWE observed and lognormal modeled distributions for\n14 Feb. 2019 Upper Forest, 5cm resolution, bias corrected')
+ggsave(paste0(plot_out_dir, "swe_19_045_ajli2_lognormal_model.png"), width=p_width, height=p_height, dpi=dpi)
+
+m_050 = lognorm_model(k_050, lm_050)
+ggplot(k_050, aes(x=swe)) +
+  geom_histogram(aes(y=..density..), fill='cornflowerblue', alpha=1, binwidth = 1) +
+  geom_line(data=m_050, aes(x=x_vals, y=y_vals), size=1) +
+  labs(x='SWE [mm]', y='Density [-]', title='SWE observed and lognormal modeled distributions for\n19 Feb. 2019 Upper Forest, 5cm resolution, bias corrected')
+ggsave(paste0(plot_out_dir, "swe_19_050_ajli2_lognormal_model.png"), width=p_width, height=p_height, dpi=dpi)
+
+m_052 = lognorm_model(k_052, lm_052)
+ggplot(k_052, aes(x=swe)) +
+  geom_histogram(aes(y=..density..), fill='cornflowerblue', alpha=1, binwidth = 1) +
+  geom_line(data=m_052, aes(x=x_vals, y=y_vals), size=1) +
+  labs(x='SWE [mm]', y='Density [-]', title='SWE observed and lognormal modeled distributions for\n21 Feb. 2019 Upper Forest, 5cm resolution, bias corrected')
+ggsave(paste0(plot_out_dir, "swe_19_052_ajli2_lognormal_model.png"), width=p_width, height=p_height, dpi=dpi)
+
+
+### old hat below
+
 data_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/swe_uf_.25m_canopy_19_149.csv'
 data = read.csv(data_in, header=TRUE, na.strings = c("NA",""), sep=",")
 
@@ -20,6 +141,7 @@ data_swe = data %>%
   gather("date", "swe", c(8, 10, 12, 14, 16))
 data_swe$date = as.factor(data_swe$date)
 levels(data_swe$date) = c("19_045", "19_050", "19_052", "19_107", "19_123")
+
 
 
 # calculate K

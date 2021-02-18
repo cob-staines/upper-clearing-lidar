@@ -1,13 +1,23 @@
 import laslib
 import numpy as np
 import pandas as pd
+import h5py
 
-las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.las"
+# file paths
+las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_UF.las"
 traj_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt"
-hdf5_path = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_UF.hdf5"
+hdf5_path = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_UF.hdf5"
 
-laslib.las_to_hdf5(las_in, hdf5_path)
-laslib.las_traj(hdf5_path, traj_in)
+# laslib.las_traj(las_in, traj_in, hdf5_path, chunksize=10000, keep_return='all', drop_class=None)
+
+with h5py.File(hdf5_path, 'r') as hf:
+    las_data = hf['lasData'][:]
+    traj_data = hf['trajData'][:]
+
+las_pd = pd.DataFrame(data=las_data, index=None, columns=["gps_time", "x", "y", "z", "classification", "num_returns", "return_num"])
+traj_pd = pd.DataFrame(data=traj_data, index=None, columns=["gps_time", "traj_x", "traj_y", "traj_z", "distance_from_sensor_m", "angle_from_nadir_deg", "angle_cw_from_north_deg"])
+
+las_traj = las_pd + traj_pd.loc[:, 1:7]
 
 # LAS classes:
 # 1 -- unclassified

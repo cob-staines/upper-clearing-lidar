@@ -2,6 +2,12 @@ library('dplyr')
 library('tidyr')
 library('ggplot2')
 
+plot_out_dir = "C:/Users/Cob/index/educational/usask/research/masters/graphics/thesis_graphics/validation/ray_sampling_validation/"
+p_width = 8  # inches
+p_height = 5.7  # inches
+dpi = 100
+
+
 photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/19_149/clean/sized/LAI_manual_parsed.dat"
 photos_lai = read.csv(photos_lai_in, header=TRUE, na.strings = c("NA",""), sep=",")
 photos_lai$original_file = gsub("_r.JPG", ".JPG", photos_lai$picture)
@@ -49,14 +55,13 @@ fo = paste0("hat(y) == ", sprintf("%.5f",rsm_mean_lm$coefficients['df_anal$rsm_m
 r2 = paste0("R^2 == ", sprintf("%.5f",summary(rsm_mean_lm)$r.squared))
 
 
-
 ggplot(df_anal, aes(x=rsm_mean, y=contactnum, color=ring_number)) +
   geom_point(size = 2) +
   geom_abline(intercept = 0, slope = rsm_mean_lm$coefficients['df_anal$rsm_mean']) +
-  annotate("text", x=5, y=.20, label=fo, parse=TRUE) +
-  annotate("text", x=5, y=.10, label=r2, parse=TRUE) +
-  labs(title="Contact number vs. modeled lidar returns\nby analysis ring", x='Lidar returns (modeled)', y='Contact number (photos)', color='Ring')
-
+  annotate("text", x=2, y=1.41, label=fo, parse=TRUE) +
+  annotate("text", x=2, y=1.34, label=r2, parse=TRUE) +
+  labs(title="Hemi-photo contact number vs. ray sampled lidar returns\nby analysis ring", x='Lidar returns', y='Contact number', color='Ring')
+ggsave(paste0(plot_out_dir, "returns_to_cn_optimization.png"), width=p_width, height=p_height, dpi=dpi)
 
 
 ggplot(df, aes(x=exp(-0.195 * rsm_mean), y=exp(-contactnum), color=ring_number)) +

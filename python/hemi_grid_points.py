@@ -11,7 +11,7 @@ uf_poly = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\l
 batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\'
 
 # for plot mappings
-resolution = ['.10', '.25', '1.00']
+resolution = ['.05', '.10', '.25', '1.00']
 template_scheme = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\TEMPLATES\\19_149_all_point_density_r<RES>m.bil'
 
 # dem_in = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_dem_r1.00m_q0.25_interpolated_min1.tif'

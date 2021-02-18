@@ -19,7 +19,6 @@ levels(data_hs$date) = c("19_045", "19_050", "19_052", "19_107", "19_123")
 
 
 
-
 datelist = levels(data_hs$date) = c("19_045", "19_050", "19_052", "19_107", "19_123")
 mu <- numeric(length = length(datelist))
 sig <- numeric(length = length(datelist))

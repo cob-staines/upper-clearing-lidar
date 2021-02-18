@@ -21,17 +21,31 @@ imsize = hemimeta.img_size_px[0]
 
 # load covariant
 # temp_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\interp_2x\\19_045-19_050\\masked\\dswe_ajli_19_045-19_050_r.25m_interp2x_masked.tif'
+
+# template_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\interp_2x\\19_050-19_052\\masked\\dswe_ajli_19_050-19_052_r.25m_interp2x_masked.tif'
+count_045 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\RAS\\19_045_ground_point_density_r.25m.bil'
+count_050 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_las_proc\\OUTPUT_FILES\\RAS\\19_050_ground_point_density_r.25m.bil'
+count_052 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\RAS\\19_052_ground_point_density_r.25m.bil'
+count_149 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RAS\\19_149_ground_point_density_r.25m.bil'
 # var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\interp_2x\\19_045-19_050\\masked\\dswe_ajli_19_045-19_050_r.05m_interp2x_masked.tif'
-temp_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\interp_2x\\19_050-19_052\\masked\\dswe_ajli_19_050-19_052_r.25m_interp2x_masked.tif'
 var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\interp_2x\\19_050-19_052\\masked\\dswe_ajli_19_050-19_052_r.05m_interp2x_masked.tif'
 
 # var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\interp_1x\\19_050-19_052\\masked\\dswe_ajli_19_050-19_052_r.25m_interp2x_masked.tif'
 # var = rastools.raster_to_pd(var_in, 'covariant')
 
-ddict = {'template': temp_in,
+ddict = {'count_045': count_045,
+         'count_050': count_050,
+         'count_052': count_052,
+         'count_149': count_149,
          'covariant': var_in}
-var = rastools.pd_sample_raster_gdal(ddict, mode="median")
-var = var.loc[~np.isnan(var.covariant), :]
+var = rastools.pd_sample_raster_gdal(ddict, include_nans=True, mode="median")
+var = var.loc[~np.isnan(var.covariant), :]  # drop nans in covariant
+
+# var.loc[:, "min_pc"] = np.nanmin((var.count_045, var.count_050, var.count_149), axis=0) * (.25 ** 2)
+var.loc[:, "min_pc"] = np.nanmin((var.count_050, var.count_052, var.count_149), axis=0) * (.25 ** 2)
+# filter by min point count
+var = var.loc[var.min_pc >= 10, :]
+
 
 # merge with image meta
 hemi_var = pd.merge(hemimeta, var, left_on=('x_utm11n', 'y_utm11n'), right_on=('x_coord', 'y_coord'), how='inner')
@@ -40,10 +54,10 @@ hemi_var = pd.merge(hemimeta, var, left_on=('x_utm11n', 'y_utm11n'), right_on=('
 angle_lookup = pd.read_csv(batch_dir + "phi_theta_lookup.csv")
 # build phi image (in radians)
 phi = np.full((imsize, imsize), np.nan)
-phi[(np.array(angle_lookup.x_index), np.array(angle_lookup.y_index))] = angle_lookup.phi
+phi[(np.array(angle_lookup.y_index), np.array(angle_lookup.x_index))] = angle_lookup.phi
 # build theta image (in radians)
 theta = np.full((imsize, imsize), np.nan)
-theta[(np.array(angle_lookup.x_index), np.array(angle_lookup.y_index))] = angle_lookup.theta
+theta[(np.array(angle_lookup.y_index), np.array(angle_lookup.x_index))] = angle_lookup.theta
 
 # limit analysis by phi (in radians)
 max_phi = 90 * (np.pi / 180)
@@ -52,7 +66,6 @@ imrange = np.full((imsize, imsize), False)
 imrange[phi <= max_phi] = True
 
 # # filter hemimeta to desired images
-# THIS WOULD BE WHERE WE BIAS CORRECT ACCORDING TO A CERTAIN DISTRIBUTION
 # delineate training set (set_param < param_thresh) and test set (set_param >= param thresh)
 param_thresh = 0.25
 set_param = np.random.random(len(hemi_var))
@@ -132,6 +145,9 @@ imstack_long = np.swapaxes(np.swapaxes(imstack_long, 1, 2), 0, 1).reshape(imstac
 # # xopt = np.array([0.1296497, 21.57953188, 96.95887751, 86.24391083])  # gaussian optimization,
 # # fopt = -0.4744932
 
+from scipy.stats import vonmises
+from scipy.special import i0
+
 def dwst(p0):
     # unpack parameters
     sig = p0[0]  # standard deviation of angular gaussian in radians
@@ -142,10 +158,15 @@ def dwst(p0):
     mm = p0[5]
 
     # calculate angle of each pixel from (phi_0, theta_0)
-    radist = 2 * np.arcsin(np.sqrt((np.sin((phi_0 - phi) / 2) ** 2) + np.sin(phi_0) * np.sin(phi) * (np.sin((theta_0 - theta) / 2) ** 2)))
+    radist = np.arccos(np.cos(phi_0) * np.cos(phi) + np.sin(phi_0) * np.sin(phi) * np.cos(theta_0 - theta))
 
+    # radist = 2 * np.arcsin(np.sqrt((np.cos((phi_0 - phi) / 2) ** 2) + np.sin(phi_0) * np.sin(phi) * (np.sin((theta_0 - theta) / 2) ** 2)))
     # calculate gaussian angle weights
     weights = np.exp(- 0.5 * (radist / sig) ** 2)  # gaussian
+
+    # # calculate gaussian/vonmises weights
+    # weights = np.exp(- 0.5 * (phi_0 - phi / sig) ** 2) * np.exp(kk * np.cos(theta - theta_0)) / i0(kk)  # gaussian * von mises
+
     weights[np.isnan(phi)] = 0
     weights = weights / np.sum(weights)
 
@@ -174,18 +195,18 @@ def rsq(p0):
 Nfeval = 1
 def callbackF(Xi):
     global Nfeval
-    print('{0:4d}   {1: 3.6f}   {2: 3.6f}   {3: 3.6f}   {4: 3.6f}   {5: 3.6f}   {6: 3.6f}   {7: 3.6f}   {8: 3.6f}'.format(Nfeval, Xi[0], Xi[1], Xi[2], Xi[3], Xi[4], Xi[5],dwst(Xi), rsq(Xi)))
+    print('{0:4d}   {1: 3.6f}   {2: 3.6f}   {3: 3.6f}   {4: 3.6f}   {5: 3.6f}   {6: 3.6f}   {7: 3.6f}   {8: 3.6f}'.format(Nfeval, Xi[0], Xi[1], Xi[2], Xi[3], Xi[4], Xi[5], dwst(Xi), rsq(Xi)))
     Nfeval += 1
 
 print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}   {6:9s}   {7:9s}   {8:9s}'.format('Iter', ' sig', ' intnum', 'phi', 'theta', 'bb', 'mm','f(X)', 'R2'))
 # p0 = np.array([0.11, 21.6, phi[96, 85], theta[96, 85], 1, 0], dtype=np.double)
-p0 = np.array([0.10, 20, phi[93, 86], theta[93, 86], 0, 1], dtype=np.double)  # 19_045-19_050
-p0 = np.array([0.11023094, 16.6389078, -0.10218383,  2.24085629,  0.0575356, 7.87297525])  # 19_045-19_050
-# p0 = np.array([0.10, 20, 0, 0, 1, 0], dtype=np.double)  # 19_050-19_052
-# p0 = np.array([ 0.29878481, 26.21328774, -0.8909651, 1.92826801, 15.72645243, -1.93992498])
-# p0 = np.array([ 0.29878481, 26.21328774, 1.3, 2.75, 15.72645243, -1.93992498])
+# p0 = np.array([0.11264913, 15.28145434, 0.10969805, 2.57800496, -0.11942653, 7.96539625])  # 19_045-19_050 (all)
+# p0 = np.array([ 0.11239098, 14.21423718,  0.11844789,  2.61857637, -0.27146595, 7.99271962])  # 19_045-19_050 (dropping min_ct < 10), r2 = .18
+# p0 = np.array([0.11380506, 21.48592349, 0.11546068, 2.55144104, 1.40918559, 6.60447908])  # 19_045-19_050 (dropping min_ct < 25), r2 = .22??
+p0 = np.array([0.14348116, 30.20682491, 0.13394402, 2.65135774, 7.19794707, 19.41070969])  # 19_050-19_052 (dropping min_ct < 10), r2 = .43
+# p0 = np.array([0.16945377, 14.78239759, 0.14993679, 2.63400967, 0.03629841, 25.75866498])  # 19_050-19_052 (dropping min_ct < 25), r2 = .55
 # p0 = popt
-
+popt = p0
 [popt, fopt, gopt, Bopt, func_calls, grad_calls, warnflg] = \
     fmin_bfgs(dwst, p0, callback=callbackF, maxiter=25, full_output=True, retall=False)
 
@@ -208,23 +229,25 @@ matplotlib.use('Qt5Agg')
 # matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-p0 = popt
+# p0 = popt.copy()
 
-## scatter plot
 sig = p0[0]  # standard deviation of angular gaussian in radians
 intnum = p0[1]  # interaction number
 phi_0 = p0[2]  # central phi in radians
 theta_0 = p0[3]  # central theta in radians
 bb = p0[4]
-# mm = p0[5]
-
+mm = p0[5]
 
 # calculate angle of each pixel from (phi_0, theta_0)
-radist = 2 * np.arcsin(
-    np.sqrt((np.sin((phi_0 - phi) / 2) ** 2) + np.sin(phi_0) * np.sin(phi) * (np.sin((theta_0 - theta) / 2) ** 2)))
+radist = np.arccos(np.cos(phi_0) * np.cos(phi) + np.sin(phi_0) * np.sin(phi) * np.cos(theta_0 - theta))
 
+# radist = 2 * np.arcsin(np.sqrt((np.cos((phi_0 - phi) / 2) ** 2) + np.sin(phi_0) * np.sin(phi) * (np.sin((theta_0 - theta) / 2) ** 2)))
 # calculate gaussian angle weights
 weights = np.exp(- 0.5 * (radist / sig) ** 2)  # gaussian
+
+# # calculate gaussian/vonmises weights
+# weights = np.exp(- 0.5 * (phi_0 - phi / sig) ** 2) * np.exp(kk * np.cos(theta - theta_0)) / i0(kk)  # gaussian * von mises
+
 weights[np.isnan(phi)] = 0
 weights = weights / np.sum(weights)
 
@@ -238,12 +261,15 @@ transmittance = np.exp(-intnum * w_stack)
 fig = plt.figure()
 fig.subplots_adjust(top=0.90, bottom=0.12, left=0.12)
 ax1 = fig.add_subplot(111)
-ax1.set_title('dSWE vs. directionally weighted snowfall transmission <$T_s$>\n Upper Forest, 14-21 Feb. 2019, 25cm resolution')
-ax1.set_xlabel("dSWE (mm)")
-ax1.set_ylabel("<$T_s$> [-]")
+# ax1.set_title('$\Delta$SWE vs. directionally weighted snowfall transmission $T^{*}_{(x, y)}$\n Upper Forest, 14-19 Feb. 2019, 25cm resolution')
+ax1.set_title('$\Delta$SWE vs. directionally weighted snowfall transmission $T^{*}_{(x, y)}$\n Upper Forest, 19-21 Feb. 2019, 25cm resolution')
+ax1.set_xlabel("$\Delta$SWE [mm]")
+ax1.set_ylabel("$T^{*}_{(x, y)}$ [-]")
 # covariant = dswe = hemiList.h2 * (a2 * hemiList.h2 * 100 + b2) - hemiList.h1 * (a1 * hemiList.h1 * 100 + b1)
-plt.scatter(hemiList.covariant - bb, transmittance, s=2, alpha=.25)
-
+plt.scatter(hemiList.covariant, transmittance, s=2, alpha=.25)
+mm_mod = np.array([np.nanmin(transmittance), np.nanmax(transmittance)])
+plt.plot(mm_mod * mm + bb, mm_mod, c='Black', linestyle='dashed', linewidth=1.5)
+plt.ylim(0, 1)
 
 # ## calculate interaction scalar across hemisphere
 # plt.scatter(np.log(hemi_var.covariant[hemi_var.training_set.values]), -w_stack, s=2, alpha=.25)
@@ -301,21 +327,17 @@ plt.scatter(hemiList.covariant - bb, transmittance, s=2, alpha=.25)
 # sigma
 
 # sample optimization topography for sigma
-
 v_list = np.linspace(0.001, np.pi/2, 200)  # sig
-w_data = pd.DataFrame(columns={"sig", "intnum", "cpy", "cpx", "corcoef_e"})
+w_data = pd.DataFrame(columns={"sig", "r2"})
 ii = 0
+px = popt.copy()
 for vv in v_list:
-    # x = np.array([0.1296497, 21.57953188, 96.95887751, 86.24391083])
-    xx = np.array([vv, 21.57953188, 96.95887751, 86.24391083])
 
-    w_corcoef_e = -gbgf(xx)
+    px[0] = vv
+    r2 = rsq(px)
 
-    new_row = {"sig": xx[0],
-               "intnum": xx[1],
-               "cpy": xx[2],
-               "cpx": xx[3],
-               "corcoef_e": w_corcoef_e}
+    new_row = {"sig": vv,
+               "r2": r2}
     w_data = w_data.append(new_row, ignore_index=True, verify_integrity=True)
 
     ii += 1
@@ -324,29 +346,26 @@ for vv in v_list:
 fig = plt.figure()
 fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
 ax1 = fig.add_subplot(111)
-ax1.set_title('Optimization of Gaussian weight function width $\sigma$\nfor modeling snow accumulation')
-ax1.set_ylabel("Pearson's Correlation Coeficient\ndSWE vs. Directionally Weighted Snowfall Transmission")
+# ax1.set_title('Optimization of Gaussian weight function width $\sigma$\nUpper Forest, 14-19 Feb. 2019, 25cm resolution')
+ax1.set_title('Optimization of Gaussian weight function width $\sigma$\nUpper Forest, 19-21 Feb. 2019, 25cm resolution')
+ax1.set_ylabel("$R^2$ for $\Delta$SWE vs. modeled snow accumulation")
 ax1.set_xlabel("Standard deviation of Gausian weight function $\sigma$ [$^{\circ}$]")
-plt.plot(w_data.sig * 180 / np.pi, w_data.corcoef_e)
+plt.plot(w_data.sig * 180 / np.pi, w_data.r2)
 
+#####
 # interaction scalar
-
-# sample optimization topography for gamma
-
-v_list = np.linspace(1, 100, 100)  # intnum
-w_data = pd.DataFrame(columns={"sig", "intnum", "cpy", "cpx", "corcoef_e"})
+# sample optimization topography for mu*
+v_list = np.linspace(1, 100, 100)  # mu*
+w_data = pd.DataFrame(columns={"mu", "r2"})
 ii = 0
+px = popt.copy()
 for vv in v_list:
-    # x = np.array([0.1296497, 21.57953188, 96.95887751, 86.24391083])
-    xx = np.array([0.1296497, vv, 96.95887751, 86.24391083])
 
-    w_corcoef_e = -gbgf(xx)
+    px[1] = vv
+    r2 = rsq(px)
 
-    new_row = {"sig": xx[0],
-               "intnum": xx[1],
-               "cpy": xx[2],
-               "cpx": xx[3],
-               "corcoef_e": w_corcoef_e}
+    new_row = {"mu": vv,
+               "r2": r2}
     w_data = w_data.append(new_row, ignore_index=True, verify_integrity=True)
 
     ii += 1
@@ -355,10 +374,12 @@ for vv in v_list:
 fig = plt.figure()
 fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
 ax1 = fig.add_subplot(111)
-ax1.set_title('Optimization of snowfall transmission interaction factor <$\gamma$>\nfor modeling snow accumulation')
-ax1.set_ylabel("Pearson's Correlation Coeficient\ndSWE vs. Directionally Weighted Snowfall Transmission")
-ax1.set_xlabel("Interaction factor <$\gamma$> [-]")
-plt.plot(w_data.intnum, w_data.corcoef_e)
+# ax1.set_title('Optimization of snowfall absorbtion coefficient $\mu^*$\nUpper Forest, 14-19 Feb. 2019, 25cm resolution')
+ax1.set_title('Optimization of snowfall absorbtion coefficient $\mu^*$\nUpper Forest, 19-21 Feb. 2019, 25cm resolution')
+ax1.set_ylabel("$R^2$ for $\Delta$SWE vs. modeled snow accumulation")
+ax1.set_xlabel("snowfall absorbtion coefficient $\mu^*$ [-]")
+plt.plot(w_data.mu, w_data.r2)
+plt.ylim(-1, )
 
 
 ################################################
@@ -419,7 +440,8 @@ cmap = matplotlib.cm.RdBu
 
 # main plot
 fig = plt.figure(figsize=(7, 7))
-fig.suptitle("Correlation of dSWE with snowfall transmission over hemisphere\nUpward-looking, Upper Forest, 14-21 Feb 2019, 25cm resolution")
+# fig.suptitle("Correlation of $\Delta$SWE with snowfall transmission over hemisphere\nUpward-looking, Upper Forest, 14-19 Feb 2019, 25cm resolution")
+fig.suptitle("Correlation of $\Delta$SWE with snowfall transmission over hemisphere\nUpward-looking, Upper Forest, 19-21 Feb 2019, 25cm resolution")
 #create axes in the background to show cartesian image
 ax0 = fig.add_subplot(111)
 im = ax0.imshow(set, cmap=cmap, clim=(val_min, val_max), norm=MidpointNormalize(vmin=-abs_max, midpoint=val_mid, vmax=abs_max))

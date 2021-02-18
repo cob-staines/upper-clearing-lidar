@@ -5,6 +5,7 @@ import laslib
 import numpy as np
 import pandas as pd
 
+
 def pnt_sample_semivar(pts_1, vals_1, dist_inv_func, n_samples, n_iters=1, pts_2=None, vals_2=None, report_samp_vals=False, self_ref=False):
     if pts_2 is None:
         pts_2 = pts_1
@@ -55,16 +56,14 @@ def pnt_sample_semivar(pts_1, vals_1, dist_inv_func, n_samples, n_iters=1, pts_2
 
     return df, unif_bounds
 
-def autocovar(vv):
-    pass
 
-
-def bin_summarize(df, dist_inv_func, bounds, bin_count, covar=False):
+def bin_summarize(df, dist_inv_func, bounds, bin_count):
     dd = df.dist
     vv = df.dvals
 
     # calculate bins according to dist_inv_func
-    bins = dist_inv_func(np.linspace(bounds[0], bounds[1], bin_count + 1))
+    # bins = dist_inv_func(np.linspace(bounds[0], bounds[1], bin_count + 1))
+    scrap, bins = pd.qcut(df.dist, q=bin_count, retbins=True, duplicates='drop')
 
     bin_mid = (bins[0:-1] + bins[1:]) / 2
     # bin df according to a
@@ -76,18 +75,17 @@ def bin_summarize(df, dist_inv_func, bounds, bin_count, covar=False):
                           'n': 0,
                           'mean_dist': np.nan,
                           'mean_bias': np.nan,
-                          'covariance': np.nan,
                           'variance': np.nan,
                           'stdev': np.nan})
 
-    # report groups with counts of 0
+    # report groups with counts > 0
     non_empty = np.array(v_groups.count().index) - 1
-    stats.loc[non_empty, 'n'] = np.array(v_groups.count())
-    stats.loc[non_empty, 'mean_dist'] = np.array(d_groups.mean())
-    stats.loc[non_empty, 'mean_bias'] = np.array(v_groups.mean())
-    stats.loc[non_empty, 'covariance'] = np.array(v_groups.agg(('Item_MRP', np.mean)))
-    stats.loc[non_empty, 'variance'] = np.array(v_groups.var())
-    stats.loc[non_empty, 'stdev'] = np.array(v_groups.std())
+    valid = non_empty[(non_empty >= 0) & (non_empty < bin_count)]
+    stats.loc[valid, 'n'] = np.array(v_groups.count())[valid]
+    stats.loc[valid, 'mean_dist'] = np.array(d_groups.mean())[valid]
+    stats.loc[valid, 'mean_bias'] = np.array(v_groups.mean())[valid]
+    stats.loc[valid, 'variance'] = np.array(v_groups.var())[valid]
+    stats.loc[valid, 'stdev'] = np.array(v_groups.std())[valid]
 
     return stats
 
@@ -104,23 +102,14 @@ def bin_summarize(df, dist_inv_func, bounds, bin_count, covar=False):
 # # stats = geotk.bin_summarize(df, linear_ab, unif_bounds, 25)
 #
 
-# import pandas as pd
-# import numpy as np
-# data_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.10m_canopy_19_149.csv'
-# data = pd.read_csv(data_in)
-#
-#
-# #### rejection sample points
-# proposal = 'dswe_19_045-19_052'  # given these values
-# sample = 'er_p0_mean'  # sample according to this distribution
-#
-# nbins = 25
-# nsamps = 100000
 
 # data
-def rejection_sample(data, proposal, sample, nbins, nsamps, original_df=True):
+def rejection_sample(data, proposal, sample, nbins, nsamps=None, original_df=True):
     valid_samp = ~np.isnan(data.loc[:, sample])
     valid_prop = ~np.isnan(data.loc[:, proposal])
+
+    if nsamps is None:
+        nsamps = np.sum(valid_prop)
 
     # determine bins by equal quantiles of sample data
     scrap, bins = pd.qcut(data.loc[~np.isnan(data.loc[:, sample]), sample], q=nbins, retbins=True)
@@ -147,9 +136,15 @@ def rejection_sample(data, proposal, sample, nbins, nsamps, original_df=True):
 
     # randomly sample from valid_prop
     # prop_id = np.random.randint(0, len(data), nsamps)  # with replacement
-    prop_samps = np.int(nsamps / total_acc_rate) + 1
+    try:
+        prop_samps = np.int(nsamps / total_acc_rate) + 1
+    except OverflowError:
+        raise Exception("Bins with no proposal values encountered. Try fewer resampling bins, or a different sample distribution.")
 
-    prop_id = np.random.permutation(range(0, len(data.loc[valid_prop, :])))[0:prop_samps]  # without replacement (nsamps must be less than data length)
+    if prop_samps > len(data):
+        prop_samps = len(data)  # (nsamps must be less than data length)
+        pass
+    prop_id = np.random.permutation(range(0, len(data.loc[valid_prop, :])))[0:prop_samps]  # without replacement
     d_prop = data.loc[valid_prop, :].iloc[prop_id, :]
 
     rs = pd.DataFrame({'cat': np.digitize(d_prop.loc[:, sample], bins=bins) - 1,
@@ -168,9 +163,10 @@ def rejection_sample(data, proposal, sample, nbins, nsamps, original_df=True):
         return data, stats
     else:
         return d_samp, stats
-
-
-
+#
+#
+#
+#
 # # evaluate final dist
 # scrap, bins = np.histogram(data.loc[valid_samp, sample], bins=nbins)
 # samp_count, bins = np.histogram(data.loc[valid_samp, sample], bins=bins)
@@ -189,9 +185,9 @@ def rejection_sample(data, proposal, sample, nbins, nsamps, original_df=True):
 #
 #
 # import matplotlib
-# matplotlib.use('TkAgg')
+# matplotlib.use('Qt5Agg')
 # import matplotlib.pyplot as plt
-#
+
 # plt.plot(stats.bin_mid, stats.prop_dist)
 # plt.plot(stats.bin_mid, stats.samp_dist)
 # plt.plot(stats.bin_mid, stats.d_samp_dist)
@@ -206,3 +202,5 @@ def rejection_sample(data, proposal, sample, nbins, nsamps, original_df=True):
 # plt.plot(eval.bin_mid, eval.prop_dist)
 # plt.plot(eval.bin_mid, eval.samp_dist)
 # plt.plot(eval.bin_mid, eval.d_samp_dist)
+
+
