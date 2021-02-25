@@ -57,13 +57,24 @@ def pnt_sample_semivar(pts_1, vals_1, dist_inv_func, n_samples, n_iters=1, pts_2
     return df, unif_bounds
 
 
-def bin_summarize(df, dist_inv_func, bounds, bin_count):
+def bin_summarize(df, bin_count, d_bounds=None, dist_inv_func=None, unif_bounds=None):
+
+    if d_bounds is not None:
+        valid = (df.dist >= d_bounds[0]) & (df.dist <= d_bounds[1])
+        df = df.loc[valid, :]
+
     dd = df.dist
     vv = df.dvals
 
-    # calculate bins according to dist_inv_func
-    # bins = dist_inv_func(np.linspace(bounds[0], bounds[1], bin_count + 1))
-    scrap, bins = pd.qcut(df.dist, q=bin_count, retbins=True, duplicates='drop')
+    if (dist_inv_func is None) & (unif_bounds is None):
+        # calculate bins by equal quantiles
+        scrap, bins = pd.qcut(df.dist, q=bin_count, retbins=True, duplicates='drop')
+    elif (dist_inv_func is not None) & (unif_bounds is not None):
+        # calculate bins according to dist_inv_func
+        bins = dist_inv_func(np.linspace(unif_bounds[0], unif_bounds[1], bin_count + 1))
+    else:
+        raise Exception("Must specify both 'dist_inv_func' and 'unif_bounds' to bin by distribution.")
+
 
     bin_mid = (bins[0:-1] + bins[1:]) / 2
     # bin df according to a

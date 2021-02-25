@@ -3,7 +3,11 @@ import numpy as np
 import pandas as pd
 import os
 
+snow_on_ass = {}
+snow_on_ass["alin"] = ["19_045", "19_050", "19_052", "19_107", "19_123"]
+snow_on_ass["ahpl"] = ["19_045", "19_050", "19_052"]
 snow_on = ["19_045", "19_050", "19_052", "19_107", "19_123"]
+# snow_on = ["19_045", "19_050", "19_052"]
 snow_off = ["19_149"]
 all_dates = snow_on + snow_off
 
@@ -11,14 +15,14 @@ resolution = [".05", ".10", ".25", "1.00"]
 
 interpolation_lengths = ["1", "2", "3"]
 
-# dens_ass = {}
+dens_ass = {}
 #
-# # coefficients for snow depth [cm], swe [mm]
-# # all veg, each day, linear depth-density
-# depth_to_density_intercept = dict(zip(snow_on, [183.5431, 110.2249, 84.9988, 247.2277, 262.6508]))
-# depth_to_density_slope = dict(zip(snow_on, np.array([0.1485, 1.2212, 1.3461, 1.2234, 0.6013])))
-# dens_ass["alin"] = (depth_to_density_intercept, depth_to_density_slope)
-#
+# coefficients for snow depth [cm], swe [mm]
+# all veg, each day, linear depth-density
+depth_to_density_intercept = dict(zip(snow_on, [109.1403, 110.2249, 72.5015, 224.6406, 223.5683]))
+depth_to_density_slope = dict(zip(snow_on, np.array([1.2717, 1.2212, 1.5346, 1.7833, 1.2072])))
+dens_ass["alin"] = (depth_to_density_intercept, depth_to_density_slope)
+
 # # forest only, each day, linear depth-density
 # depth_to_density_intercept = dict(zip(snow_on, [147.5136, 102.460, 3.303, 249.1015, 293.10207]))
 # depth_to_density_slope = dict(zip(snow_on, np.array([1.3616, 1.486, 4.054, 0.3966, -0.03987])))
@@ -33,11 +37,16 @@ interpolation_lengths = ["1", "2", "3"]
 # depth_to_density_intercept = dict(zip(snow_on, np.array([199.321, 158.56, 134.48, 263.22, 291.14])))
 # depth_to_density_slope = dict(zip(snow_on, np.array([0, 0, 0, 0, 0])))
 # dens_ass["fcon"] = (depth_to_density_intercept, depth_to_density_slope)
+#
+# hedstrom pomeroy intercept linear
+depth_to_density_intercept = dict(zip(snow_on, np.array([89.26, 85.39, 72.05])))
+depth_to_density_slope = dict(zip(snow_on, np.array([1.59, 1.6336, 1.5420])))
+dens_ass["ahpl"] = (depth_to_density_intercept, depth_to_density_slope)
 
 # adjacent day combined linear density models
-ajli_dates = np.array(["19_045", "19_050", "19_052"])
-ajli_intercept = np.array([148.7251, 97.5015])
-ajli_slope = np.array([0.6864, 1.2815])
+# ajli_dates = np.array(["19_045", "19_050", "19_052"])
+# ajli_intercept = np.array([148.7251, 97.5015])
+# ajli_slope = np.array([0.6864, 1.2815])
 
 
 dem_in_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\TEMP_FILES\\12_dem\\res_<RES>\\'
@@ -65,11 +74,17 @@ hs_bc_file_template = hs_merged_file_template.replace('.tif', '_bias_corrected.t
 hs_clean_dir_template = hs_merged_dir_template + 'clean\\'
 hs_clean_file_template = hs_merged_file_template.replace('.tif', '_clean.tif')
 
+hs_eroded_dir_template = hs_merged_dir_template + 'eroded\\'
+hs_eroded_file_template = hs_merged_file_template.replace('.tif', '_eroded.tif')
+
 dhs_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dHS\\interp_<INTLEN>x\\<DDI>-<DDJ>\\'
 dhs_file_template = 'dhs_<DDI>-<DDJ>_r<RES>m_interp<INTLEN>x.tif'
 
 swe_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\SWE\\<ASS>\\interp_<INTLEN>x\\'
 swe_file_template = 'swe_<ASS>_<DATE>_r<RES>m_interp<INTLEN>x.tif'
+
+swe_masked_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\SWE\\<ASS>\\interp_<INTLEN>x\\masked\\'
+swe_masked_file_template = 'swe_<ASS>_<DATE>_r<RES>m_interp<INTLEN>x_masked.tif'
 
 dswe_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\<ASS>\\interp_<INTLEN>x\\<DDI>-<DDJ>\\'
 dswe_file_template = 'dswe_<ASS>_<DDI>-<DDJ>_r<RES>m_interp<INTLEN>x.tif'
@@ -92,6 +107,10 @@ hs_clean_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\ma
 swe_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_swe_point_samples.csv"
 point_dens_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_point_density_point_samples.csv"
 dem_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_dem_point_samples.csv"
+
+# mask polygons
+snow_mask = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\snow_depth_mask.shp"
+trail_mask = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\trampled_snow_mask_dissolved.shp"
 
 
 def path_sub(path, dd=None, rr=None, qq=None, ddi=None, ddj=None, itn=None, ass=None, intlen=None):
@@ -118,6 +137,7 @@ def path_sub(path, dd=None, rr=None, qq=None, ddi=None, ddj=None, itn=None, ass=
             path[ii] = path[ii].replace('<INTLEN>', str(intlen))
 
     return ''.join(path)
+
 
 # merge all dems into single outputs (culled and interpolated)
 for dd in (snow_on + snow_off):
@@ -271,6 +291,49 @@ for dd in snow_on:
 
 hs_bias.to_csv(hs_bias_file_out, index=False)
 
+# from scipy import ndimage
+#
+# fsize = 11
+# yy, xx = np.mgrid[0:fsize, 0:fsize]
+# cc = (fsize-1)/2
+# dist = np.sqrt((xx - cc) ** 2 + (yy - cc) ** 2)
+# footprint = (dist <= cc)
+#
+# # snow depth erosion
+# for dd in snow_on:
+#     for intlen in interpolation_lengths:
+#         # update file paths with date
+#         hs_in_dir = path_sub(hs_clean_dir_template, dd=dd, intlen=intlen)
+#         hs_eroded_dir = path_sub(hs_eroded_dir_template, dd=dd, intlen=intlen)
+#
+#         # create DEM directory if does not exist
+#         if not os.path.exists(hs_eroded_dir):
+#             os.makedirs(hs_eroded_dir)
+#
+#
+#         for rr in resolution:
+#             # in file
+#             hs_in_file = path_sub(hs_clean_file_template, dd=dd, rr=rr, intlen=intlen)
+#
+#             # out file
+#             hs_eroded_file = path_sub(hs_eroded_file_template, dd=dd, rr=rr, intlen=intlen)
+#
+#             # load data
+#             ras = rastools.raster_load(hs_in_dir + hs_in_file)
+#
+#             dat = ras.data.copy()
+#             na_dat = (dat == ras.no_data)
+#
+#             dat[na_dat] = np.nan
+#
+#             err = ndimage.grey_erosion(dat, footprint=footprint)
+#
+#             ras.data = err
+#             ras.data[na_dat] = ras.no_data
+#
+#             # save
+#             rastools.raster_save(ras, hs_eroded_dir + hs_eroded_file)
+
 # differential snow depth products
 for ii in range(0, len(snow_on) - 1):
     ddi = snow_on[ii]
@@ -293,12 +356,89 @@ for ii in range(0, len(snow_on) - 1):
 
 # run density analysis in r
 #
-# # calculate SWE products
-# for ass in dens_ass.keys():
-#     print(ass)
-#     for dd in snow_on:
+# calculate SWE products
+for ass in dens_ass.keys():
+    print(ass)
+    for intlen in interpolation_lengths:
+        for dd in snow_on_ass[ass]:
+            # update file paths with date
+            swe_dir = path_sub(swe_dir_template, dd=dd, ass=ass, intlen=intlen)
+            swe_masked_dir = path_sub(swe_masked_dir_template, dd=dd, ass=ass, intlen=intlen)
+
+            # create SWE directory if does not exist
+            if not os.path.exists(swe_dir):
+                os.makedirs(swe_dir)
+            if not os.path.exists(swe_masked_dir):
+                os.makedirs(swe_masked_dir)
+
+            for rr in resolution:
+                # update file paths with resolution
+                hs_file = path_sub([hs_clean_dir_template, hs_clean_file_template], dd=dd, rr=rr, intlen=intlen)
+                swe_file = path_sub([swe_dir_template, swe_file_template], dd=dd, rr=rr, ass=ass, intlen=intlen)
+                swe_masked_file = path_sub([swe_masked_dir_template, swe_masked_file_template], dd=dd, rr=rr, ass=ass, intlen=intlen)
+
+                # calculate swe
+                ras = rastools.raster_load(hs_file)
+                valid_cells = np.where(ras.data != ras.no_data)
+                depth = ras.data[valid_cells]
+
+                # calculate swe from depth density regression
+                mm = dens_ass[ass][1][dd]
+                bb = dens_ass[ass][0][dd]
+                swe = depth * (mm * depth * 100 + bb)
+
+                ras.data[valid_cells] = swe
+                rastools.raster_save(ras, swe_file)
+
+                # mask
+                ras = rastools.raster_load(swe_file)
+                rastools.raster_save(ras, swe_masked_file)
+
+                rastools.raster_burn(swe_masked_file, snow_mask, ras.no_data)
+                rastools.raster_burn(swe_masked_file, trail_mask, ras.no_data)
+
+
+# differential SWE products
+for ass in dens_ass.keys():
+    print(ass)
+    for intlen in interpolation_lengths:
+        for ii in range(0, len(snow_on_ass[ass]) - 1):
+            ddi = snow_on[ii]
+            ddj = snow_on[ii + 1]
+
+            # update file paths with dates
+            dswe_dir = path_sub(dswe_dir_template, ddi=ddi, ddj=ddj, ass=ass, intlen=intlen)
+            dswe_masked_dir = path_sub(dswe_masked_dir_template, ddi=ddi, ddj=ddj, ass=ass, intlen=intlen)
+
+            # create SWE directory if does not exist
+            if not os.path.exists(dswe_dir):
+                os.makedirs(dswe_dir)
+            if not os.path.exists(dswe_masked_dir):
+                os.makedirs(dswe_masked_dir)
+
+            for rr in resolution:
+                ddi_in = path_sub([swe_dir_template, swe_file_template], dd=ddi, rr=rr, ass=ass, intlen=intlen)
+                ddj_in = path_sub([swe_dir_template, swe_file_template], dd=ddj, rr=rr, ass=ass, intlen=intlen)
+                dswe_file = path_sub([dswe_dir_template, dswe_file_template], ddi=ddi, ddj=ddj, rr=rr, ass=ass, intlen=intlen)
+                dswe_masked_file = path_sub([dswe_masked_dir_template, dswe_masked_file_template], ddi=ddi, ddj=ddj, rr=rr, ass=ass, intlen=intlen)
+
+                dswe_ras = rastools.raster_dif_gdal(ddj_in, ddi_in, inherit_from=2, dif_out=dswe_file)
+
+                # mask
+                ras = rastools.raster_load(dswe_file)
+                rastools.raster_save(ras, dswe_masked_file)
+
+                rastools.raster_burn(dswe_masked_file, snow_mask, ras.no_data)
+                rastools.raster_burn(dswe_masked_file, trail_mask, ras.no_data)
+
+
+#
+# # adjacent combined linear (ajli) density SWE products
+# ii = 0
+# for dd in ajli_dates[0:2]:
+#     for intlen in interpolation_lengths:
 #         # update file paths with date
-#         swe_dir = path_sub(swe_dir_template, dd=dd, ass=ass)
+#         swe_dir = path_sub(swe_dir_template, dd=dd, ass="ajli_1", intlen=intlen)
 #
 #         # create SWE directory if does not exist
 #         if not os.path.exists(swe_dir):
@@ -306,8 +446,8 @@ for ii in range(0, len(snow_on) - 1):
 #
 #         for rr in resolution:
 #             # update file paths with resolution
-#             hs_file = path_sub([hs_clean_dir_template, hs_clean_file_template], dd=dd, rr=rr)
-#             swe_file = path_sub([swe_dir_template, swe_file_template], dd=dd, rr=rr, ass=ass)
+#             hs_file = path_sub([hs_clean_dir_template, hs_clean_file_template], dd=dd, rr=rr, intlen=intlen)
+#             swe_file = path_sub([swe_dir_template, swe_file_template], dd=dd, rr=rr, ass="ajli_1", intlen=intlen)
 #
 #             # calculate swe
 #             ras = rastools.raster_load(hs_file)
@@ -315,143 +455,119 @@ for ii in range(0, len(snow_on) - 1):
 #             depth = ras.data[valid_cells]
 #
 #             # calculate swe from depth density regression
-#             mm = dens_ass[ass][1][dd]
-#             bb = dens_ass[ass][0][dd]
+#             mm = ajli_slope[ii]
+#             bb = ajli_intercept[ii]
 #             swe = depth * (mm * depth * 100 + bb)
+#
+#             print(str(mm))
 #
 #             ras.data[valid_cells] = swe
 #             rastools.raster_save(ras, swe_file)
+#     ii += 1
 #
+# ii = 0
+# for dd in ajli_dates[1:3]:
+#     for intlen in interpolation_lengths:
+#         # update file paths with date
+#         swe_dir = path_sub(swe_dir_template, dd=dd, ass="ajli_2", intlen=intlen)
+#
+#         # create SWE directory if does not exist
+#         if not os.path.exists(swe_dir):
+#             os.makedirs(swe_dir)
+#
+#         for rr in resolution:
+#             # update file paths with resolution
+#             hs_file = path_sub([hs_clean_dir_template, hs_clean_file_template], dd=dd, rr=rr, intlen=intlen)
+#             swe_file = path_sub([swe_dir_template, swe_file_template], dd=dd, rr=rr, ass="ajli_2", intlen=intlen)
+#
+#             # calculate swe
+#             ras = rastools.raster_load(hs_file)
+#             valid_cells = np.where(ras.data != ras.no_data)
+#             depth = ras.data[valid_cells]
+#
+#             # calculate swe from depth density regression
+#             mm = ajli_slope[ii]
+#             bb = ajli_intercept[ii]
+#             swe = depth * (mm * depth * 100 + bb)
+#
+#             print(str(mm))
+#
+#             ras.data[valid_cells] = swe
+#             rastools.raster_save(ras, swe_file)
+#     ii += 1
 #
 # # differential SWE products
-# for ass in dens_ass.keys():
-#     print(ass)
-#     for ii in range(0, len(snow_on)):
-#         ddi = snow_on[ii]
-#         for jj in range(ii + 1, len(snow_on)):
-#             ddj = snow_on[jj]
-#             # update file paths with dates
-#             dswe_dir = path_sub(dswe_dir_template, ddi=ddi, ddj=ddj, ass=ass)
+# for ii in range(0, len(ajli_dates) - 1):
+#     ddi = ajli_dates[ii]
+#     ddj = ajli_dates[ii + 1]
+#     for intlen in interpolation_lengths:
 #
-#             # create SWE directory if does not exist
-#             if not os.path.exists(dswe_dir):
-#                 os.makedirs(dswe_dir)
+#         # update file paths with dates
+#         dswe_dir = path_sub(dswe_dir_template, ddi=ddi, ddj=ddj, ass="ajli", intlen=intlen)
 #
-#             for rr in resolution:
-#                 ddi_in = path_sub([swe_dir_template, swe_file_template], dd=ddi, rr=rr, ass=ass)
-#                 ddj_in = path_sub([swe_dir_template, swe_file_template], dd=ddj, rr=rr, ass=ass)
-#                 dswe_out = path_sub([dswe_dir_template, dswe_file_template], ddi=ddi, ddj=ddj, rr=rr, ass=ass)
+#         # create SWE directory if does not exist
+#         if not os.path.exists(dswe_dir):
+#             os.makedirs(dswe_dir)
 #
-#                 hs = rastools.raster_dif_gdal(ddj_in, ddi_in, inherit_from=2, dif_out=dswe_out)
+#         for rr in resolution:
+#             ddi_in = path_sub([swe_dir_template, swe_file_template], dd=ddi, rr=rr, ass="ajli_1", intlen=intlen)
+#             ddj_in = path_sub([swe_dir_template, swe_file_template], dd=ddj, rr=rr, ass="ajli_2", intlen=intlen)
+#             dswe_out = path_sub([dswe_dir_template, dswe_file_template], ddi=ddi, ddj=ddj, rr=rr, ass="ajli", intlen=intlen)
 #
-
-# adjacent combined linear (ajli) density SWE products
-ii = 0
-for dd in ajli_dates[0:2]:
-    for intlen in interpolation_lengths:
-        # update file paths with date
-        swe_dir = path_sub(swe_dir_template, dd=dd, ass="ajli_1", intlen=intlen)
-
-        # create SWE directory if does not exist
-        if not os.path.exists(swe_dir):
-            os.makedirs(swe_dir)
-
-        for rr in resolution:
-            # update file paths with resolution
-            hs_file = path_sub([hs_clean_dir_template, hs_clean_file_template], dd=dd, rr=rr, intlen=intlen)
-            swe_file = path_sub([swe_dir_template, swe_file_template], dd=dd, rr=rr, ass="ajli_1", intlen=intlen)
-
-            # calculate swe
-            ras = rastools.raster_load(hs_file)
-            valid_cells = np.where(ras.data != ras.no_data)
-            depth = ras.data[valid_cells]
-
-            # calculate swe from depth density regression
-            mm = ajli_slope[ii]
-            bb = ajli_intercept[ii]
-            swe = depth * (mm * depth * 100 + bb)
-
-            print(str(mm))
-
-            ras.data[valid_cells] = swe
-            rastools.raster_save(ras, swe_file)
-    ii += 1
-
-ii = 0
-for dd in ajli_dates[1:3]:
-    for intlen in interpolation_lengths:
-        # update file paths with date
-        swe_dir = path_sub(swe_dir_template, dd=dd, ass="ajli_2", intlen=intlen)
-
-        # create SWE directory if does not exist
-        if not os.path.exists(swe_dir):
-            os.makedirs(swe_dir)
-
-        for rr in resolution:
-            # update file paths with resolution
-            hs_file = path_sub([hs_clean_dir_template, hs_clean_file_template], dd=dd, rr=rr, intlen=intlen)
-            swe_file = path_sub([swe_dir_template, swe_file_template], dd=dd, rr=rr, ass="ajli_2", intlen=intlen)
-
-            # calculate swe
-            ras = rastools.raster_load(hs_file)
-            valid_cells = np.where(ras.data != ras.no_data)
-            depth = ras.data[valid_cells]
-
-            # calculate swe from depth density regression
-            mm = ajli_slope[ii]
-            bb = ajli_intercept[ii]
-            swe = depth * (mm * depth * 100 + bb)
-
-            print(str(mm))
-
-            ras.data[valid_cells] = swe
-            rastools.raster_save(ras, swe_file)
-    ii += 1
-
-# differential SWE products
-for ii in range(0, len(ajli_dates) - 1):
-    ddi = ajli_dates[ii]
-    ddj = ajli_dates[ii + 1]
-    for intlen in interpolation_lengths:
-
-        # update file paths with dates
-        dswe_dir = path_sub(dswe_dir_template, ddi=ddi, ddj=ddj, ass="ajli", intlen=intlen)
-
-        # create SWE directory if does not exist
-        if not os.path.exists(dswe_dir):
-            os.makedirs(dswe_dir)
-
-        for rr in resolution:
-            ddi_in = path_sub([swe_dir_template, swe_file_template], dd=ddi, rr=rr, ass="ajli_1", intlen=intlen)
-            ddj_in = path_sub([swe_dir_template, swe_file_template], dd=ddj, rr=rr, ass="ajli_2", intlen=intlen)
-            dswe_out = path_sub([dswe_dir_template, dswe_file_template], ddi=ddi, ddj=ddj, rr=rr, ass="ajli", intlen=intlen)
-
-            hs = rastools.raster_dif_gdal(ddj_in, ddi_in, inherit_from=2, dif_out=dswe_out)
+#             hs = rastools.raster_dif_gdal(ddj_in, ddi_in, inherit_from=2, dif_out=dswe_out)
 
 # masked differential SWE
 snow_mask = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\snow_depth_mask.shp"
 trail_mask = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\trampled_snow_mask_dissolved.shp"
-for ii in range(0, len(ajli_dates) - 1):
-    ddi = ajli_dates[ii]
-    ddj = ajli_dates[ii + 1]
+for ass in dens_ass.keys():
+    print(ass)
     for intlen in interpolation_lengths:
+        for ii in range(0, len(snow_on_ass[ass]) - 1):
+            ddi = snow_on[ii]
+            ddj = snow_on[ii + 1]
 
-        # update file paths with dates
-        dswe_masked_dir = path_sub(dswe_masked_dir_template, ddi=ddi, ddj=ddj, ass="ajli", intlen=intlen)
 
-        # create SWE directory if does not exist
-        if not os.path.exists(dswe_masked_dir):
-            os.makedirs(dswe_masked_dir)
+            # update file paths with dates
+            dswe_masked_dir = path_sub(dswe_masked_dir_template, ddi=ddi, ddj=ddj, ass=ass, intlen=intlen)
 
-        for rr in resolution:
-            old_file = path_sub(dswe_dir_template + dswe_file_template, ddi=ddi, ddj=ddj, rr=rr, ass="ajli", intlen=intlen)
-            new_file = path_sub(dswe_masked_dir_template + dswe_masked_file_template, ddi=ddi, ddj=ddj, rr=rr, ass="ajli", intlen=intlen)
+            # create SWE directory if does not exist
+            if not os.path.exists(dswe_masked_dir):
+                os.makedirs(dswe_masked_dir)
 
-            ras = rastools.raster_load(old_file)
-            rastools.raster_save(ras, new_file)
+            for rr in resolution:
+                old_file = path_sub(dswe_dir_template + dswe_file_template, ddi=ddi, ddj=ddj, rr=rr, ass=ass,
+                                    intlen=intlen)
+                new_file = path_sub(dswe_masked_dir_template + dswe_masked_file_template, ddi=ddi, ddj=ddj, rr=rr,
+                                    ass=ass, intlen=intlen)
 
-            rastools.raster_burn(new_file, snow_mask, ras.no_data)
-            rastools.raster_burn(new_file, trail_mask, ras.no_data)
+                ras = rastools.raster_load(old_file)
+                rastools.raster_save(ras, new_file)
+
+                rastools.raster_burn(new_file, snow_mask, ras.no_data)
+                rastools.raster_burn(new_file, trail_mask, ras.no_data)
+
+# for ii in range(0, len(ajli_dates) - 1):
+#     ddi = ajli_dates[ii]
+#     ddj = ajli_dates[ii + 1]
+#     for intlen in interpolation_lengths:
+#
+#         # update file paths with dates
+#         dswe_masked_dir = path_sub(dswe_masked_dir_template, ddi=ddi, ddj=ddj, ass="ajli", intlen=intlen)
+#
+#         # create SWE directory if does not exist
+#         if not os.path.exists(dswe_masked_dir):
+#             os.makedirs(dswe_masked_dir)
+#
+#         for rr in resolution:
+#             old_file = path_sub(dswe_dir_template + dswe_file_template, ddi=ddi, ddj=ddj, rr=rr, ass="ajli", intlen=intlen)
+#             new_file = path_sub(dswe_masked_dir_template + dswe_masked_file_template, ddi=ddi, ddj=ddj, rr=rr, ass="ajli", intlen=intlen)
+#
+#             ras = rastools.raster_load(old_file)
+#             rastools.raster_save(ras, new_file)
+#
+#             rastools.raster_burn(new_file, snow_mask, ras.no_data)
+#             rastools.raster_burn(new_file, trail_mask, ras.no_data)
+
 
 
 # point samples of hs
@@ -469,10 +585,24 @@ for dd in snow_on:
             except AttributeError:
                 print('File does not exist')
 
+# # point samples of swe
+# pts_file_in = initial_pts_file
+# for dd in snow_on:
+#     for ass in ["ajli_1", "ajli_2"]:
+#         for intlen in interpolation_lengths:
+#             for rr in resolution:
+#                 try:
+#                     swe_path = path_sub(swe_dir_template + swe_file_template, dd=dd, rr=rr, ass=ass, intlen=intlen)
+#                     colname = str(dd) + '_' + str(rr) + '_' + str(ass) + '_' + str(intlen)
+#                     rastools.csv_sample_raster(swe_path, pts_file_in, swe_pts_path_out, "xcoordUTM11", "ycoordUTM11", colname, sample_no_data_value='')
+#                     pts_file_in = swe_pts_path_out
+#                 except AttributeError:
+#                     print('File does not exist')
+
 # point samples of swe
 pts_file_in = initial_pts_file
-for dd in snow_on:
-    for ass in ["ajli_1", "ajli_2"]:
+for ass in dens_ass.keys():
+    for dd in snow_on_ass[ass]:
         for intlen in interpolation_lengths:
             for rr in resolution:
                 try:

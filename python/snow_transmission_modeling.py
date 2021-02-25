@@ -4,12 +4,10 @@ import pandas as pd
 import tifffile as tif
 from scipy.optimize import fmin_bfgs
 
+plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\thesis_graphics\\modeling snow accumulation\\"
+
 batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_uf_.25m_180px\\outputs\\'
 # batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\mb_15_1m_pr.15_os10\\outputs\\'
-
-# # output files
-# covar_out = batch_dir + "phi_theta_lookup_covar_training.csv"
-# weighted_cv_out = batch_dir + "rshmetalog_weighted_cv.csv"
 
 # scaling coefficient converts from expected returns to expected contact number
 # scaling_coef = 0.166104  # all rings
@@ -19,19 +17,22 @@ scaling_coef = 0.194475  # dropping 5th ring
 hemimeta = pd.read_csv(batch_dir + 'rshmetalog.csv')
 imsize = hemimeta.img_size_px[0]
 
-# load covariant
-# temp_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\interp_2x\\19_045-19_050\\masked\\dswe_ajli_19_045-19_050_r.25m_interp2x_masked.tif'
+# specify which time interval
+# interval = "045-050"
+interval = "050-052"
 
-# template_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\interp_2x\\19_050-19_052\\masked\\dswe_ajli_19_050-19_052_r.25m_interp2x_masked.tif'
+# load covariant
 count_045 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\RAS\\19_045_ground_point_density_r.25m.bil'
 count_050 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_las_proc\\OUTPUT_FILES\\RAS\\19_050_ground_point_density_r.25m.bil'
 count_052 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\RAS\\19_052_ground_point_density_r.25m.bil'
 count_149 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RAS\\19_149_ground_point_density_r.25m.bil'
-# var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\interp_2x\\19_045-19_050\\masked\\dswe_ajli_19_045-19_050_r.05m_interp2x_masked.tif'
-var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\interp_2x\\19_050-19_052\\masked\\dswe_ajli_19_050-19_052_r.05m_interp2x_masked.tif'
 
-# var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ajli\\interp_1x\\19_050-19_052\\masked\\dswe_ajli_19_050-19_052_r.25m_interp2x_masked.tif'
-# var = rastools.raster_to_pd(var_in, 'covariant')
+if interval == "045-050":
+    # var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\alin\\interp_2x\\19_045-19_050\\masked\\dswe_alin_19_045-19_050_r.05m_interp2x_masked.tif'
+    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ahpl\\interp_2x\\19_045-19_050\\masked\\dswe_ahpl_19_045-19_050_r.05m_interp2x_masked.tif'
+elif interval == "050-052":
+    # var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\alin\\interp_2x\\19_050-19_052\\masked\\dswe_alin_19_050-19_052_r.05m_interp2x_masked.tif'
+    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ahpl\\interp_2x\\19_050-19_052\\masked\\dswe_ahpl_19_050-19_052_r.05m_interp2x_masked.tif'
 
 ddict = {'count_045': count_045,
          'count_050': count_050,
@@ -39,12 +40,22 @@ ddict = {'count_045': count_045,
          'count_149': count_149,
          'covariant': var_in}
 var = rastools.pd_sample_raster_gdal(ddict, include_nans=True, mode="median")
+
+# # cull outliers
+# lb = np.nanquantile(var.covariant, .001)
+# ub = np.nanquantile(var.covariant, .999)
+# outliers = (var.covariant < lb) | (var.covariant > ub)
+# var.loc[outliers, "covariant"] = np.nan
+
 var = var.loc[~np.isnan(var.covariant), :]  # drop nans in covariant
 
-# var.loc[:, "min_pc"] = np.nanmin((var.count_045, var.count_050, var.count_149), axis=0) * (.25 ** 2)
-var.loc[:, "min_pc"] = np.nanmin((var.count_050, var.count_052, var.count_149), axis=0) * (.25 ** 2)
+if interval == "045-050":
+    var.loc[:, "min_pc"] = np.nanmin((var.count_045, var.count_050, var.count_149), axis=0) * (.25 ** 2)
+elif interval == "050-052":
+    var.loc[:, "min_pc"] = np.nanmin((var.count_050, var.count_052, var.count_149), axis=0) * (.25 ** 2)
+
 # filter by min point count
-var = var.loc[var.min_pc >= 10, :]
+var = var.loc[var.min_pc >= 25, :]
 
 
 # merge with image meta
@@ -67,7 +78,7 @@ imrange[phi <= max_phi] = True
 
 # # filter hemimeta to desired images
 # delineate training set (set_param < param_thresh) and test set (set_param >= param thresh)
-param_thresh = 0.25
+param_thresh = 0.50
 set_param = np.random.random(len(hemi_var))
 hemi_var.loc[:, 'training_set'] = set_param < param_thresh
 # build hemiList from training_set only
@@ -76,7 +87,7 @@ hemiList = hemi_var.loc[hemi_var.training_set, :].reset_index()
 # load hemiList images to imstack
 imstack = np.full([imsize, imsize, len(hemiList)], np.nan)
 for ii in range(0, len(hemiList)):
-    imstack[:, :, ii] = tif.imread(batch_dir + hemiList.file_name[ii])[:, :, 1] * scaling_coef
+    imstack[:, :, ii] = tif.imread(batch_dir + hemiList.file_name[ii])[:, :, 0] * scaling_coef
     print(str(ii + 1) + ' of ' + str(len(hemiList)))
 #
 # # preview of correlation coefficient
@@ -154,8 +165,8 @@ def dwst(p0):
     intnum = p0[1]  # interaction number
     phi_0 = p0[2]  # central phi in radians
     theta_0 = p0[3]  # central theta in radians
-    bb = p0[4]
-    mm = p0[5]
+    mm = p0[4]
+    # bb = p0[5]
 
     # calculate angle of each pixel from (phi_0, theta_0)
     radist = np.arccos(np.cos(phi_0) * np.cos(phi) + np.sin(phi_0) * np.sin(phi) * np.cos(theta_0 - theta))
@@ -174,10 +185,11 @@ def dwst(p0):
     w_stack = np.average(imstack_long, weights=weights.ravel(), axis=1)
 
     # model snow accumulation with snowfall transmittance over all ground points
-    snowacc = mm * np.exp(-intnum * w_stack) + bb
+    snowacc = mm * np.exp(-intnum * w_stack)
+    # snowacc = mm * np.exp(-intnum * w_stack) + bb
 
     dswe = hemiList.covariant
-    # dswe = hemiList.h2 * (a2 * hemiList.h2 * 100 + b2) - hemiList.h1 * (a1 * hemiList.h1 * 100 + b1)
+
     # calculate sum of square residuals
     ssres = np.sum((dswe - snowacc) ** 2)
 
@@ -187,7 +199,6 @@ def rsq(p0):
     ssres = dwst(p0)
 
     dswe = hemiList.covariant
-    # dswe = hemiList.h2 * (a2 * hemiList.h2 * 100 + b2) - hemiList.h1 * (a1 * hemiList.h1 * 100 + b1)
 
     sstot = np.sum((dswe - np.mean(dswe)) ** 2)
     return 1 - ssres / sstot
@@ -195,22 +206,35 @@ def rsq(p0):
 Nfeval = 1
 def callbackF(Xi):
     global Nfeval
-    print('{0:4d}   {1: 3.6f}   {2: 3.6f}   {3: 3.6f}   {4: 3.6f}   {5: 3.6f}   {6: 3.6f}   {7: 3.6f}   {8: 3.6f}'.format(Nfeval, Xi[0], Xi[1], Xi[2], Xi[3], Xi[4], Xi[5], dwst(Xi), rsq(Xi)))
+    print('{0:4d}   {1: 3.6f}   {2: 3.6f}   {3: 3.6f}   {4: 3.6f}   {5: 3.6f}   {6: 3.6f}   {7: 3.6f}'.format(Nfeval, Xi[0], Xi[1], Xi[2], Xi[3], Xi[4], dwst(Xi), rsq(Xi)))
+    # print('{0:4d}   {1: 3.6f}   {2: 3.6f}   {3: 3.6f}   {4: 3.6f}   {5: 3.6f}   {6: 3.6f}   {7: 3.6f}   {8: 3.6f}'.format(Nfeval, Xi[0], Xi[1], Xi[2], Xi[3], Xi[4], Xi[5], dwst(Xi), rsq(Xi)))
     Nfeval += 1
 
-print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}   {6:9s}   {7:9s}   {8:9s}'.format('Iter', ' sig', ' intnum', 'phi', 'theta', 'bb', 'mm','f(X)', 'R2'))
-# p0 = np.array([0.11, 21.6, phi[96, 85], theta[96, 85], 1, 0], dtype=np.double)
-# p0 = np.array([0.11264913, 15.28145434, 0.10969805, 2.57800496, -0.11942653, 7.96539625])  # 19_045-19_050 (all)
-# p0 = np.array([ 0.11239098, 14.21423718,  0.11844789,  2.61857637, -0.27146595, 7.99271962])  # 19_045-19_050 (dropping min_ct < 10), r2 = .18
-# p0 = np.array([0.11380506, 21.48592349, 0.11546068, 2.55144104, 1.40918559, 6.60447908])  # 19_045-19_050 (dropping min_ct < 25), r2 = .22??
-p0 = np.array([0.14348116, 30.20682491, 0.13394402, 2.65135774, 7.19794707, 19.41070969])  # 19_050-19_052 (dropping min_ct < 10), r2 = .43
-# p0 = np.array([0.16945377, 14.78239759, 0.14993679, 2.63400967, 0.03629841, 25.75866498])  # 19_050-19_052 (dropping min_ct < 25), r2 = .55
-# p0 = popt
-popt = p0
+print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}   {6:9s}   {7:9s}'.format('Iter', ' sig', ' intnum', 'phi', 'theta', 'mm','f(X)', 'R2'))
+# print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}   {6:9s}   {7:9s}   {8:9s}'.format('Iter', ' sig', ' intnum', 'phi', 'theta', 'mm', 'bb', 'f(X)', 'R2'))
+
+
+if interval == "045-050":
+    # p0 = np.array([0.11133662, 1.18626547, 0.09616933, 2.49615144, 8.15912542])  # 19_045-19_050, min_ct >= 10, alin, no bb, r2 = 0.172494
+    # p0 = np.array([0.12009855, 1.72308774, 0.09704997, 2.50291223, 10.0493321])  # 19_045-19_050, min_ct >= 10, ahpl, no bb, r2 = 0.258417
+    # p0 = np.array([0.11779021, 0.88873142, 0.09885492, 2.48813593, 9.52537669, -1.45475159])  # 19_045-19_050, alin, min_ct >= 10, alin, r2 = 0.173103
+    # p0 = np.array([0.13003656, 1.25413136, 0.09995546, 2.49116541, 11.42591721, -1.56140183])  # 19_045-19_050, ahpl, min_ct >= 10, ahpl, r2 = 0.260354
+
+    p0 = np.array([0.12311107, 1.53782685, 0.09861554, 2.49519406, 9.51433871])  # 19_045-19_050, min_ct >= 25, ahpl, no bb, 50% of data, r2 = 0.322026
+
+elif interval == "050-052":
+    # p0 = np.array([0.16484606, 2.26669136, 0.18210887, 2.52394167, 18.89760106])  # 19_050-19_052 (dropping min_ct < 10), alin, no bb, r2 = 0.265145  -- these look bad... transmission too low
+    # p0 = np.array([0.1713302, 1.16210526, 0.18899996, 2.54200686, 16.80013182])  # 19_050-19_052, min_ct >= 10, ahpl, no bb, r2 = 0.209451 -- still somewhat of a blob. Could it be that outliers are responsible?
+    # p0 = np.array([0.1355174, 3.34151497, 0.1542143, 2.55194135, 17.27915456, 1.68683719])  # 19_050-19_052 (dropping min_ct < 10), alin, r2 = 0.272531 -- these look bad... transmission too low
+    # p0 = np.array([0.13587388, 2.42821223, 0.16443314, 2.62978447, 13.41904737, 4.3388157])  # 19_050-19_052, min_ct >= 10, ahpl, r2 = 0.217985 -- same problem, absorption factor too high, transmission too low.
+
+    p0 = np.array([0.16483349, 1.08482362, 0.18124984, 2.60465732, 16.32643726])  # 19_050-19_052, min_ct >= 25, ahpl, no bb, 50% of data, r2 = 0.286698
+
+# run optimization
 [popt, fopt, gopt, Bopt, func_calls, grad_calls, warnflg] = \
-    fmin_bfgs(dwst, p0, callback=callbackF, maxiter=25, full_output=True, retall=False)
+    fmin_bfgs(dwst, p0, callback=callbackF, maxiter=50, full_output=True, retall=False)
 
-
+u_out = (180 / np.pi, 1, 180 / np.pi, 180/np.pi, 1)
 
 
 
@@ -235,8 +259,9 @@ sig = p0[0]  # standard deviation of angular gaussian in radians
 intnum = p0[1]  # interaction number
 phi_0 = p0[2]  # central phi in radians
 theta_0 = p0[3]  # central theta in radians
-bb = p0[4]
-mm = p0[5]
+mm = p0[4]
+# bb = p0[5]
+bb = 0
 
 # calculate angle of each pixel from (phi_0, theta_0)
 radist = np.arccos(np.cos(phi_0) * np.cos(phi) + np.sin(phi_0) * np.sin(phi) * np.cos(theta_0 - theta))
@@ -261,15 +286,20 @@ transmittance = np.exp(-intnum * w_stack)
 fig = plt.figure()
 fig.subplots_adjust(top=0.90, bottom=0.12, left=0.12)
 ax1 = fig.add_subplot(111)
-# ax1.set_title('$\Delta$SWE vs. directionally weighted snowfall transmission $T^{*}_{(x, y)}$\n Upper Forest, 14-19 Feb. 2019, 25cm resolution')
-ax1.set_title('$\Delta$SWE vs. directionally weighted snowfall transmission $T^{*}_{(x, y)}$\n Upper Forest, 19-21 Feb. 2019, 25cm resolution')
+if interval == "045-050":
+    ax1.set_title('$\Delta$SWE vs. directionally weighted snowfall transmission $T^{*}_{(x, y)}$\n Upper Forest, 14-19 Feb. 2019, 25cm resolution')
+elif interval == "050-052":
+    ax1.set_title('$\Delta$SWE vs. directionally weighted snowfall transmission $T^{*}_{(x, y)}$\n Upper Forest, 19-21 Feb. 2019, 25cm resolution')
 ax1.set_xlabel("$\Delta$SWE [mm]")
 ax1.set_ylabel("$T^{*}_{(x, y)}$ [-]")
-# covariant = dswe = hemiList.h2 * (a2 * hemiList.h2 * 100 + b2) - hemiList.h1 * (a1 * hemiList.h1 * 100 + b1)
 plt.scatter(hemiList.covariant, transmittance, s=2, alpha=.25)
 mm_mod = np.array([np.nanmin(transmittance), np.nanmax(transmittance)])
 plt.plot(mm_mod * mm + bb, mm_mod, c='Black', linestyle='dashed', linewidth=1.5)
 plt.ylim(0, 1)
+if interval == "045-050":
+    fig.savefig(plot_out_dir + "dSWE vs DWST 045-050.png")
+elif interval == "050-052":
+    fig.savefig(plot_out_dir + "dSWE vs DWST 050-052.png")
 
 # ## calculate interaction scalar across hemisphere
 # plt.scatter(np.log(hemi_var.covariant[hemi_var.training_set.values]), -w_stack, s=2, alpha=.25)
@@ -330,7 +360,7 @@ plt.ylim(0, 1)
 v_list = np.linspace(0.001, np.pi/2, 200)  # sig
 w_data = pd.DataFrame(columns={"sig", "r2"})
 ii = 0
-px = popt.copy()
+px = p0.copy()
 for vv in v_list:
 
     px[0] = vv
@@ -346,19 +376,25 @@ for vv in v_list:
 fig = plt.figure()
 fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
 ax1 = fig.add_subplot(111)
-# ax1.set_title('Optimization of Gaussian weight function width $\sigma$\nUpper Forest, 14-19 Feb. 2019, 25cm resolution')
-ax1.set_title('Optimization of Gaussian weight function width $\sigma$\nUpper Forest, 19-21 Feb. 2019, 25cm resolution')
+if interval == "045-050":
+    ax1.set_title('Optimization of Gaussian weight function width $\sigma$\nUpper Forest, 14-19 Feb. 2019, 25cm resolution')
+elif interval == "050-052":
+    ax1.set_title('Optimization of Gaussian weight function width $\sigma$\nUpper Forest, 19-21 Feb. 2019, 25cm resolution')
 ax1.set_ylabel("$R^2$ for $\Delta$SWE vs. modeled snow accumulation")
 ax1.set_xlabel("Standard deviation of Gausian weight function $\sigma$ [$^{\circ}$]")
 plt.plot(w_data.sig * 180 / np.pi, w_data.r2)
+if interval == "045-050":
+    fig.savefig(plot_out_dir + "optimization of gaussian weight function width sigma 045-050.png")
+elif interval == "050-052":
+    fig.savefig(plot_out_dir + "optimization of gaussian weight function width sigma 050-052.png")
 
 #####
 # interaction scalar
 # sample optimization topography for mu*
-v_list = np.linspace(1, 100, 100)  # mu*
+v_list = np.linspace(.1, 5, 100)  # mu*
 w_data = pd.DataFrame(columns={"mu", "r2"})
 ii = 0
-px = popt.copy()
+px = p0.copy()
 for vv in v_list:
 
     px[1] = vv
@@ -374,18 +410,25 @@ for vv in v_list:
 fig = plt.figure()
 fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
 ax1 = fig.add_subplot(111)
-# ax1.set_title('Optimization of snowfall absorbtion coefficient $\mu^*$\nUpper Forest, 14-19 Feb. 2019, 25cm resolution')
-ax1.set_title('Optimization of snowfall absorbtion coefficient $\mu^*$\nUpper Forest, 19-21 Feb. 2019, 25cm resolution')
+if interval == "045-050":
+    ax1.set_title('Optimization of snowfall absorbtion coefficient $\mu^*$\nUpper Forest, 14-19 Feb. 2019, 25cm resolution')
+elif interval == "050-052":
+    ax1.set_title('Optimization of snowfall absorbtion coefficient $\mu^*$\nUpper Forest, 19-21 Feb. 2019, 25cm resolution')
 ax1.set_ylabel("$R^2$ for $\Delta$SWE vs. modeled snow accumulation")
 ax1.set_xlabel("snowfall absorbtion coefficient $\mu^*$ [-]")
 plt.plot(w_data.mu, w_data.r2)
 plt.ylim(-1, )
+if interval == "045-050":
+    fig.savefig(plot_out_dir + "optimization of snow absorption coefficient mu 045-050.png")
+elif interval == "050-052":
+    fig.savefig(plot_out_dir + "optimization of snow absorption coefficient mu 050-052.png")
+
 
 
 ################################################
 ## plot hemispherical footprint
 
-intnum = popt[1]
+intnum = p0[1]
 
 # rerun corcoef_e with optimized transmission scalar
 corcoef_e = np.full((imsize, imsize), np.nan)
@@ -438,10 +481,12 @@ val_max = np.nanmax(set)
 abs_max = np.max(np.abs([val_min, val_max]))
 cmap = matplotlib.cm.RdBu
 
-# main plot
+# plot with axes
 fig = plt.figure(figsize=(7, 7))
-# fig.suptitle("Correlation of $\Delta$SWE with snowfall transmission over hemisphere\nUpward-looking, Upper Forest, 14-19 Feb 2019, 25cm resolution")
-fig.suptitle("Correlation of $\Delta$SWE with snowfall transmission over hemisphere\nUpward-looking, Upper Forest, 19-21 Feb 2019, 25cm resolution")
+if interval == "045-050":
+    fig.suptitle("Correlation of $\Delta$SWE with snowfall transmission over hemisphere\nUpward-looking, Upper Forest, 14-19 Feb 2019, 25cm resolution")
+elif interval == "050-052":
+    fig.suptitle("Correlation of $\Delta$SWE with snowfall transmission over hemisphere\nUpward-looking, Upper Forest, 19-21 Feb 2019, 25cm resolution")
 #create axes in the background to show cartesian image
 ax0 = fig.add_subplot(111)
 im = ax0.imshow(set, cmap=cmap, clim=(val_min, val_max), norm=MidpointNormalize(vmin=-abs_max, midpoint=val_mid, vmax=abs_max))
@@ -454,7 +499,6 @@ ax.set_rmax(90)
 ax.set_rgrids(np.linspace(0, 90, 7), labels=['', '15$^\circ$', '30$^\circ$', '45$^\circ$', '60$^\circ$', '75$^\circ$', '90$^\circ$'], angle=315)
 ax.set_theta_zero_location("N")
 ax.set_theta_direction(-1)
-# ax.set_thetagrids(np.linspace(0, 360, 8, endpoint=False), labels=['N', '', 'W', '', 'S', '', 'E', ''])
 ax.set_thetagrids(np.linspace(0, 360, 4, endpoint=False), labels=['N\n  0$^\circ$', 'W\n  270$^\circ$', 'S\n  180$^\circ$', 'E\n  90$^\circ$'])
 
 # add colorbar
@@ -462,7 +506,39 @@ fig.subplots_adjust(top=0.95, left=0.1, right=0.75, bottom=0.05)
 cbar_ax = fig.add_axes([0.85, 0.20, 0.03, 0.6])
 fig.colorbar(im, cax=cbar_ax)
 cbar_ax.set_ylabel("Pearson's correlation coefficient")
-# cbar_ax.set_label("Pearson's Correlation Coefficient", rotation=270)
+
+if interval == "045-050":
+    fig.savefig(plot_out_dir + "footprint corcoef dswe with snowfall transmission 045-050.png")
+elif interval == "050-052":
+    fig.savefig(plot_out_dir + "footprint corcoef dswe with snowfall transmission 050-052.png")
+
+
+# plot with contours
+# plot with axes
+fig = plt.figure(figsize=(7, 7))
+if interval == "045-050":
+    fig.suptitle("Correlation of $\Delta$SWE with snowfall transmission over hemisphere\nUpward-looking, Upper Forest, 14-19 Feb 2019, 25cm resolution")
+elif interval == "050-052":
+    fig.suptitle("Correlation of $\Delta$SWE with snowfall transmission over hemisphere\nUpward-looking, Upper Forest, 19-21 Feb 2019, 25cm resolution")
+#create axes in the background to show cartesian image
+ax0 = fig.add_subplot(111)
+im = ax0.imshow(set, cmap=cmap, clim=(val_min, val_max), norm=MidpointNormalize(vmin=-abs_max, midpoint=val_mid, vmax=abs_max))
+ax0.axis("off")
+
+# create polar axes and labels
+ax = fig.add_subplot(111, polar=True, label="polar")
+ax.set_facecolor("None")
+ax.set_rmax(90)
+ax.set_rgrids(np.linspace(0, 90, 7), labels=['', '15$^\circ$', '30$^\circ$', '45$^\circ$', '60$^\circ$', '75$^\circ$', '90$^\circ$'], angle=315)
+ax.set_theta_zero_location("N")
+ax.set_theta_direction(-1)
+ax.set_thetagrids(np.linspace(0, 360, 4, endpoint=False), labels=['N\n  0$^\circ$', 'W\n  270$^\circ$', 'S\n  180$^\circ$', 'E\n  90$^\circ$'])
+
+# add colorbar
+fig.subplots_adjust(top=0.95, left=0.1, right=0.75, bottom=0.05)
+cbar_ax = fig.add_axes([0.85, 0.20, 0.03, 0.6])
+fig.colorbar(im, cax=cbar_ax)
+cbar_ax.set_ylabel("Pearson's correlation coefficient")
 
 # contours
 ax.set_rgrids([])  # no rgrids
@@ -472,41 +548,47 @@ matplotlib.rcParams["lines.linewidth"] = 1
 CS = ax0.contour(set, np.linspace(-.4, .4, 9), colors="k")
 plt.clabel(CS, inline=1, fontsize=8)
 
-###
-# plot radial distribution of corcoef_e
-sig = xopt[0]
-cpy = xopt[2]
-cpx = xopt[3]
-yid, xid = np.indices((imsize, imsize))
-radist = np.sqrt((yid - cpy) ** 2 + (xid - cpx) ** 2) * np.pi / 180
+if interval == "045-050":
+    fig.savefig(plot_out_dir + "footprint corcoef dswe with snowfall transmission 045-050 contours.png")
+elif interval == "050-052":
+    fig.savefig(plot_out_dir + "footprint corcoef dswe with snowfall transmission 050-052 contours.png")
 
-radcor = pd.DataFrame({"phi": np.rint(np.ravel(radist) * 180 / np.pi).astype(int),
-                       "corcoef_e": np.ravel(corcoef_e)})
-
-radmean = radcor.groupby('phi').mean().reset_index(drop=False)
-radmean = radmean.assign(gaus=np.exp(- 0.5 * (radmean.phi * np.pi / (sig * 180)) ** 2))
-
-plt.plot(radmean.phi, radmean.corcoef_e)
-plt.plot(radmean.phi, radmean.gaus * np.nanmax(radmean.corcoef_e))
-plt.plot(radmean.phi, radmean.corcoef_e - radmean.gaus * np.nanmax(radmean.corcoef_e))
-
-###
-
-maxcoords = np.where(corcoef_e == np.nanmax(corcoef_e))
-jj = maxcoords[0][0]
-ii = maxcoords[1][0]
-
-plt.scatter(hemiList.covariant, np.exp(-xopt[1] * imstack[jj, ii, :]), alpha=0.1, s=5)
-
-immid = ((imsize - 1)/2).astype(int)
-jj = immid
-ii = immid
-plt.scatter(hemiList.covariant, np.exp(-xopt[1] * imstack[jj, ii, :]), alpha=0.1, s=5)
-# cumulative weights... this is all messed
-
-plt.imshow(sprank, cmap=plt.get_cmap('Purples_r'))
-plt.colorbar()
-
+#
+# ###
+# # plot radial distribution of corcoef_e
+# sig = xopt[0]
+# cpy = xopt[2]
+# cpx = xopt[3]
+# yid, xid = np.indices((imsize, imsize))
+# radist = np.sqrt((yid - cpy) ** 2 + (xid - cpx) ** 2) * np.pi / 180
+#
+# radcor = pd.DataFrame({"phi": np.rint(np.ravel(radist) * 180 / np.pi).astype(int),
+#                        "corcoef_e": np.ravel(corcoef_e)})
+#
+# radmean = radcor.groupby('phi').mean().reset_index(drop=False)
+# radmean = radmean.assign(gaus=np.exp(- 0.5 * (radmean.phi * np.pi / (sig * 180)) ** 2))
+#
+# plt.plot(radmean.phi, radmean.corcoef_e)
+# plt.plot(radmean.phi, radmean.gaus * np.nanmax(radmean.corcoef_e))
+# plt.plot(radmean.phi, radmean.corcoef_e - radmean.gaus * np.nanmax(radmean.corcoef_e))
+#
+# ###
+#
+# maxcoords = np.where(corcoef_e == np.nanmax(corcoef_e))
+# jj = maxcoords[0][0]
+# ii = maxcoords[1][0]
+#
+# plt.scatter(hemiList.covariant, np.exp(-xopt[1] * imstack[jj, ii, :]), alpha=0.1, s=5)
+#
+# immid = ((imsize - 1)/2).astype(int)
+# jj = immid
+# ii = immid
+# plt.scatter(hemiList.covariant, np.exp(-xopt[1] * imstack[jj, ii, :]), alpha=0.1, s=5)
+# # cumulative weights... this is all messed
+#
+# plt.imshow(sprank, cmap=plt.get_cmap('Purples_r'))
+# plt.colorbar()
+#
 
 # angle_lookup_covar.sqr_covar_weighted
 # angle_lookup_covar.sort_values(phi)

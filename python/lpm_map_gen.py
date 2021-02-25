@@ -17,6 +17,7 @@ for angle in angle_set:
     lpml_out = "19_149_LPM-last_a%ANGLE%_r0.10m.tif".replace('%ANGLE%', str(angle))
     lpmc_out = "19_149_LPM-canopy_a%ANGLE%_r0.10m.tif".replace('%ANGLE%', str(angle))
 
+    # load raster data in
     FG = rastools.raster_load(dir_in + FG_in)
     LG = rastools.raster_load(dir_in + LG_in)
     FC = rastools.raster_load(dir_in + FC_in)

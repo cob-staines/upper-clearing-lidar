@@ -7,11 +7,15 @@ import numpy as np
 
 plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\thesis_graphics\\frequency distributions\\"
 
-data_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\uf_merged_ajli_.05m_canopy_19_149.csv'
+data_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\uf_merged_.05m_ahpl_native.csv'
 data = pd.read_csv(data_in)
 # filter to upper forest
 data = data.loc[data.uf == 1, :]
 
+# convert from returns to contact number
+data.loc[:, "cn"] = data.er_p0_mean * 0.19447
+# calculate transmission (spherical leaf angle assumption)
+data.loc[:, "trans_rs"] = np.exp(-data.cn)
 
 def resampling_histoplot(data, proposal, sample, nbins):
     d_samp, stats = gt.rejection_sample(data, proposal, sample, nbins, original_df=False)
@@ -28,25 +32,16 @@ ax1 = fig.add_subplot(111)
 ax1.set_title('Frequency distribution of SWE for 14 Feb. 2019\n Upper Forest, 5cm resolution, bias corrected with $LAI_{rs}$')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
-g, d_045 = resampling_histoplot(data, 'swe_19_045_1', 'er_p0_mean', 50)
+g, d_045 = resampling_histoplot(data, 'swe_19_045', 'cn', 50)
 g.legend_.set_title(None)
 fig.savefig(plot_out_dir + "freq_dist_resampled_swe_045.png")
-
-# fig = plt.figure()
-# ax1 = fig.add_subplot(111)
-# ax1.set_title('Frequency distribution of SWE for 19 Feb. 2019\n Upper Forest, 5cm resolution, bias corrected with $LAI_{rs}$')
-# ax1.set_xlabel("SWE [mm]")
-# ax1.set_ylabel("Relative frequency [-]")
-# g, d_050_1 = resampling_histoplot(data, 'swe_19_050_1', 'er_p0_mean', 50)
-# g.legend_.set_title(None)
-# fig.savefig(plot_out_dir + "freq_dist_resampled_swe_050.png")
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
 ax1.set_title('Frequency distribution of SWE for 19 Feb. 2019\n Upper Forest, 5cm resolution, bias corrected with $LAI_{rs}$')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
-g, d_050 = resampling_histoplot(data, 'swe_19_050_2', 'er_p0_mean', 50)
+g, d_050 = resampling_histoplot(data, 'swe_19_050', 'cn', 50)
 g.legend_.set_title(None)
 fig.savefig(plot_out_dir + "freq_dist_resampled_swe_050.png")
 
@@ -55,14 +50,14 @@ ax1 = fig.add_subplot(111)
 ax1.set_title('Frequency distribution of SWE for 21 Feb. 2019\n Upper Forest, 5cm resolution, bias corrected with $LAI_{rs}$')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
-g, d_052 = resampling_histoplot(data, 'swe_19_052_2', 'er_p0_mean', 50)
+g, d_052 = resampling_histoplot(data, 'swe_19_052', 'cn', 50)
 g.legend_.set_title(None)
 fig.savefig(plot_out_dir + "freq_dist_resampled_swe_052.png")
 
 # plot all together
-d_045 = d_045.assign(date="045", swe=d_045.swe_19_045_1)
-d_050 = d_050.assign(date="050", swe=d_050.swe_19_050_2)
-d_052 = d_052.assign(date="052", swe=d_052.swe_19_052_2)
+d_045 = d_045.assign(date="045", swe=d_045.swe_19_045)
+d_050 = d_050.assign(date="050", swe=d_050.swe_19_050)
+d_052 = d_052.assign(date="052", swe=d_052.swe_19_052)
 all_swe = pd.concat([d_045.loc[:, ["swe", "date"]], d_050.loc[:, ["swe", "date"]], d_052.loc[:, ["swe", "date"]]])
 
 fig = plt.figure()
@@ -74,14 +69,14 @@ plot = sns.histplot(all_swe, x="swe", hue="date", stat="density", common_norm=Fa
 fig.savefig(plot_out_dir + "freq_dist_resampled_all_swe.png")
 
 # export rejection sampled points
-e_045 = d_045.loc[:, ["x_coord", "y_coord", "swe_19_045_1"]]
-e_050 = d_050.loc[:, ["x_coord", "y_coord", "swe_19_050_2"]]
-e_052 = d_052.loc[:, ["x_coord", "y_coord", "swe_19_052_2"]]
+e_045 = d_045.loc[:, ["x_coord", "y_coord", "swe_19_045"]]
+e_050 = d_050.loc[:, ["x_coord", "y_coord", "swe_19_050"]]
+e_052 = d_052.loc[:, ["x_coord", "y_coord", "swe_19_052"]]
 
 rej_samp_out_file = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\rejection_sampled\\'
-e_045.to_csv(rej_samp_out_file + 'resampled_swe_19_045_ajli_1_r.05m_interp2x_by_contact-number.csv', index=False)
-e_050.to_csv(rej_samp_out_file + 'resampled_swe_19_050_ajli_2_r.05m_interp2x_by_contact-number.csv', index=False)
-e_052.to_csv(rej_samp_out_file + 'resampled_swe_19_052_ajli_2_r.05m_interp2x_by_contact-number.csv', index=False)
+e_045.to_csv(rej_samp_out_file + 'resampled_swe_19_045_ahpl_r.05m_interp2x_by_contact-number.csv', index=False)
+e_050.to_csv(rej_samp_out_file + 'resampled_swe_19_050_ahpl_r.05m_interp2x_by_contact-number.csv', index=False)
+e_052.to_csv(rej_samp_out_file + 'resampled_swe_19_052_ahpl_r.05m_interp2x_by_contact-number.csv', index=False)
 
 
 #### rejection sample dswe
@@ -90,7 +85,7 @@ ax1 = fig.add_subplot(111)
 ax1.set_title('Frequency distribution of $\Delta$SWE for 14-19 Feb. 2019\n Upper Forest, 5cm resolution, bias corrected with $LAI_{rs}$')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
-g, d_045_050 = resampling_histoplot(data, 'dswe_19_045-19_050', 'er_p0_mean', 50)
+g, d_045_050 = resampling_histoplot(data, 'dswe_19_045-19_050', 'cn', 50)
 g.legend_.set_title(None)
 fig.savefig(plot_out_dir + "freq_dist_resampled_dswe_045-050.png")
 
@@ -99,7 +94,7 @@ ax1 = fig.add_subplot(111)
 ax1.set_title('Frequency distribution of $\Delta$SWE for 19-21 Feb. 2019\n Upper Forest, 5cm resolution, bias corrected with $LAI_{rs}$')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
-g, d_050_052 = resampling_histoplot(data, 'dswe_19_050-19_052', 'er_p0_mean', 50)
+g, d_050_052 = resampling_histoplot(data, 'dswe_19_050-19_052', 'cn', 50)
 g.legend_.set_title(None)
 fig.savefig(plot_out_dir + "freq_dist_resampled_dswe_050-052.png")
 
@@ -118,7 +113,7 @@ fig.savefig(plot_out_dir + "freq_dist_resampled_all_dswe.png")
 
 
 ##### lai and transmittance
-data_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.25m_canopy_19_149.csv'
+data_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.25m_native_canopy_19_149.csv'
 c_data = pd.read_csv(data_in)
 # filter to upper forest
 c_data = c_data.loc[c_data.uf == 1, :]
@@ -167,7 +162,7 @@ fig.savefig(plot_out_dir + "freq_dist_trans_uf.png")
 
 
 ### other canopy metrics
-data_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.10m_canopy_19_149.csv'
+data_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.10m_native_canopy_19_149.csv'
 cc_data = pd.read_csv(data_in)
 # filter to upper forest
 cc_data = cc_data.loc[cc_data.uf == 1, :]

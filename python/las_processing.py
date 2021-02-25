@@ -8,6 +8,7 @@
 import hs_swe_data_products
 
 # ----- Canopy analysis -----
+# # hemi'photo analysis
 # hemi_optimization.py (optimizing synthetics)
 # hemisfer (photos/optimizing synthetics)
 # hemisfer_parse.py (photos/optimizing synthetics)
@@ -25,5 +26,19 @@ import distance_to_canopy_edge
 import lpm_map_gen
 # ray_sampling_method
 
+# ----- Combined analysis -----
 # merged data products
 import merged_data_products
+
+# snow transmission modeling
+import snow_transmission_modeling
+
+# frequency distributions
+import frequency_distributions
+# swe_distribution_fitting.r
+
+# semivariogram analysis
+import semivar_analysis
+
+# scatter plots
+import scatter_plots

@@ -383,8 +383,16 @@ def gdal_raster_reproject(src, match, nodatavalue=np.nan, mode="nearest"):
         gdal_mode = gdal.GRA_Average
     elif mode == "median":
         gdal_mode = gdal.GRA_Med
+    elif mode == "cubic":
+        gdal_mode = gdal.GRA_Cubic
+    elif mode == "cubic_spline":
+        gdal_mode = gdal.GRA_CubicSpline
+    elif mode == "lanczos":
+        gdal_mode = gdal.GRA_Lanczos
+    elif mode == "bilinear":
+        gdal_mode = gdal.GRA_Bilinear
     else:
-        raise Exception("Mode not yet defined. Will you do the honors.")
+        raise Exception("Mode not yet defined. Will you do the honors_")
 
     # Set the geotransform
     dest.SetGeoTransform(match_geotrans)

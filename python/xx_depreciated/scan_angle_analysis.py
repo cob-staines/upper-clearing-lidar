@@ -1,6 +1,7 @@
 import laslib
 import numpy as np
 import pandas as pd
+import h5py
 
 ### new run through: What I want is a ratio of canopy to ground points across scan anles
 
@@ -9,12 +10,21 @@ las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\li
 traj_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt"
 hdf5_path = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_UF.hdf5"
 
-laslib.las_traj(las_in, traj_in, hdf5_path, chunksize=10000, keep_return='all', drop_class=None)
+# laslib.las_traj(las_in, traj_in, hdf5_path, chunksize=10000, keep_return='all', drop_class=None)
+
+with h5py.File(hdf5_path, 'r') as hf:
+    las_time = hf['lasData'][:, 0]
+    traj_time = hf['trajData'][:, 0]
+
+# first ground
+# last ground
+# first canopy
 
 
+### old hat below
 
-# load las into hdf5
-laslib.las_to_hdf5(las_in, hdf5_path)
+# # load las into hdf5
+# laslib.las_to_hdf5(las_in, hdf5_path)
 
 # read in las data
 las_data = pd.read_hdf(hdf5_path, key='data', columns=['gps_time', 'num_returns', 'return_num', 'x', 'y', 'z', 'scan_angle_rank'])

@@ -29,6 +29,7 @@ class VoxelObj(object):
         self.return_dtype = None
         self.sample_data = None
         self.return_data = None
+        self.below_floor_count = None
 
     def copy(self):
         from copy import deepcopy
@@ -53,6 +54,7 @@ def save_vox_meta(vox):
         meta.create_dataset('vox_step', data=vox.step)
         meta.create_dataset('vox_ncells', data=vox.ncells)
         meta.create_dataset('vox_sample_length', data=vox.sample_length)
+        meta.create_dataset('below_floor_count', data=vox.below_floor_count)
 
 
 def load_vox_meta(hdf5_path, load_data=False):
@@ -73,6 +75,7 @@ def load_vox_meta(hdf5_path, load_data=False):
         vox.step = meta.get('vox_step')[()]
         vox.ncells = meta.get('vox_ncells')[()]
         vox.sample_length = meta.get('vox_sample_length')[()]
+        vox.below_floor_count = meta.get('below_floor_count')[()]
         vox.sample_dtype = h5f.get('sample_data').dtype
         vox.return_dtype = h5f.get('return_data').dtype
         if load_data:
@@ -447,6 +450,8 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
 
     if samp_floor_as_returns:
         print('Setting sample floor as return count... ', end='')
+
+        below_floor_count = 0
         # set minimum sample count equal to return count
         for zz in range(0, z_slices):
             print('\tSlice ' + str(zz + 1) + ' of ' + str(z_slices) + ': ', end='')
@@ -459,6 +464,9 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
             with h5py.File(vox.vox_hdf5, mode='r+') as hf:
                 fix = hf['sample_data'][:, :, z_low:z_high] < hf['return_data'][:, :, z_low:z_high]
                 hf['sample_data'][:, :, z_low:z_high][fix] = hf['return_data'][:, :, z_low:z_high][fix]
+
+                below_floor_count += np.sum(fix)
+        vox.below_floor_count = below_floor_count
         print('done', end='')
 
     print("-------- Las Ray Sampling completed--------")
@@ -466,7 +474,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
 
     return vox
 
-def beta_lookup_prior_calc(vox):
+def beta_lookup_prior_calc(vox, samp_floor_as_returns=True):
     val = (vox.sample_data > 0)  # roughly 50% at .25m
     rate = vox.return_data[val] / vox.sample_data[val]
     mu = np.mean(rate)
