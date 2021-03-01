@@ -12,27 +12,31 @@ plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\gr
 df_10_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\uf_merged_.10m_ahpl_median_canopy_19_149.csv'
 df_10 = pd.read_csv(df_10_in)
 df_10 = df_10.loc[df_10.uf == 1, :]
+df_10.loc[:, 'chm_1'] = df_10.loc[:, 'chm']
+df_10.loc[df_10.chm < 1, 'chm_1'] = np.nan
 
 df_25_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.25m_ahpl_median_canopy_19_149.csv'
 df_25 = pd.read_csv(df_25_in)
 df_25 = df_25.loc[df_25.uf == 1, :]
 df_25.loc[:, 'cn_mean'] = df_25.loc[:, 'er_p0_mean'] * 0.19447
+df_25.loc[:, 'cn_mean_25'] = df_25.loc[:, 'cn_mean']
+df_25.loc[df_25.cn_mean_25 < .25, 'cn_mean_25'] = np.nan
 df_25.loc[:, 'transmission_rs'] = np.exp(-df_25.loc[:, 'cn_mean'])
 df_25.loc[:, 'cc'] = 1 - df_25.loc[:, 'openness']
 
 df_all = pd.concat([df_10, df_25])
 # dirty renames
-df_all.loc[:, ['lai_rs', 'lai_hemi', 'hemi_75_deg_tx', 'hemi_15_deg_tx', 'ray_sampled_tx']] = df_all.loc[:, ['cn_mean', 'lai_s_cc', 'transmission', 'transmission_1', 'transmission_rs']].values
+df_all.loc[:, ['lai_rs', 'lai_hemi', 'hemi_75_deg_tx', 'hemi_15_deg_tx', 'ray_sampled_tx']] = df_all.loc[:, ['cn_mean_25', 'lai_s_cc', 'transmission', 'transmission_1', 'transmission_rs']].values
 
 
 # combined scatter plots
 
 
 x_vars = ['swe_19_045', 'swe_19_050', 'swe_19_052', 'dswe_19_045-19_050', 'dswe_19_050-19_052']
-y_vars = ['chm', 'dnt', 'dce']
+y_vars = ['chm_1', 'dnt', 'dce']
 hmm = ['chm', 'chm', 'chm', 'chm', 'chm', 'dnt', 'dnt', 'dnt', 'dnt', 'dnt', 'dce', 'dce', 'dce', 'dce', 'dce']
 next_label = iter(hmm).__next__
-def histme(x, y, color, **kwargs):
+def histme_dce(x, y, color, **kwargs):
     if next_label() == 'dce':
         y_step = 0.1
         plotrange = [[np.nanquantile(x, .0005), np.nanquantile(x, .9995)],
@@ -46,93 +50,73 @@ def histme(x, y, color, **kwargs):
 
 
 
-    plt.hist2d(x, y, range=plotrange,
-                  bins=rbins, norm=colors.LogNorm(), cmap="Blues")
+    # plt.hist2d(x, y, range=plotrange,
+    #               bins=rbins, norm=colors.LogNorm(), cmap="Blues")
+    plt.hist2d(x, y, range=plotrange, bins=rbins, cmap="Blues")
     # plt.colorbar()
 g = sns.PairGrid(df_all, y_vars=y_vars, x_vars=x_vars)
-g.map(histme)
-g.fig.subplots_adjust(top=0.9)
-g.fig.suptitle("Scatter plots of snow and canopy metrics", fontsize=16)
+g.map(histme_dce)
+# g.fig.subplots_adjust(top=0.9)
+# g.fig.suptitle("Scatter plots of snow and canopy metrics", fontsize=16)
 plt.savefig(plot_out_dir + "scatter_combined_canopy.png")
 
-hmm = ['chm', 'chm', 'chm', 'chm', 'chm', 'dnt', 'dnt', 'dnt', 'dnt', 'dnt', 'nope', 'nope', 'nope', 'nope', 'nope']
-next_label = iter(hmm).__next__
-y_vars = ['lai_hemi', 'lai_rs']
+
 
 def histme(x, y, color, **kwargs):
-    if next_label() == 'dce':
-        y_step = 0.1
-        plotrange = [[np.nanquantile(x, .0005), np.nanquantile(x, .9995)],
-                     np.rint(np.array([np.nanquantile(y, .0005), np.nanquantile(y, .9995)]) / y_step) * y_step]
-        n_bins = int((plotrange[1][1] - plotrange[1][0]) / y_step) - 1
-        rbins = (8 * 20, n_bins)
-    else:
-        rbins = (np.array([8, 5.7]) * 20).astype(int)
-        plotrange = [[np.nanquantile(x, .0005), np.nanquantile(x, .9995)],
-                     [np.nanquantile(y, .0005), np.nanquantile(y, .9995)]]
 
+    rbins = (np.array([8, 5.7]) * 20).astype(int)
+    plotrange = [[np.nanquantile(x, .0005), np.nanquantile(x, .9995)],
+                 [np.nanquantile(y, .0005), np.nanquantile(y, .9995)]]
 
-
-    plt.hist2d(x, y, range=plotrange,
-                  bins=rbins, norm=colors.LogNorm(), cmap="Blues")
+    # plt.hist2d(x, y, range=plotrange, bins=rbins, norm=colors.LogNorm(), cmap="Blues")
+    plt.hist2d(x, y, range=plotrange, bins=rbins, cmap="Blues")
     # plt.colorbar()
+
+y_vars = ['lai_hemi', 'lai_rs']
 g = sns.PairGrid(df_all, y_vars=y_vars, x_vars=x_vars)
 g.map(histme)
-g.fig.subplots_adjust(top=0.9)
-g.fig.suptitle("Scatter plots of snow and LAI metrics", fontsize=16)
+# g.fig.subplots_adjust(top=0.9)
+# g.fig.suptitle("Scatter plots of snow and LAI metrics", fontsize=16)
 plt.savefig(plot_out_dir + "scatter_combined_LAI.png")
 
 
-hmm = ['chm', 'chm', 'chm', 'chm', 'chm', 'dnt', 'dnt', 'dnt', 'dnt', 'dnt', 'nope', 'nope', 'nope', 'nope', 'nope']
-next_label = iter(hmm).__next__
-y_vars = ['hemi_75_deg_tx', 'hemi_15_deg_tx', 'ray_sampled_tx']
+
 def histme(x, y, color, **kwargs):
-    if next_label() == 'dce':
-        y_step = 0.1
-        plotrange = [[np.nanquantile(x, .0005), np.nanquantile(x, .9995)],
-                     np.rint(np.array([np.nanquantile(y, .0005), np.nanquantile(y, .9995)]) / y_step) * y_step]
-        n_bins = int((plotrange[1][1] - plotrange[1][0]) / y_step) - 1
-        rbins = (8 * 20, n_bins)
-    else:
-        rbins = (np.array([8, 5.7]) * 20).astype(int)
-        plotrange = [[np.nanquantile(x, .0005), np.nanquantile(x, .9995)],
-                     [np.nanquantile(y, .0005), np.nanquantile(y, .9995)]]
+    rbins = (np.array([8, 5.7]) * 20).astype(int)
+    # plotrange = [[np.nanquantile(x, .0005), np.nanquantile(x, .9995)],
+    #              [np.nanquantile(y, .0005), np.nanquantile(y, .9995)]]
+    plotrange = [[np.nanquantile(x, .0005), np.nanquantile(x, .9995)],
+                 [0.01, 0.99]]
 
-
-
-    plt.hist2d(x, y, range=plotrange,
-                  bins=rbins, norm=colors.LogNorm(), cmap="Blues")
+    # plt.hist2d(x, y, range=plotrange, bins=rbins, norm=colors.LogNorm(), cmap="Blues")
+    plt.hist2d(x, y, range=plotrange, bins=rbins, cmap="Blues")
+    plt.ylim(0, 1)
     # plt.colorbar()
+y_vars = ['hemi_75_deg_tx', 'hemi_15_deg_tx', 'ray_sampled_tx']
 g = sns.PairGrid(df_all, y_vars=y_vars, x_vars=x_vars)
 g.map(histme)
-g.fig.subplots_adjust(top=0.9)
-g.fig.suptitle("Scatter plots of snow and light transmittance metrics", fontsize=16)
+# g.fig.subplots_adjust(top=0.9)
+# g.fig.suptitle("Scatter plots of snow and light transmittance metrics", fontsize=16)
 plt.savefig(plot_out_dir + "scatter_combined_transmittance.png")
 
-hmm = ['chm', 'chm', 'chm', 'chm', 'chm', 'dnt', 'dnt', 'dnt', 'dnt', 'dnt', 'nope', 'nope', 'nope', 'nope', 'nope']
-next_label = iter(hmm).__next__
-y_vars = ['lpmf15', 'lpml15', 'lpmc15']
+
+
 def histme(x, y, color, **kwargs):
-    if next_label() == 'dce':
-        y_step = 0.1
-        plotrange = [[np.nanquantile(x, .0005), np.nanquantile(x, .9995)],
-                     np.rint(np.array([np.nanquantile(y, .0005), np.nanquantile(y, .9995)]) / y_step) * y_step]
-        n_bins = int((plotrange[1][1] - plotrange[1][0]) / y_step) - 1
-        rbins = (8 * 20, n_bins)
-    else:
-        rbins = (np.array([8, 5.7]) * 20).astype(int)
-        plotrange = [[np.nanquantile(x, .0005), np.nanquantile(x, .9995)],
-                     [np.nanquantile(y, .0005), np.nanquantile(y, .9995)]]
+    rbins = (np.array([8, 5.7]) * 20).astype(int)
+    # plotrange = [[np.nanquantile(x, .0005), np.nanquantile(x, .9995)],
+    #              [np.nanquantile(y, .0005), np.nanquantile(y, .9995)]]
 
+    plotrange = [[np.nanquantile(x, .0005), np.nanquantile(x, .9995)],
+                 [0.01, 0.99]]
 
-
-    plt.hist2d(x, y, range=plotrange,
-                  bins=rbins, norm=colors.LogNorm(), cmap="Blues")
+    # plt.hist2d(x, y, range=plotrange, bins=rbins, norm=colors.LogNorm(), cmap="Blues")
+    plt.hist2d(x, y, range=plotrange, bins=rbins, cmap="Blues")
     # plt.colorbar()
+y_vars = ['lpmf15', 'lpml15', 'lpmc15']
 g = sns.PairGrid(df_all, y_vars=y_vars, x_vars=x_vars)
 g.map(histme)
-g.fig.subplots_adjust(top=0.9)
-g.fig.suptitle("Scatter plots of snow and laser penetration metrics", fontsize=16)
+# g.fig.subplots_adjust(top=0.9)
+# g.fig.suptitle("Scatter plots of snow and laser penetration metrics", fontsize=16)
 plt.savefig(plot_out_dir + "scatter_combined_lpm.png")
 
 

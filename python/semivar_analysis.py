@@ -216,14 +216,14 @@ fig.savefig(plot_out_dir + "semivar_lai_hemi.png")
 
 
 # # combined plot
-# samps_045 = pd.read_csv(plot_out_dir + "semivar_samps_swe_045_md" + str(max_dist) + ".csv")
-# samps_050 = pd.read_csv(plot_out_dir + "semivar_samps_swe_050_md" + str(max_dist) + ".csv")
-# samps_052 = pd.read_csv(plot_out_dir + "semivar_samps_swe_052_md" + str(max_dist) + ".csv")
-# samps_045_050 = pd.read_csv(plot_out_dir + "semivar_samps_dswe_045_050_md" + str(max_dist) + ".csv")
-# samps_050_052 = pd.read_csv(plot_out_dir + "semivar_samps_dswe_050_052_md" + str(max_dist) + ".csv")
-# samps_chm = pd.read_csv(plot_out_dir + "semivar_samps_chm_md" + str(max_dist) + ".csv")
-# samps_lai_rs = pd.read_csv(plot_out_dir + "semivar_samps_lai_rs_md" + str(max_dist) + ".csv")
-# samps_lai_hemi = pd.read_csv(plot_out_dir + "semivar_samps_lai_hemi_md" + str(max_dist) + ".csv")
+samps_045 = pd.read_csv(plot_out_dir + "semivar_samps_swe_045_md" + str(max_dist) + ".csv")
+samps_050 = pd.read_csv(plot_out_dir + "semivar_samps_swe_050_md" + str(max_dist) + ".csv")
+samps_052 = pd.read_csv(plot_out_dir + "semivar_samps_swe_052_md" + str(max_dist) + ".csv")
+samps_045_050 = pd.read_csv(plot_out_dir + "semivar_samps_dswe_045_050_md" + str(max_dist) + ".csv")
+samps_050_052 = pd.read_csv(plot_out_dir + "semivar_samps_dswe_050_052_md" + str(max_dist) + ".csv")
+samps_chm = pd.read_csv(plot_out_dir + "semivar_samps_chm_md" + str(max_dist) + ".csv")
+samps_lai_rs = pd.read_csv(plot_out_dir + "semivar_samps_lai_rs_md" + str(max_dist) + ".csv")
+samps_lai_hemi = pd.read_csv(plot_out_dir + "semivar_samps_lai_hemi_md" + str(max_dist) + ".csv")
 
 # stats_045 = pd.read_csv(plot_out_dir + "semivar_stats_swe_045_md" + str(max_dist) + ".csv")
 # stats_050 = pd.read_csv(plot_out_dir + "semivar_stats_swe_050_md" + str(max_dist) + ".csv")

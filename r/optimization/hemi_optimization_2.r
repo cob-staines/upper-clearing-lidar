@@ -2,6 +2,11 @@ library('dplyr')
 library('tidyr')
 library('ggplot2')
 
+plot_out_dir = "C:/Users/Cob/index/educational/usask/research/masters/graphics/thesis_graphics/validation/hemiphoto_validation/"
+p_width = 8  # inches
+p_height = 5.7  # inches
+dpi = 100
+
 photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/19_149/clean/sized/LAI_manual_parsed.dat"
 photos_lai = read.csv(photos_lai_in, header=TRUE, na.strings = c("NA",""), sep=",")
 photos_lai$original_file = gsub("_r.JPG", ".JPG", photos_lai$picture)
@@ -16,6 +21,10 @@ synth_lai = read.csv(synth_lai_in, header=TRUE, na.strings = c("NA",""), sep=","
 synth_meta_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/synthetic_hemis/opt/poisson/hemimetalog.csv"
 synth_meta = read.csv(synth_meta_in, header=TRUE, na.strings = c("NA",""), sep=",")
 synth_meta$footprint = sqrt(synth_meta$point_size_scalar / (synth_meta$optimization_scalar * 2834.64))
+
+comp times = synth_meta %>%
+  group_by(poisson_radius_m) %>%
+  summarise(ct_mean = mean(computation_time_s))
 
 synth = merge(synth_lai, synth_meta, by.x='picture', by.y='file_name', all.x=TRUE)
 
@@ -53,13 +62,20 @@ all_agg$poisson_radius_m = as.factor(all_agg$poisson_radius_m)
 ggplot(all_agg, aes(x=optimization_scalar, y=mean_bias_lai_s_cc, color=poisson_radius_m)) +
   geom_point() +
   geom_line() +
-  xlim(0, 1)
+  # labs(x='point size scalar [-]', y='LAI mean bias [-]', color='Poisson r [m]', title='Mean bias of LAI from sythetic hemispheres vs. photography (n=15)')
+  labs(x='point size scalar [-]', y='LAI mean bias [-]', color='Poisson r [m]')
+ggsave(paste0(plot_out_dir, "point_size_optimization_mean_bian.png"), width=p_width, height=p_height, dpi=dpi)
+
 
 # rmse lai
 ggplot(all_agg, aes(x=optimization_scalar, y=rmse_lai_s_cc, color=poisson_radius_m)) +
   geom_point() +
-  geom_line() +
-  ylim(0, 1)
+  geom_line()  +
+  # labs(x='point size scalar [-]', y='LAI RMSE [-]', color='Poisson r [m]', title='RMSE of LAI from sythetic hemispheres vs. photography (n=15)') +
+  labs(x='point size scalar [-]', y='LAI RMSE [-]', color='Poisson r [m]') +
+  ylim(0, 1.1)
+ggsave(paste0(plot_out_dir, "point_size_optimization_rmse.png"), width=p_width, height=p_height, dpi=dpi)
+
 
 # mean bias co
 ggplot(all_agg, aes(x=optimization_scalar, y=mean_bias_co, color=poisson_radius_m)) +

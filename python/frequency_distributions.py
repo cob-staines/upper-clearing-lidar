@@ -111,6 +111,14 @@ ax1.set_ylabel("Relative frequency [-]")
 sns.histplot(all_dswe, x="dswe", hue="interval", stat="density", common_norm=False, element="step")
 fig.savefig(plot_out_dir + "freq_dist_resampled_all_dswe.png")
 
+# export rejection sampled points
+e_045_050 = d_045_050.loc[:, ["x_coord", "y_coord", "dswe_19_045-19_050"]]
+e_050_052 = d_050_052.loc[:, ["x_coord", "y_coord", "dswe_19_050-19_052"]]
+
+rej_samp_out_file = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\rejection_sampled\\'
+e_045_050.to_csv(rej_samp_out_file + 'resampled_dswe_19_045-19_050_ahpl_r.05m_interp2x_by_contact-number.csv', index=False)
+e_050_052.to_csv(rej_samp_out_file + 'resampled_dswe_19_050-19_052_ahpl_r.05m_interp2x_by_contact-number.csv', index=False)
+
 
 ##### lai and transmittance
 data_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.25m_native_canopy_19_149.csv'

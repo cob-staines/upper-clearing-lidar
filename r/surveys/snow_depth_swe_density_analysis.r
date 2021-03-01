@@ -4,7 +4,7 @@ library('ggplot2')
 library('grid')
 library('gridExtra')
 
-plot_out_dir = "C:/Users/Cob/index/educational/usask/research/masters/graphics/thesis_graphics/validation/snow density/"
+plot_out_dir = "C:/Users/Cob/index/educational/usask/research/masters/graphics/thesis_graphics/validation/snow_density_validation/"
 p_width = 8  # inches
 p_height = 5.7  # inches
 dpi = 100
@@ -178,7 +178,8 @@ lm_ahpl_045 = lm((density - 89.26) ~ 0 + snow_depth_cm, data = a_045)
 lm_ahpl_050 = lm((density - 85.39) ~ 0 + snow_depth_cm, data = a_050)
 lm_ahpl_052 = lm((density - 72.05) ~ 0 + snow_depth_cm, data = a_052)
 
-summary(lm_ahpl_045)
+summary(lm_ahpl_052)
+summary(lm_alin_123)
 
 # all combined linear density
 lm_alin_455052 = lm(density ~ snow_depth_cm, data = a_455052)

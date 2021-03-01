@@ -230,7 +230,7 @@ def interpolate_to_z_slice(p1, p0, z_low_utm, z_high_utm):
     return z1, z0
 
 
-def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_overflow=False):
+def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
 
     print('----- LAS Ray Sampling -----')
 
@@ -448,44 +448,38 @@ def las_ray_sample_by_z_slice(vox, z_slices, samp_floor_as_returns=True, fail_ov
                     hf['sample_data'][:, :, z_low:z_high] = sample_slice
                     hf['return_data'][:, :, z_low:z_high] = return_slice
 
-    if samp_floor_as_returns:
-        print('Setting sample floor as return count... ', end='')
-
-        below_floor_count = 0
-        # set minimum sample count equal to return count
-        for zz in range(0, z_slices):
-            print('\tSlice ' + str(zz + 1) + ' of ' + str(z_slices) + ': ', end='')
-            z_low = zz * z_step
-            if zz != (z_slices - 1):
-                z_high = (zz + 1) * z_step
-            else:
-                z_high = vox.ncells[2]
-
-            with h5py.File(vox.vox_hdf5, mode='r+') as hf:
-                fix = hf['sample_data'][:, :, z_low:z_high] < hf['return_data'][:, :, z_low:z_high]
-                hf['sample_data'][:, :, z_low:z_high][fix] = hf['return_data'][:, :, z_low:z_high][fix]
-
-                below_floor_count += np.sum(fix)
-        vox.below_floor_count = below_floor_count
-        print('done', end='')
-
     print("-------- Las Ray Sampling completed--------")
     print('Total time: ' + str(int(time.time() - start_time)) + " seconds")
 
     return vox
 
-def beta_lookup_prior_calc(vox, samp_floor_as_returns=True):
-    val = (vox.sample_data > 0)  # roughly 50% at .25m
-    rate = vox.return_data[val] / vox.sample_data[val]
+def beta_lookup_prior_calc(vox, agg_sample_length=None):
+    # set agg_sample length to vox.sample_length in not specified
+    if agg_sample_length is None:
+        agg_sample_length = vox.sample_length
+
+    # load data if not provided
+    if (vox.sample_data is None) or (vox.return_data is None):
+        with h5py.File(vox.vox.hdf5, 'r') as hf:
+            vox.sample_data = hf.get('sample_data')[()]
+            vox.return_data = hf.get('return_data')[()]
+
+    # set floor of samples to returns and count instances (but do not save...)
+    fix = vox.sample_data < vox.return_data
+    vox.sample_data[fix] = vox.return_data[fix]
+    vox.below_floor_count = np.sum(fix)
+
+    # estimate prior parameters
+    valid = (vox.sample_data > 0)  # roughly 50% at .25m
+    rate = vox.return_data[valid] / vox.sample_data[valid]
     mu = np.mean(rate)
     sig2 = np.var(rate)
 
     prior_alpha = ((1 - mu)/sig2 - 1/mu) * (mu ** 2)
     prior_beta = prior_alpha * (1/mu - 1)
 
-
     # calculate and write prior lookup
-    sample_length_correction = vox.sample_length / vox.agg_sample_length
+    sample_length_correction = vox.sample_length / agg_sample_length
     post_dtype = np.float32
 
     with h5py.File(vox.vox_hdf5, mode='r+') as hf:
@@ -494,6 +488,9 @@ def beta_lookup_prior_calc(vox, samp_floor_as_returns=True):
 
         hf['posterior_alpha'][()] = hf['return_data'][()] + prior_alpha
         hf['posterior_beta'][()] = hf['sample_data'] * sample_length_correction + hf['return_data'][()] + prior_beta
+
+        # save count of floor-corrected values
+        hf.create_dataset('below_floor_count', data=vox.below_floor_count)
 
 
 
@@ -1041,6 +1038,7 @@ def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False, calc_prior
     vox.save()
 
     if calc_prior:
+        vox = load_vox_meta(vox.vox_hdf5, load_data=True)
         beta_lookup_prior_calc(vox)
 
     return vox
