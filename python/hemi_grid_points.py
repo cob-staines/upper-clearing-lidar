@@ -8,6 +8,8 @@ dem_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\li
 mb_65_poly = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\mb_65_poly.shp'
 mb_15_poly = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\mb_15_poly.shp'
 uf_poly = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\upper_forest_poly_UTM11N.shp'
+uc_poly = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\upper_clearing_poly_UTM11N.shp'
+
 batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\'
 
 # for plot mappings
@@ -103,16 +105,27 @@ pts_dir = batch_dir + 'dem_r.25_points_uf.csv'
 pts_uf.to_csv(pts_dir, index=False)
 
 # create cookie cutters of sites for each resolution
+# for rr in resolution:
+#     file_out = 'uf_plot_r' + rr + 'm.tif'
+#     site_poly = uf_poly
+#     template_in = template_scheme.replace('<RES>', rr)
+#     ras = rastools.raster_load(template_in)
+#     ras.data = np.full((ras.rows, ras.cols), 0)
+#     ras.no_data = 0
+#     ras_out = batch_dir + file_out
+#     rastools.raster_save(ras, ras_out, data_format='byte')
+#     rastools.raster_burn(ras_out, site_poly, 1)
+
 for rr in resolution:
-    file_out = 'uf_plot_r' + rr + 'm.tif'
-    site_poly = uf_poly
+    file_out = 'site_plots_r' + rr + 'm.tif'
     template_in = template_scheme.replace('<RES>', rr)
     ras = rastools.raster_load(template_in)
     ras.data = np.full((ras.rows, ras.cols), 0)
     ras.no_data = 0
     ras_out = batch_dir + file_out
-    rastools.raster_save(ras, ras_out, data_format='byte')
-    rastools.raster_burn(ras_out, site_poly, 1)
+    rastools.raster_save(ras, ras_out, data_format='uint16')
+    rastools.raster_burn(ras_out, uf_poly, 1)
+    rastools.raster_burn(ras_out, uc_poly, 2)
 
 for rr in resolution:
     file_out = 'mb_15_plot_r' + rr + 'm.tif'

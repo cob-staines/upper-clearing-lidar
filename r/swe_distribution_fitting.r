@@ -9,23 +9,71 @@ p_width = 8  # inches
 p_height = 5.7  # inches
 dpi = 100
 
-d_045_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_045_ahpl_r.05m_interp2x_by_contact-number.csv'
-d_045 = read.csv(d_045_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
+# upper forest plot
+uf_045_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_045_uf_ahpl_r.05m_interp2x_by_lpml15.csv'
+uf_045 = read.csv(uf_045_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
   rename(swe = swe_19_045)
 
-d_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_050_ahpl_r.05m_interp2x_by_contact-number.csv'
-d_050 = read.csv(d_050_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
+uf_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_050_uf_ahpl_r.05m_interp2x_by_lpml15.csv'
+uf_050 = read.csv(uf_050_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
   rename(swe = swe_19_050)
 
-d_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_052_ahpl_r.05m_interp2x_by_contact-number.csv'
-d_052 = read.csv(d_052_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
+uf_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_052_uf_ahpl_r.05m_interp2x_by_lpml15.csv'
+uf_052 = read.csv(uf_052_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
   rename(swe = swe_19_052)
+
+uf_045_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_dswe_19_045-19_050_uf_ahpl_r.05m_interp2x_by_lpml15.csv'
+uf_045_050 = read.csv(uf_045_050_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
+  rename(dswe = "dswe_19_045.19_050")
+
+uf_050_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_dswe_19_050-19_052_uf_ahpl_r.05m_interp2x_by_lpml15.csv'
+uf_050_052 = read.csv(uf_050_052_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
+  rename(dswe = "dswe_19_050.19_052")
+
+
+# upper clearing plot
+uc_045_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_045_uc_ahpl_r.05m_interp2x_by_lpml15.csv'
+uc_045 = read.csv(uc_045_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
+  rename(swe = swe_19_045)
+
+uc_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_050_uc_ahpl_r.05m_interp2x_by_lpml15.csv'
+uc_050 = read.csv(uc_050_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
+  rename(swe = swe_19_050)
+
+uc_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_052_uc_ahpl_r.05m_interp2x_by_lpml15.csv'
+uc_052 = read.csv(uc_052_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
+  rename(swe = swe_19_052)
+
+uc_045_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_dswe_19_045-19_050_uc_ahpl_r.05m_interp2x_by_lpml15.csv'
+uc_045_050 = read.csv(uc_045_050_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
+  rename(dswe = "dswe_19_045.19_050")
+
+uc_050_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_dswe_19_050-19_052_uc_ahpl_r.05m_interp2x_by_lpml15.csv'
+uc_050_052 = read.csv(uc_050_052_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
+  rename(dswe = "dswe_19_050.19_052")
 
 
 # coefficient of variation
-cv_045 = sd(d_045$swe)/mean(d_045$swe)
-cv_050 = sd(d_050$swe)/mean(d_050$swe)
-cv_052 = sd(d_052$swe)/mean(d_052$swe)
+cv_uf_045 = sd(uf_045$swe)/mean(uf_045$swe)
+cv_uf_050 = sd(uf_050$swe)/mean(uf_050$swe)
+cv_uf_052 = sd(uf_052$swe)/mean(uf_052$swe)
+
+cv_uc_045 = sd(uc_045$swe)/mean(uc_045$swe)
+cv_uc_050 = sd(uc_050$swe)/mean(uc_050$swe)
+cv_uc_052 = sd(uc_052$swe)/mean(uc_052$swe)
+
+# dswe parameters
+mean(uf_045_050$dswe)
+sd(uf_045_050$dswe)
+
+mean(uc_045_050$dswe)
+sd(uc_045_050$dswe)
+
+mean(uf_050_052$dswe)
+sd(uf_050_052$dswe)
+
+mean(uc_050_052$dswe)
+sd(uc_050_052$dswe)
 
 
 # shook 1995
@@ -50,32 +98,32 @@ qq_func = function(data){
 }
 
 
-k_045 = qq_func(d_045)
-k_050 = qq_func(d_050)
-k_052 = qq_func(d_052)
+k_045 = qq_func(uf_045)
+k_050 = qq_func(uf_050)
+k_052 = qq_func(uf_052)
 
 
 
 # 045
 ggplot(k_045, aes(x=k_vals, y=swe)) +
   geom_point(size=.75) +
-  labs(x='K', y='SWE (mm)', title='SWE - lognormal Q-Q plot for 14 Feb. 2019 (n=298831)\nUpper Forest, 5cm resolution, bias corrected with LAI') + 
+  labs(x='K', y='SWE (mm)', title='SWE - lognormal Q-Q plot for 14 Feb. 2019 (n=298831)\nUpper Forest, 5cm resolution, bias corrected with LPM-Last') + 
   theme_minimal()
-ggsave(paste0(plot_out_dir, "swe_19_045_ahpl_lognormal_qq.png"), width=p_width, height=p_height, dpi=dpi)
+ggsave(paste0(plot_out_dir, "swe_19_045_ahpl_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
 
 # 050
 ggplot(k_050, aes(x=k_vals, y=swe)) +
   geom_point(size=.75) +
-  labs(x='K', y='SWE (mm)', title='SWE - lognormal Q-Q plot for 19 Feb. 2019 (n=296589)\nUpper Forest, 5cm resolution, bias corrected with LAI') +
+  labs(x='K', y='SWE (mm)', title='SWE - lognormal Q-Q plot for 19 Feb. 2019 (n=296589)\nUpper Forest, 5cm resolution, bias corrected with LPM-Last') +
   theme_minimal()
-ggsave(paste0(plot_out_dir, "swe_19_050_ahpl_lognormal_qq.png"), width=p_width, height=p_height, dpi=dpi)
+ggsave(paste0(plot_out_dir, "swe_19_050_ahpl_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
 
 # 052
 ggplot(k_052, aes(x=k_vals, y=swe)) +
   geom_point(size=.75) +
-  labs(x='K', y='SWE (mm)', title='SWE - lognormal Q-Q plot for 21 Feb. 2019 (n=174647)\nUpper Forest, 5cm resolution, bias corrected with LAI') +
+  labs(x='K', y='SWE (mm)', title='SWE - lognormal Q-Q plot for 21 Feb. 2019 (n=174647)\nUpper Forest, 5cm resolution, bias corrected with LPM-Last') +
   theme_minimal()
-ggsave(paste0(plot_out_dir, "swe_19_052_ahpl_lognormal_qq.png"), width=p_width, height=p_height, dpi=dpi)
+ggsave(paste0(plot_out_dir, "swe_19_052_ahpl_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
 
 
 # linear fitting
@@ -106,21 +154,21 @@ ggplot(k_045, aes(x=swe)) +
   geom_histogram(aes(y=..density..), fill='cornflowerblue', alpha=1, binwidth = 1) +
   geom_line(data=m_045, aes(x=x_vals, y=y_vals), size=1) +
   labs(x='SWE [mm]', y='Density [-]', title='SWE observed and lognormal modeled distributions for\n14 Feb. 2019 Upper Forest, 5cm resolution, bias corrected')
-ggsave(paste0(plot_out_dir, "swe_19_045_ahpl_lognormal_model.png"), width=p_width, height=p_height, dpi=dpi)
+ggsave(paste0(plot_out_dir, "swe_19_045_ahpl_lognormal_model_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
 
 m_050 = lognorm_model(k_050, lm_050)
 ggplot(k_050, aes(x=swe)) +
   geom_histogram(aes(y=..density..), fill='cornflowerblue', alpha=1, binwidth = 1) +
   geom_line(data=m_050, aes(x=x_vals, y=y_vals), size=1) +
   labs(x='SWE [mm]', y='Density [-]', title='SWE observed and lognormal modeled distributions for\n19 Feb. 2019 Upper Forest, 5cm resolution, bias corrected')
-ggsave(paste0(plot_out_dir, "swe_19_050_ahpl_lognormal_model.png"), width=p_width, height=p_height, dpi=dpi)
+ggsave(paste0(plot_out_dir, "swe_19_050_ahpl_lognormal_model_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
 
 m_052 = lognorm_model(k_052, lm_052)
 ggplot(k_052, aes(x=swe)) +
   geom_histogram(aes(y=..density..), fill='cornflowerblue', alpha=1, binwidth = 1) +
   geom_line(data=m_052, aes(x=x_vals, y=y_vals), size=1) +
   labs(x='SWE [mm]', y='Density [-]', title='SWE observed and lognormal modeled distributions for\n21 Feb. 2019 Upper Forest, 5cm resolution, bias corrected')
-ggsave(paste0(plot_out_dir, "swe_19_052_ahpl_lognormal_model.png"), width=p_width, height=p_height, dpi=dpi)
+ggsave(paste0(plot_out_dir, "swe_19_052_ahpl_lognormal_model_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
 
 # 
 # ### old hat below

@@ -6,18 +6,19 @@ matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import seaborn as sns
+from scipy.stats import spearmanr, pearsonr
 
 plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\thesis_graphics\\scatter plots\\"
 
 df_10_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\uf_merged_.10m_ahpl_median_canopy_19_149.csv'
 df_10 = pd.read_csv(df_10_in)
-df_10 = df_10.loc[df_10.uf == 1, :]
+df_10 = df_10.loc[df_10.plots == 1, :]
 df_10.loc[:, 'chm_1'] = df_10.loc[:, 'chm']
 df_10.loc[df_10.chm < 1, 'chm_1'] = np.nan
 
 df_25_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.25m_ahpl_median_canopy_19_149.csv'
 df_25 = pd.read_csv(df_25_in)
-df_25 = df_25.loc[df_25.uf == 1, :]
+df_25 = df_25.loc[df_25.plots == 1, :]
 df_25.loc[:, 'cn_mean'] = df_25.loc[:, 'er_p0_mean'] * 0.19447
 df_25.loc[:, 'cn_mean_25'] = df_25.loc[:, 'cn_mean']
 df_25.loc[df_25.cn_mean_25 < .25, 'cn_mean_25'] = np.nan
@@ -192,11 +193,30 @@ x_vars = ['swe_19_045', 'swe_19_050', 'swe_19_052', 'dswe_19_045-19_050', 'dswe_
 y_vars = ['chm', 'dnt', 'cn_mean', 'lai_s_cc', 'cc', 'transmission', 'transmission_rs', 'contactnum_1', 'transmission_1', 'dce']
 
 
-
 for xx in x_vars:
     for yy in y_vars:
         plot_func(df_all, xx, yy)
 
+# calculate correlation and spearmans rank
+stat_file = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\scatter_stats\\'
+
+x_vars = ['swe_19_045', 'swe_19_050', 'swe_19_052', 'dswe_19_045-19_050', 'dswe_19_050-19_052']
+y_vars = ['chm', 'dnt', 'dce', 'cn_mean', 'lai_s_cc', 'cc', 'transmission', 'transmission_rs', 'contactnum_1', 'transmission_1', 'lpmf15', 'lpml15', 'lpmc15']
+
+spr = np.full((len(y_vars), len(x_vars)), np.nan)
+cor = np.full((len(y_vars), len(x_vars)), np.nan)
+for ii in range(len(x_vars)):
+    xx = x_vars[ii]
+    for jj in range(len(y_vars)):
+        yy = y_vars[jj]
+
+        valid = ~np.isnan(df_all[xx]) & ~np.isnan(df_all[yy])
+
+        spr[jj, ii] = spearmanr(df_all.loc[valid, xx], df_all.loc[valid, yy])[0]
+        cor[jj, ii] = pearsonr(df_all.loc[valid, xx], df_all.loc[valid, yy])[0]
+
+np.savetxt(stat_file + "spearmans_r.csv", spr, delimiter=", ")
+np.savetxt(stat_file + "pearsons_r.csv", cor, delimiter=", ")
 
 # # cross scatters
 # import rastools

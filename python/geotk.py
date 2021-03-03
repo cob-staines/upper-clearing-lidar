@@ -123,7 +123,7 @@ def rejection_sample(data, proposal, sample, nbins, nsamps=None, original_df=Tru
         nsamps = np.sum(valid_prop)
 
     # determine bins by equal quantiles of sample data
-    scrap, bins = pd.qcut(data.loc[~np.isnan(data.loc[:, sample]), sample], q=nbins, retbins=True)
+    scrap, bins = pd.qcut(data.loc[~np.isnan(data.loc[:, sample]), sample], q=nbins, retbins=True, duplicates='drop')
     # # determine bins by equal interval of sample data
     # scrap, bins = np.histogram(data.loc[valid_samp, sample], bins=nbins)
 
