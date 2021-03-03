@@ -17,7 +17,7 @@ vox.cw_rotation = -34 * np.pi / 180
 voxel_length = .25
 vox.step = np.full(3, voxel_length)
 vox.sample_length = voxel_length / np.pi
-vox.vox_hdf5 = vox.las_in.replace('.las', config_id + '_r' + str(voxel_length) + '_vox.h5')
+vox.vox_hdf5 = vox.las_in.replace('.las', "_" + config_id + '_vox.h5')
 
 z_slices = 8
 

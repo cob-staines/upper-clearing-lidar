@@ -29,7 +29,7 @@ class VoxelObj(object):
         self.return_dtype = None
         self.sample_data = None
         self.return_data = None
-        self.below_floor_count = None
+        self.below_floor_count = -1
 
     def copy(self):
         from copy import deepcopy
@@ -460,7 +460,7 @@ def beta_lookup_prior_calc(vox, agg_sample_length=None):
 
     # load data if not provided
     if (vox.sample_data is None) or (vox.return_data is None):
-        with h5py.File(vox.vox.hdf5, 'r') as hf:
+        with h5py.File(vox.vox_hdf5, 'r') as hf:
             vox.sample_data = hf.get('sample_data')[()]
             vox.return_data = hf.get('return_data')[()]
 
