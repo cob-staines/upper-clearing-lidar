@@ -38,6 +38,8 @@ class VoxelObj(object):
     def save(self):
         save_vox_meta(self)
 
+    def update(self):
+        update_vox_meta(self)
 
 def save_vox_meta(vox):
     with h5py.File(vox.vox_hdf5, 'a') as h5f:
@@ -55,6 +57,27 @@ def save_vox_meta(vox):
         meta.create_dataset('vox_ncells', data=vox.ncells)
         meta.create_dataset('vox_sample_length', data=vox.sample_length)
         meta.create_dataset('below_floor_count', data=vox.below_floor_count)
+
+def update_vox_meta(vox):
+    with h5py.File(vox.vox_hdf5, 'a') as h5f:
+        meta = h5f.get('meta')
+        meta['las_in'][()] = vox.las_in
+        meta['traj_in'][()] = vox.traj_in
+        meta['las_traj_hdf5'][()] = str(vox.las_traj_hdf5)
+        meta['return_set'][()] = vox.return_set
+        meta['drop_class'][()] = vox.drop_class
+        meta['las_traj_chunksize'][()] = vox.las_traj_chunksize
+        meta['cw_rotation'][()] = vox.cw_rotation
+        meta['vox_origin'][()] = vox.origin
+        meta['vox_max'][()] = vox.max
+        meta['vox_step'][()] = vox.step
+        meta['vox_ncells'][()] = vox.ncells
+        meta['vox_sample_length'][()] = vox.sample_length
+
+        try:
+            meta['below_floor_count'][()] = vox.below_floor_count
+        except KeyError:
+            meta.create_dataset('below_floor_count', data=vox.below_floor_count)
 
 
 def load_vox_meta(hdf5_path, load_data=False):
@@ -75,7 +98,7 @@ def load_vox_meta(hdf5_path, load_data=False):
         vox.step = meta.get('vox_step')[()]
         vox.ncells = meta.get('vox_ncells')[()]
         vox.sample_length = meta.get('vox_sample_length')[()]
-        vox.below_floor_count = meta.get('below_floor_count')[()]
+        vox.below_floor_count = meta.get('below_floor_count')
         vox.sample_dtype = h5f.get('sample_data').dtype
         vox.return_dtype = h5f.get('return_data').dtype
         if load_data:
@@ -262,8 +285,6 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
         las_time = hf['lasData'][:, 0]
         traj_time = hf['trajData'][:, 0]
         n_rows = len(las_time)
-        z_min = np.min(hf['lasData'][:, 3])
-        z_max = np.max(hf['lasData'][:, 3])
 
     # check that gps_times align
     if np.all(las_time != traj_time):
@@ -276,41 +297,49 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
         vox.las_traj_chunksize = n_rows
     n_chunks = np.ceil(n_rows / vox.las_traj_chunksize).astype(int)
 
-    if vox.cw_rotation == 0:
-        with h5py.File(vox.las_traj_hdf5, 'r') as hf:
-            x_min = np.min(hf['lasData'][:, 1])
-            x_max = np.max(hf['lasData'][:, 1])
-            y_min = np.min(hf['lasData'][:, 2])
-            y_max = np.max(hf['lasData'][:, 2])
+
+    if (vox.origin is None) | (vox.max is None) :
+        if vox.cw_rotation == 0:
+            with h5py.File(vox.las_traj_hdf5, 'r') as hf:
+                x_min = np.min(hf['lasData'][:, 1])
+                x_max = np.max(hf['lasData'][:, 1])
+                y_min = np.min(hf['lasData'][:, 2])
+                y_max = np.max(hf['lasData'][:, 2])
+                z_min = np.min(hf['lasData'][:, 3])
+                z_max = np.max(hf['lasData'][:, 3])
+        else:
+            # determine x/y min & max in rotated reference frame (slow, must load and convert all data...)
+            x_min = y_min = x_max = y_max = np.nan
+            with h5py.File(vox.las_traj_hdf5, 'r') as hf:
+                for ii in range(0, n_chunks):
+                    print('Chunk ' + str(ii) + '... ')
+
+                    # chunk start and end
+                    idx_start = ii * vox.las_traj_chunksize
+                    if ii != (n_chunks - 1):
+                        idx_end = (ii + 1) * vox.las_traj_chunksize
+                    else:
+                        idx_end = n_rows
+
+                    pts_rot = np.matmul(hf['lasData'][idx_start:idx_end, 1:3], z_rotmat(vox.cw_rotation)[0:2, 0:2])
+
+                    xmin_chunk, ymin_chunk = np.min(pts_rot, axis=0)
+                    xmax_chunk, ymax_chunk = np.max(pts_rot, axis=0)
+
+                    x_min = np.nanmin((x_min, xmin_chunk))
+                    y_min = np.nanmin((y_min, ymin_chunk))
+                    x_max = np.nanmax((x_max, xmax_chunk))
+                    y_max = np.nanmax((y_max, ymax_chunk))
+        print('done')
+
+        if vox.origin is None:
+            vox.origin = np.array([x_min, y_min, z_min])
+        if vox.max is None:
+            vox.max = np.array([x_max, y_max, z_max])
     else:
-        # determine x/y min & max in rotated reference frame (slow, must load and convert all data...)
-        x_min = y_min = x_max = y_max = np.nan
-        with h5py.File(vox.las_traj_hdf5, 'r') as hf:
-            for ii in range(0, n_chunks):
-                print('Chunk ' + str(ii) + '... ')
+        # this is the case if vox.origin and vox.max are specified prior
+        pass
 
-                # chunk start and end
-                idx_start = ii * vox.las_traj_chunksize
-                if ii != (n_chunks - 1):
-                    idx_end = (ii + 1) * vox.las_traj_chunksize
-                else:
-                    idx_end = n_rows
-
-                pts_rot = np.matmul(hf['lasData'][idx_start:idx_end, 1:3], z_rotmat(vox.cw_rotation)[0:2, 0:2])
-
-                xmin_chunk, ymin_chunk = np.min(pts_rot, axis=0)
-                xmax_chunk, ymax_chunk = np.max(pts_rot, axis=0)
-
-                x_min = np.nanmin((x_min, xmin_chunk))
-                y_min = np.nanmin((y_min, ymin_chunk))
-                x_max = np.nanmax((x_max, xmax_chunk))
-                y_max = np.nanmax((y_max, ymax_chunk))
-
-    print('done')
-
-    # define voxel parameters
-    vox.origin = np.array([x_min, y_min, z_min])
-    vox.max = np.array([x_max, y_max, z_max])
     vox.ncells = np.ceil((vox.max - vox.origin) / vox.step).astype(int)
 
     z_step = np.ceil(vox.ncells[2] / z_slices).astype(int)
@@ -339,9 +368,14 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
 
         print('Loading data... ', end='')
         with h5py.File(vox.las_traj_hdf5, 'r') as hf:
-            ray_1 = hf['lasData'][idx_start:idx_end, 1:4]
-            ray_0 = hf['trajData'][idx_start:idx_end, 1:4]
+            ray_1_all = hf['lasData'][idx_start:idx_end, 1:4]
+            ray_0_all = hf['trajData'][idx_start:idx_end, 1:4]
         print('done')
+
+        # filter to returns within voxel space
+        valid = np.all(ray_1_all >= vox.origin, axis=1) & np.all(ray_1_all <= vox.max, axis=1)
+        ray_0 = ray_0_all[valid, :]
+        ray_1 = ray_1_all[valid, :]
 
         # transform returns to vox coords
         rtns_vox = utm_to_vox(vox, ray_1).astype(int)
@@ -374,7 +408,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
 
                 print('Counting returns... ', end='')
 
-                # add valid retruns to return slice
+                # add valid returns to return slice
                 rtns_valid = rtns_vox[(rtns_vox[:, 2] >= z_low) & (rtns_vox[:, 2] < z_high), :]
                 # correct for z_slice offset
                 rtns_valid[:, 2] = rtns_valid[:, 2] - z_low
@@ -452,6 +486,78 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
     print('Total time: ' + str(int(time.time() - start_time)) + " seconds")
 
     return vox
+
+
+# voxList = ["C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\19_045_all_WGS84_utm11N_19_045_r0.25_vox.h5",
+#            "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\19_050_all_WGS84_utm11N_19_050_r0.25_vox.h5",
+#            "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\19_052_all_WGS84_utm11N_19_052_r0.25_vox.h5"]
+#
+# vox_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox.h5"
+#
+# z_slices = 16
+#
+# v0 = load_vox_meta(voxList[0], load_data=False)
+# v1 = load_vox_meta(voxList[1], load_data=False)
+# v2 = load_vox_meta(voxList[2], load_data=False)
+#
+# set_min = np.min([v0.origin, v1.origin, v2.origin], axis=0)
+# set_max = np.max([v0.max, v1.max, v2.max], axis=0)
+
+
+def vox_addition(voxList, vox_out, z_slices):
+    import shutil
+
+    # inherit from 1st in list
+    v0_file = voxList[0]
+
+    # load v0 meta
+    vout = load_vox_meta(v0_file, load_data=False)
+
+    # define z_step
+    z_step = np.ceil(vout.ncells[2] / z_slices).astype(int)
+
+    # memory test of slice size (attempt to trigger memory error early)
+    try:
+        m_test = np.zeros((vout.ncells[0], vout.ncells[1], z_step), dtype=vout.sample_dtype)
+        m_test = np.zeros((vout.ncells[0], vout.ncells[1], z_step), dtype=vout.return_dtype)
+    except MemoryError:
+        print("Size of z_slices is too large for memory. Try more z_slices.")
+        raise
+    finally:
+        m_test = None
+
+    # create duplicate file of v0 (inherit all from v0)
+    scrap = shutil.copy(v0_file, vox_out)
+
+    # update vout meta
+    vout.vox_hdf5 = vox_out
+    vout.las_traj_hdf5 = ''
+    vout.las_traj_chunksize = -1
+    vout.drop_class = -1
+    vout.return_set = ''
+    vout.below_floor_count = -1
+
+    vout.update()
+
+    subList = voxList[1:]
+    for vv in subList:
+        vox_n = load_vox_meta(vv, load_data=False)
+
+        for zz in range(0, z_slices):
+            print('\tSlice ' + str(zz + 1) + ' of ' + str(z_slices) + ': ', end='')
+            z_low = zz * z_step
+            if zz != (z_slices - 1):
+                z_high = (zz + 1) * z_step
+            else:
+                z_high = vout.ncells[2]
+
+            with h5py.File(vout.vox_hdf5, mode='r+') as hf_0:
+                with h5py.File(vox_n.vox_hdf5, mode='r') as hf_n:
+                    # hf['sample_data'][:, :, z_low:z_high] = sample_slice
+                    # hf['return_data'][:, :, z_low:z_high] = return_slice
+                    hf_0['sample_data'][:, :, z_low:z_high] = hf_0['sample_data'][:, :, z_low:z_high] + hf_n['sample_data'][:, :, z_low:z_high]
+                    hf_0['return_data'][:, :, z_low:z_high] = hf_0['return_data'][:, :, z_low:z_high] + hf_0['return_data'][:, :, z_low:z_high]
+
 
 def beta_lookup_prior_calc(vox, agg_sample_length=None):
     # set agg_sample length to vox.sample_length in not specified

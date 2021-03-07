@@ -6,7 +6,7 @@ matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import seaborn as sns
-from scipy.stats import spearmanr, pearsonr
+from scipy.stats import spearmanr, pearsonr, f_oneway
 
 plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\thesis_graphics\\scatter plots\\"
 
@@ -201,10 +201,13 @@ for xx in x_vars:
 stat_file = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\scatter_stats\\'
 
 x_vars = ['swe_19_045', 'swe_19_050', 'swe_19_052', 'dswe_19_045-19_050', 'dswe_19_050-19_052']
-y_vars = ['chm', 'dnt', 'dce', 'cn_mean', 'lai_s_cc', 'cc', 'transmission', 'transmission_rs', 'contactnum_1', 'transmission_1', 'lpmf15', 'lpml15', 'lpmc15']
+y_vars = ['chm', 'dnt', 'dce', 'cc', 'lai_hemi', 'contactnum_1', 'lai_rs', 'transmission', 'transmission_1', 'transmission_rs', 'lpmf15', 'lpml15', 'lpmc15']
 
 spr = np.full((len(y_vars), len(x_vars)), np.nan)
-cor = np.full((len(y_vars), len(x_vars)), np.nan)
+spr_p = np.full((len(y_vars), len(x_vars)), np.nan)
+# cor = np.full((len(y_vars), len(x_vars)), np.nan)
+# cor_p = np.full((len(y_vars), len(x_vars)), np.nan)
+df = np.full((len(y_vars), len(x_vars)), np.nan)
 for ii in range(len(x_vars)):
     xx = x_vars[ii]
     for jj in range(len(y_vars)):
@@ -212,11 +215,13 @@ for ii in range(len(x_vars)):
 
         valid = ~np.isnan(df_all[xx]) & ~np.isnan(df_all[yy])
 
-        spr[jj, ii] = spearmanr(df_all.loc[valid, xx], df_all.loc[valid, yy])[0]
-        cor[jj, ii] = pearsonr(df_all.loc[valid, xx], df_all.loc[valid, yy])[0]
+        df[jj, ii] = np.sum(valid) - 2
+        spr[jj, ii], spr_p[jj, ii] = spearmanr(df_all.loc[valid, xx], df_all.loc[valid, yy])
+        # cor[jj, ii], cor_p[jj, ii] = pearsonr(df_all.loc[valid, xx], df_all.loc[valid, yy])
 
 np.savetxt(stat_file + "spearmans_r.csv", spr, delimiter=", ")
-np.savetxt(stat_file + "pearsons_r.csv", cor, delimiter=", ")
+np.savetxt(stat_file + "spearmans_r_p-values.csv", spr_p, delimiter=", ")
+np.savetxt(stat_file + "degrees_of_freedom.csv", df, delimiter=", ")
 
 # # cross scatters
 # import rastools

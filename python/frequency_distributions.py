@@ -307,7 +307,7 @@ c_data.loc[:, "trans_rs"] = np.exp(-c_data.cn)
 # sns.histplot(c_data, x="cn", stat="density", element="step")
 
 # plot LAI against one another
-set_a = c_data.assign(method="Ray Sampling", lai=c_data.cn)
+set_a = c_data.assign(method="Ray Sampling 1deg", lai=c_data.cn)
 set_b = c_data.assign(method="Hemi-photo 15deg", lai=c_data.contactnum_1)
 set_c = c_data.assign(method="Hemi-photo 75deg", lai=c_data.lai_s_cc)
 # set_b = c_data.assign(method="Hemispherical", lai=c_data.lai_s_cc)
@@ -327,7 +327,7 @@ fig.savefig(plot_out_dir + "freq_dist_lai_uf.png")
 # sns.histplot(c_data, x="transmission", stat="density", element="step", bins=30)
 # sns.histplot(c_data, x="transmission_1", stat="density", element="step", bins=30)
 
-set_a = c_data.assign(method="Ray Sampling", trans=c_data.trans_rs)
+set_a = c_data.assign(method="Ray Sampling 1deg", trans=c_data.trans_rs)
 set_b = c_data.assign(method="Hemi-photo 15deg", trans=c_data.transmission_s_1)
 set_c = c_data.assign(method="Hemi-photo 75deg", trans=c_data.transmission_gaps)
 ab = pd.concat([set_a.loc[:, ["trans", "method"]], set_b.loc[:, ["trans", "method"]],  set_c.loc[:, ["trans", "method"]]])
@@ -337,7 +337,7 @@ ax1 = fig.add_subplot(111)
 ax1.set_title('Frequency distributions of light transmittance\n Upper Forest, 25cm resolution, snow-free canopy')
 ax1.set_xlabel("Transmittance [-]")
 ax1.set_ylabel("Relative frequency [-]")
-sns.histplot(ab, x="trans", hue="method", stat="density", common_norm=False, element="step")
+sns.histplot(ab, x="trans", hue="method", stat="density", common_norm=False, element="step", bins=70)
 fig.savefig(plot_out_dir + "freq_dist_trans_uf.png")
 
 
@@ -353,7 +353,7 @@ ax1.set_title('Frequency distribution of Distance to Nearest Tree (DNT)\n Upper 
 ax1.set_xlabel("DNT [m]")
 ax1.set_ylabel("Relative frequency [-]")
 sns.histplot(cc_data, x="dnt", stat="density", element="step")
-fig.savefig(plot_out_dir + "freq_dist_dnt.png")
+fig.savefig(plot_out_dir + "freq_dist_dnt_uf.png")
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
@@ -361,7 +361,7 @@ ax1.set_title('Frequency distribution of Distance from Canopy Edge (DCE)\n Upper
 ax1.set_xlabel("DCE [m]")
 ax1.set_ylabel("Relative frequency [-]")
 sns.histplot(cc_data, x="dce", stat="density", element="step", binwidth=0.1)
-fig.savefig(plot_out_dir + "freq_dist_dce.png")
+fig.savefig(plot_out_dir + "freq_dist_dce_uf.png")
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
@@ -369,7 +369,7 @@ ax1.set_title('Frequency distribution of vegetation crown height\n Upper Forest,
 ax1.set_xlabel("Vegetation crown height [m]")
 ax1.set_ylabel("Relative frequency [-]")
 sns.histplot(cc_data.loc[cc_data.chm > 1, ], x="chm", stat="density", element="step")
-fig.savefig(plot_out_dir + "freq_dist_chm.png")
+fig.savefig(plot_out_dir + "freq_dist_chm_uf.png")
 
 
 

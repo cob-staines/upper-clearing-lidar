@@ -19,6 +19,10 @@ vox.step = np.full(3, voxel_length)
 vox.sample_length = voxel_length / np.pi
 vox.vox_hdf5 = vox.las_in.replace('.las', "_" + config_id + '_vox.h5')
 
+# specify origin and max for alignment with other sets (pulled from 19_149 vox)
+vox.origin = np.array([-2.63693299e+06,  5.03236474e+06,  1.80983250e+03])
+vox.max = np.array([-2.63665114e+06,  5.03262022e+06,  1.87498250e+03])
+
 z_slices = 8
 
 

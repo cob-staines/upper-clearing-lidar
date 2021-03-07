@@ -107,22 +107,25 @@ k_052 = qq_func(uf_052)
 # 045
 ggplot(k_045, aes(x=k_vals, y=swe)) +
   geom_point(size=.75) +
-  labs(x='K', y='SWE (mm)', title='SWE - lognormal Q-Q plot for 14 Feb. 2019 (n=298831)\nUpper Forest, 5cm resolution, bias corrected with LPM-Last') + 
-  theme_minimal()
+  labs(x='K', y='SWE (mm)', title=paste0('SWE - lognormal Q-Q plot for 14 Feb. 2019 (n=', as.character(nrow(k_045)), ')\nUpper Forest, 5cm resolution, bias corrected with LPM-Last')) + 
+  theme_minimal() +
+  geom_smooth(method='lm', se=FALSE, alpha=.15, color='turquoise4', linetype='dashed') 
 ggsave(paste0(plot_out_dir, "swe_19_045_ahpl_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
 
 # 050
 ggplot(k_050, aes(x=k_vals, y=swe)) +
   geom_point(size=.75) +
-  labs(x='K', y='SWE (mm)', title='SWE - lognormal Q-Q plot for 19 Feb. 2019 (n=296589)\nUpper Forest, 5cm resolution, bias corrected with LPM-Last') +
-  theme_minimal()
+  labs(x='K', y='SWE (mm)', title=paste0('SWE - lognormal Q-Q plot for 19 Feb. 2019 (n=', as.character(nrow(k_050)), ')\nUpper Forest, 5cm resolution, bias corrected with LPM-Last')) +
+  theme_minimal() +
+  geom_smooth(method='lm', se=FALSE, alpha=.15, color='turquoise4', linetype='dashed') 
 ggsave(paste0(plot_out_dir, "swe_19_050_ahpl_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
 
 # 052
 ggplot(k_052, aes(x=k_vals, y=swe)) +
   geom_point(size=.75) +
-  labs(x='K', y='SWE (mm)', title='SWE - lognormal Q-Q plot for 21 Feb. 2019 (n=174647)\nUpper Forest, 5cm resolution, bias corrected with LPM-Last') +
-  theme_minimal()
+  labs(x='K', y='SWE (mm)', title=paste0('SWE - lognormal Q-Q plot for 21 Feb. 2019 (n=', as.character(nrow(k_052)), ')\nUpper Forest, 5cm resolution, bias corrected with LPM-Last')) +
+  theme_minimal() +
+  geom_smooth(method='lm', se=FALSE, alpha=.15, color='turquoise4', linetype='dashed') 
 ggsave(paste0(plot_out_dir, "swe_19_052_ahpl_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
 
 

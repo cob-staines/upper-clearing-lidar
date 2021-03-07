@@ -5,14 +5,14 @@ def main():
     import os
 
     # build voxel space
-    import vox_template_config as vc
+    import vox_19_149_config as vc
     vox = vc.vox
     vox = lrs.las_to_vox(vox, vc.z_slices, run_las_traj=False, fail_overflow=False, calc_prior=True)
 
 
     # # LOAD VOX
     print('Loading vox... ', end='')
-    vox = lrs.load_vox_meta(vox.vox_hdf5, load_data=True)
+    vox = lrs.load_vox_meta(vox.vox_hdf5, load_data=False)
     print('done')
 
 

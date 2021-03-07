@@ -49,17 +49,17 @@ def spatial_stats_on_col(df, colname, file_out=None, iterations=1000, replicates
 # load data 5cm
 data_05_in ='C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\uf_merged_.05m_ahpl_native.csv'
 data_05 = pd.read_csv(data_05_in)
-data_05_uf = data_05[data_05.uf == 1]
+data_05_uf = data_05[data_05.plots == 1]
 
 #load data 10cm
 data_10_in ='C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.10m_native_canopy_19_149.csv'
 data_10 = pd.read_csv(data_10_in)
-data_10_uf = data_10.loc[data_10.uf == 1, :]
+data_10_uf = data_10.loc[data_10.plots == 1, :]
 
 # load data 25cm
 data_25_in ='C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.25m_native_canopy_19_149.csv'
 data_25 = pd.read_csv(data_25_in)
-data_25_uf = data_25.loc[data_25.uf == 1, :]
+data_25_uf = data_25.loc[data_25.plots == 1, :]
 data_25_uf.loc[:, 'cn_mean'] = data_25_uf.er_p0_mean * 0.19447
 
 
@@ -313,3 +313,35 @@ axes.plot(stats_lai_hemi.mean_dist, .5 * stats_lai_hemi.stdev**2 / sd_lai_hemi**
 axes.legend(loc='center left', bbox_to_anchor=(1.01, .5), ncol=1,
             borderaxespad=0, frameon=False)
 fig.savefig(plot_out_dir + "semivar_combined_25m.png")
+
+
+fig = plt.figure()
+axes = fig.add_axes([0.13, 0.1, 0.62, 0.8])
+# adding axes
+plt.xlabel('Distance (d) [m]')
+plt.ylabel('Standard semi-variance $\left( \\frac{var(x_{d})}{2 \cdot var(x)}\\right)$ [-]')
+plt.title('Standard semi-variance of SWE metrics with distance\n Upper Forest, 5cm resolution (n=1000000)')
+
+axes.plot(stats_045.mean_dist, .5 * stats_045.stdev**2 / sd_045**2, label="SWE 045", linestyle="dashed")
+axes.plot(stats_050.mean_dist, .5 * stats_050.stdev**2 / sd_050**2, label="SWE 050", linestyle="dashed")
+axes.plot(stats_052.mean_dist, .5 * stats_052.stdev**2 / sd_052**2, label="SWE 052", linestyle="dashed")
+
+axes.plot(stats_045_050.mean_dist, .5 * stats_045_050.stdev**2 / sd_045_050**2, label="$\Delta$SWE 045-050", linestyle="dotted")
+axes.plot(stats_050_052.mean_dist, .5 * stats_050_052.stdev**2 / sd_050_052**2, label="$\Delta$SWE 050-052", linestyle="dotted")
+axes.legend(loc='center left', bbox_to_anchor=(1.01, .5), ncol=1,
+            borderaxespad=0, frameon=False)
+fig.savefig(plot_out_dir + "semivar_all_swe_dswe_25m.png")
+
+fig = plt.figure()
+axes = fig.add_axes([0.13, 0.1, 0.62, 0.8])
+# adding axes
+plt.xlabel('Distance (d) [m]')
+plt.ylabel('Standard semi-variance $\left( \\frac{var(x_{d})}{2 \cdot var(x)}\\right)$ [-]')
+plt.title('Standard semi-variance of canopy metrics with distance\n Upper Forest, 10cm CHM and 25cm LAI resolutions (n=10000000)')
+
+axes.plot(stats_chm.mean_dist, .5 * stats_chm.stdev**2 / sd_chm**2, label="Canopy height")
+axes.plot(stats_lai_rs.mean_dist, .5 * stats_lai_rs.stdev**2 / sd_lai_rs**2, label="$LAI_{1}$")
+axes.plot(stats_lai_hemi.mean_dist, .5 * stats_lai_hemi.stdev**2 / sd_lai_hemi**2, label="$LAI_{75}$")
+axes.legend(loc='center left', bbox_to_anchor=(1.01, .5), ncol=1,
+            borderaxespad=0, frameon=False)
+fig.savefig(plot_out_dir + "semivar_all_canopy_25m.png")
