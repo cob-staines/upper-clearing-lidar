@@ -5,7 +5,7 @@ def main():
     import os
 
     # build voxel space
-    import vox_19_045_config as vc
+    import vox_19_052_config as vc
     vox = vc.vox
     vox = lrs.las_to_vox(vox, vc.z_slices, run_las_traj=False, fail_overflow=False, calc_prior=False)
 

@@ -299,6 +299,8 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
 
 
     if (vox.origin is None) | (vox.max is None) :
+        print("Setting voxel space origin and max from data extent.")
+
         with h5py.File(vox.las_traj_hdf5, 'r') as hf:
             z_min = np.min(hf['lasData'][:, 3])
             z_max = np.max(hf['lasData'][:, 3])
@@ -315,7 +317,6 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
             x_min = y_min = x_max = y_max = np.nan
             with h5py.File(vox.las_traj_hdf5, 'r') as hf:
                 for ii in range(0, n_chunks):
-                    print('Chunk ' + str(ii) + '... ')
 
                     # chunk start and end
                     idx_start = ii * vox.las_traj_chunksize
@@ -341,7 +342,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
             vox.max = np.array([x_max, y_max, z_max])
     else:
         # this is the case if vox.origin and vox.max are specified prior
-        pass
+        print("Voxel space origin and max provided by user.")
 
     vox.ncells = np.ceil((vox.max - vox.origin) / vox.step).astype(int)
 
@@ -359,8 +360,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
 
     # loop over las_traj chunks
     for ii in range(0, n_chunks):
-
-        print('Chunk ' + str(ii + 1) + ' of ' + str(n_chunks) + ': ', end='')
+        # print('Chunk ' + str(ii + 1) + ' of ' + str(n_chunks) + ': ')
 
         # chunk start and end
         idx_start = ii * vox.las_traj_chunksize
@@ -369,11 +369,9 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
         else:
             idx_end = n_rows
 
-        print('Loading data... ', end='')
         with h5py.File(vox.las_traj_hdf5, 'r') as hf:
             ray_1_all = hf['lasData'][idx_start:idx_end, 1:4]
             ray_0_all = hf['trajData'][idx_start:idx_end, 1:4]
-        print('done')
 
         # points in rotated reference frame
         pts_rot = np.matmul(ray_1_all, z_rotmat(vox.cw_rotation))
@@ -391,7 +389,8 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
 
         # loop over z_slices
         for zz in range(0, z_slices):
-            print('\tSlice ' + str(zz + 1) + ' of ' + str(z_slices) + ': ', end='')
+            # print('\tSlice ' + str(zz + 1) + ' of ' + str(z_slices) + ': ')
+
             z_low = zz * z_step
             if zz != (z_slices - 1):
                 z_high = (zz + 1) * z_step
@@ -412,7 +411,6 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
                     sample_slice = hf['sample_data'][:, :, z_low:z_high]
                     return_slice = hf['return_data'][:, :, z_low:z_high]
 
-                print('Counting returns... ', end='')
 
                 # add valid returns to return slice
                 rtns_valid = rtns_vox[(rtns_vox[:, 2] >= z_low) & (rtns_vox[:, 2] < z_high), :]
@@ -434,11 +432,11 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
                 # random offset for each ray sample series
                 offset = np.random.random(len(z1))
 
-                cur_cent = 0
-
                 # iterate until longest ray length is surpassed
                 max_step = np.ceil(np.max(dist) / vox.sample_length).astype(int)
-                for jj in range(0, max_step):
+
+                prog_desc = "chunk " + str(ii + 1) + "/" + str(n_chunks) + ": slice " + str(zz + 1) + "/" + str(z_slices)
+                for jj in tqdm(range(0, max_step), leave=True, ncols=100, desc=prog_desc):
                     # distance from p0 along ray
                     sample_dist = (jj + offset) * vox.sample_length
 
@@ -472,16 +470,6 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
                             raise Exception('Overflow observed in past_max_args decrease, process aborted.\npast_max: ' + str(past_max) + '\ncurrent_max: ' + str(current_max))
                         if current_max == valmax:
                             raise Exception('Overflow expected based on reaching maximum value, process aborted')
-
-                    # print progress bar
-                    past_cent = cur_cent
-                    cur_cent = int(100 * (ii + 1) / max_step)
-                    if cur_cent > past_cent:
-                        for kk in range(0, cur_cent - past_cent):
-                            if (past_cent + kk + 1) % 10 == 0:
-                                print(str(past_cent + kk + 1), end='')
-                            else:
-                                print('.', end='')
 
                 # save slice to file
                 with h5py.File(vox.vox_hdf5, mode='r+') as hf:
