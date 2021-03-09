@@ -299,14 +299,17 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
 
 
     if (vox.origin is None) | (vox.max is None) :
+        with h5py.File(vox.las_traj_hdf5, 'r') as hf:
+            z_min = np.min(hf['lasData'][:, 3])
+            z_max = np.max(hf['lasData'][:, 3])
+
         if vox.cw_rotation == 0:
             with h5py.File(vox.las_traj_hdf5, 'r') as hf:
                 x_min = np.min(hf['lasData'][:, 1])
                 x_max = np.max(hf['lasData'][:, 1])
                 y_min = np.min(hf['lasData'][:, 2])
                 y_max = np.max(hf['lasData'][:, 2])
-                z_min = np.min(hf['lasData'][:, 3])
-                z_max = np.max(hf['lasData'][:, 3])
+
         else:
             # determine x/y min & max in rotated reference frame (slow, must load and convert all data...)
             x_min = y_min = x_max = y_max = np.nan
@@ -372,8 +375,11 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
             ray_0_all = hf['trajData'][idx_start:idx_end, 1:4]
         print('done')
 
+        # points in rotated reference frame
+        pts_rot = np.matmul(ray_1_all, z_rotmat(vox.cw_rotation))
+
         # filter to returns within voxel space
-        valid = np.all(ray_1_all >= vox.origin, axis=1) & np.all(ray_1_all <= vox.max, axis=1)
+        valid = np.all(pts_rot >= vox.origin, axis=1) & np.all(pts_rot <= vox.max, axis=1)
         ray_0 = ray_0_all[valid, :]
         ray_1 = ray_1_all[valid, :]
 
