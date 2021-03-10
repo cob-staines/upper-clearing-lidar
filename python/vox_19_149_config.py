@@ -21,4 +21,8 @@ vox.vox_hdf5 = vox.las_in.replace('.las', "_" + config_id + '_vox.h5')
 
 z_slices = 4
 
+# # BUILD VOX
+# vox = lrs.las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False, calc_prior=False)
 
+# # LOAD VOX
+vox = lrs.load_vox_meta(vox.vox_hdf5, load_data=False)

@@ -4,15 +4,9 @@ def main():
     import pandas as pd
     import os
 
-    # build voxel space
-    import vox_19_149_config as vc
+    # call voxel config
+    import vox_19_052_config as vc
     vox = vc.vox
-    # vox = lrs.las_to_vox(vox, vc.z_slices, run_las_traj=False, fail_overflow=False, calc_prior=True)
-
-    # # LOAD VOX
-    print('Loading vox... ', end='')
-    vox = lrs.load_vox_meta(vox.vox_hdf5, load_data=True)
-    print('done')
 
 
     batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_vox_agg_test\\'

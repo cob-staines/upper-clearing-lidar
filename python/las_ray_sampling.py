@@ -5,6 +5,7 @@ import rastools
 import time
 import h5py
 import os
+import shutil
 import tifffile as tiff
 from tqdm import tqdm
 
@@ -29,7 +30,6 @@ class VoxelObj(object):
         self.return_dtype = None
         self.sample_data = None
         self.return_data = None
-        self.below_floor_count = -1
 
     def copy(self):
         from copy import deepcopy
@@ -56,7 +56,6 @@ def save_vox_meta(vox):
         meta.create_dataset('vox_step', data=vox.step)
         meta.create_dataset('vox_ncells', data=vox.ncells)
         meta.create_dataset('vox_sample_length', data=vox.sample_length)
-        meta.create_dataset('below_floor_count', data=vox.below_floor_count)
 
 def update_vox_meta(vox):
     with h5py.File(vox.vox_hdf5, 'a') as h5f:
@@ -74,17 +73,13 @@ def update_vox_meta(vox):
         meta['vox_ncells'][()] = vox.ncells
         meta['vox_sample_length'][()] = vox.sample_length
 
-        try:
-            meta['below_floor_count'][()] = vox.below_floor_count
-        except KeyError:
-            meta.create_dataset('below_floor_count', data=vox.below_floor_count)
 
-
-def load_vox_meta(hdf5_path, load_data=False):
+def load_vox_meta(hdf5_path, load_data=False, load_post=False):
     vox = VoxelObj()
     vox.vox_hdf5 = hdf5_path
 
     with h5py.File(hdf5_path, 'r') as h5f:
+        # load voxel meta
         meta = h5f.get('meta')
         vox.las_in = meta.get('las_in')[()]
         vox.traj_in = meta.get('traj_in')[()]
@@ -104,6 +99,18 @@ def load_vox_meta(hdf5_path, load_data=False):
         if load_data:
             vox.sample_data = h5f.get('sample_data')[()]
             vox.return_data = h5f.get('return_data')[()]
+
+        # load posterior meta
+        if load_post:
+            post = h5f.get('post')
+            vox.under_count = post.get('under_count')[()]
+            vox.unsamp_count = post.get('unsamp_count')[()]
+            vox.valid_count = post.get('valid_count')[()]
+            vox.prior_alpha = post.get('prior_alpha')[()]
+            vox.prior_beta = post.get('prior_beta')[()]
+            if load_data:
+                vox.posterior_alpha = post.get('posterior_alpha')[()]
+                vox.posterior_beta = post.get('posterior_beta')[()]
     return vox
 
 
@@ -253,7 +260,7 @@ def interpolate_to_z_slice(p1, p0, z_low_utm, z_high_utm):
     return z1, z0
 
 
-def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
+def las_ray_sample_by_z_slice(vox, z_slices=1, fail_overflow=False):
 
     print('----- LAS Ray Sampling -----')
 
@@ -349,9 +356,14 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
     z_step = np.ceil(vox.ncells[2] / z_slices).astype(int)
 
     # memory test of slice size (attempt to trigger memory error early)
-    m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.sample_dtype)
-    m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.return_dtype)
-    m_test = None
+    try:
+        m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.sample_dtype)
+        m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.return_dtype)
+    except MemoryError:
+        print("Size of z_slices is too large for memory. Try more z_slices.")
+        raise
+    finally:
+        m_test = None
 
     # preallocate voxel hdf5
     with h5py.File(vox.vox_hdf5, mode='w') as hf:
@@ -482,24 +494,7 @@ def las_ray_sample_by_z_slice(vox, z_slices, fail_overflow=False):
     return vox
 
 
-# voxList = ["C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\19_045_all_WGS84_utm11N_19_045_r0.25_vox.h5",
-#            "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\19_050_all_WGS84_utm11N_19_050_r0.25_vox.h5",
-#            "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\19_052_all_WGS84_utm11N_19_052_r0.25_vox.h5"]
-#
-# vox_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox.h5"
-#
-# z_slices = 16
-#
-# v0 = load_vox_meta(voxList[0], load_data=False)
-# v1 = load_vox_meta(voxList[1], load_data=False)
-# v2 = load_vox_meta(voxList[2], load_data=False)
-#
-# set_min = np.min([v0.origin, v1.origin, v2.origin], axis=0)
-# set_max = np.max([v0.max, v1.max, v2.max], axis=0)
-
-
-def vox_addition(voxList, vox_out, z_slices):
-    import shutil
+def vox_addition(voxList, vox_out, z_slices=1):
 
     # inherit from 1st in list
     v0_file = voxList[0]
@@ -533,12 +528,14 @@ def vox_addition(voxList, vox_out, z_slices):
 
     vout.update()
 
-    subList = voxList[1:]
-    for vv in subList:
-        vox_n = load_vox_meta(vv, load_data=False)
+    # loop through remaining voxel objects in list
+    for nn in range(1, len(voxList)):
+        vox_n = load_vox_meta(voxList[nn], load_data=False)
 
-        for zz in range(0, z_slices):
-            print('\tSlice ' + str(zz + 1) + ' of ' + str(z_slices) + ': ', end='')
+        prog_desc = "Vox " + str(nn)
+        for zz in tqdm(range(0, z_slices), leave=True, ncols=100, desc=prog_desc):
+        # for zz in range(0, z_slices):
+            # print('\tSlice ' + str(zz + 1) + ' of ' + str(z_slices) + ': ', end='')
             z_low = zz * z_step
             if zz != (z_slices - 1):
                 z_high = (zz + 1) * z_step
@@ -547,50 +544,109 @@ def vox_addition(voxList, vox_out, z_slices):
 
             with h5py.File(vout.vox_hdf5, mode='r+') as hf_0:
                 with h5py.File(vox_n.vox_hdf5, mode='r') as hf_n:
-                    # hf['sample_data'][:, :, z_low:z_high] = sample_slice
-                    # hf['return_data'][:, :, z_low:z_high] = return_slice
                     hf_0['sample_data'][:, :, z_low:z_high] = hf_0['sample_data'][:, :, z_low:z_high] + hf_n['sample_data'][:, :, z_low:z_high]
                     hf_0['return_data'][:, :, z_low:z_high] = hf_0['return_data'][:, :, z_low:z_high] + hf_0['return_data'][:, :, z_low:z_high]
 
 
-def beta_lookup_prior_calc(vox, agg_sample_length=None):
+def beta_lookup_prior_calc(vox, z_slices=1, agg_sample_length=None):
     # set agg_sample length to vox.sample_length in not specified
     if agg_sample_length is None:
         agg_sample_length = vox.sample_length
 
-    # load data if not provided
-    if (vox.sample_data is None) or (vox.return_data is None):
-        with h5py.File(vox.vox_hdf5, 'r') as hf:
-            vox.sample_data = hf.get('sample_data')[()]
-            vox.return_data = hf.get('return_data')[()]
+    # define z_step
+    z_step = np.ceil(vox.ncells[2] / z_slices).astype(int)
 
-    # set floor of samples to returns and count instances (but do not save...)
-    fix = vox.sample_data < vox.return_data
-    vox.sample_data[fix] = vox.return_data[fix]
-    vox.below_floor_count = np.sum(fix)
+    # memory test of slice size (attempt to trigger memory error early)
+    try:
+        m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.sample_dtype)
+        m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.return_dtype)
+    except MemoryError:
+        print("Size of z_slices is too large for memory. Try more z_slices.")
+        raise
+    finally:
+        m_test = None
 
-    # estimate prior parameters
-    valid = (vox.sample_data > 0)  # roughly 50% at .25m
-    rate = vox.return_data[valid] / vox.sample_data[valid]
-    mu = np.mean(rate)
-    sig2 = np.var(rate)
+    # preallocate counts
+    under_count = 0  # count cells with sample < returns
+    unsamp_count = 0  # count cells with sample > 0
+    valid_count = 0  # cells with sample in valid range
+    rate_sum = 0  # cumulative sum of rates
+    rate_sq_sum = 0  # cumulative sum of square of rates
+
+    # loop through z_slices
+    for zz in tqdm(range(0, z_slices), leave=True, ncols=100, desc="Prior calc"):
+
+        z_low = zz * z_step
+        if zz != (z_slices - 1):
+            z_high = (zz + 1) * z_step
+        else:
+            z_high = vox.ncells[2]
+
+
+        with h5py.File(vox.vox_hdf5, mode='r') as hf:
+            s_data = hf['sample_data'][:, :, z_low:z_high]
+            r_data = hf['return_data'][:, :, z_low:z_high]
+
+        # cells where returns exceed samples
+        under = (s_data < r_data)
+        under_count += np.sum(under)
+
+        # cells with no samples
+        unsamp = (s_data == 0)
+        unsamp_count += np.sum(unsamp)
+
+        # estimate prior parameters
+        valid = ~under & ~unsamp
+        valid_count += np.sum(valid)
+        rate = r_data[valid] / s_data[valid]
+
+        rate_sum += np.sum(rate)
+        rate_sq_sum += np.sum(rate ** 2)
+
+    mu = rate_sum / valid_count
+    sig2 = (rate_sq_sum - (rate_sum ** 2)/valid_count)/(valid_count - 1)
 
     prior_alpha = ((1 - mu)/sig2 - 1/mu) * (mu ** 2)
     prior_beta = prior_alpha * (1/mu - 1)
 
     # calculate and write prior lookup
     sample_length_correction = vox.sample_length / agg_sample_length
-    post_dtype = np.float32
+    # post_dtype = np.float32
+    post_dtype = vox.sample_dtype
 
     with h5py.File(vox.vox_hdf5, mode='r+') as hf:
-        hf.create_dataset('posterior_alpha', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
-        hf.create_dataset('posterior_beta', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
+        post = hf.create_group("post")
+        post.create_dataset('posterior_alpha', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
+        post.create_dataset('posterior_beta', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
 
-        hf['posterior_alpha'][()] = hf['return_data'][()] + prior_alpha
-        hf['posterior_beta'][()] = hf['sample_data'] * sample_length_correction + hf['return_data'][()] + prior_beta
+        # record prior and count values
+        post.create_dataset('under_count', data=under_count)
+        post.create_dataset('unsamp_count', data=unsamp_count)
+        post.create_dataset('valid_count', data=valid_count)
+        post.create_dataset('prior_alpha', data=prior_alpha)
+        post.create_dataset('prior_beta', data=prior_beta)
 
-        # save count of floor-corrected values
-        hf.create_dataset('below_floor_count', data=vox.below_floor_count)
+    # loop through z_slices
+    for zz in tqdm(range(0, z_slices), leave=True, ncols=100, desc="Write posterior"):
+
+        z_low = zz * z_step
+        if zz != (z_slices - 1):
+            z_high = (zz + 1) * z_step
+        else:
+            z_high = vox.ncells[2]
+
+        with h5py.File(vox.vox_hdf5, mode='r+') as hf:
+            s_data = hf['sample_data'][:, :, z_low:z_high]
+            r_data = hf['return_data'][:, :, z_low:z_high]
+
+            # correct under-counts
+            under = (s_data < r_data)
+            s_data[under] = r_data[under]
+
+            hf['/post/posterior_alpha'][:, :, z_low:z_high] = r_data + prior_alpha
+            hf['/post/posterior_beta'][:, :, z_low:z_high] = s_data * sample_length_correction + r_data + prior_beta
+
+
 
 
 
@@ -1192,8 +1248,8 @@ def subset_vox(pts, vox, buffer, lookup_db='posterior'):
             vox_sub.return_data = hf['return_data'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
     elif lookup_db == 'posterior':
         with h5py.File(vox_sub.vox_hdf5, mode='r') as hf:
-            vox_sub.sample_data = hf['posterior_beta'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
-            vox_sub.return_data = hf['posterior_alpha'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
+            vox_sub.sample_data = hf['/post/posterior_beta'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
+            vox_sub.return_data = hf['/post/posterior_alpha'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
     else:
         raise Exception('invalid specification for "lookup_db": ' + str(lookup_db))
 
