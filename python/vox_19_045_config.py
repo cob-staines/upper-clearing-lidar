@@ -25,4 +25,9 @@ vox.max = np.array([-2.63665114e+06,  5.03262022e+06,  1.87498250e+03])
 
 z_slices = 8
 
+# # BUILD VOX
+# vox = lrs.las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False, calc_prior=False)
+
+# # LOAD VOX
+vox = lrs.load_vox_meta(vox.vox_hdf5, load_data=False)
 
