@@ -32,8 +32,6 @@ z_slices = 8
 
 # BUILD VOX
 # combine voxel spaces
-lrs.vox_addition(voxList, vox_out, z_slices)
-# load vox
-vox = lrs.load_vox_meta(vox_out, load_data=False)
+vox = lrs.load_vox_meta(vox_out, load_data=False, load_post=True)
 # calculate prior
-lrs.beta_lookup_prior_calc(vox, z_slices, agg_sample_length=None)
+# lrs.beta_lookup_prior_calc(vox, z_slices, agg_sample_length=None)

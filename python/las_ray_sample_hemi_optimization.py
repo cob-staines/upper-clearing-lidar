@@ -5,16 +5,17 @@ def main():
     import os
 
     # call voxel config
-    import vox_19_052_config as vc
+    import vox_045_050_052_config as vc
     vox = vc.vox
 
 
-    batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_vox_agg_test\\'
+    # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_vox_agg_test\\'
+    batch_dir = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\batches\\lrs_hemi_opt_test\\'
 
-    img_lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
-    # img_lookup_in = 'C:\\Users\\jas600\\workzone\\data\\las\\hemi_lookup_cleaned.csv'
+    # img_lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
+    img_lookup_in = 'C:\\Users\\jas600\\workzone\\data\\las\\hemi_lookup_cleaned.csv'
     max_quality = 4
-    las_day = "19_149"
+    las_day = "19_050"
     # import hemi_lookup
     img_lookup = pd.read_csv(img_lookup_in)
     # filter lookup by quality
@@ -36,13 +37,13 @@ def main():
     #rshmeta.lookup_db = 'count'
     rshmeta.lookup_db = 'posterior'
 
-    # rshmeta.agg_method = 'single_ray_agg'
-    # rshmeta.agg_sample_length = vox.sample_length
+    rshmeta.agg_method = 'single_ray_agg'
+    rshmeta.agg_sample_length = vox.sample_length
 
 
-    rshmeta.agg_method = 'vox_agg'  # vox_shell_agg?
-    rshmeta.agg_sample_length = vox.step[0] ** 2/vox.sample_length
-    rshmeta.min_distance = 0
+    # rshmeta.agg_method = 'vox_agg'  # vox_shell_agg?
+    # rshmeta.agg_sample_length = vox.step[0] ** 2/vox.sample_length
+    # rshmeta.min_distance = 0
 
     # rshmeta.agg_method = 'multi_ray_agg'
 
@@ -54,7 +55,7 @@ def main():
     rshmeta.max_phi_rad = np.pi/2
     hemi_m_above_ground = img_lookup.height_m  # meters
     rshmeta.max_distance = 50  # meters
-    rshmeta.min_distance = voxel_length * np.sqrt(3)  # meters
+    rshmeta.min_distance = vox.step[0] * np.sqrt(3)  # meters
 
     # create batch dir
     # if batch file dir exists

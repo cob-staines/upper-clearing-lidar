@@ -647,9 +647,6 @@ def beta_lookup_prior_calc(vox, z_slices=1, agg_sample_length=None):
             hf['/post/posterior_beta'][:, :, z_low:z_high] = s_data * sample_length_correction + r_data + prior_beta
 
 
-
-
-
 def beta(rays, path_samples, path_returns, vox_sample_length, agg_sample_length, prior, weights=1):
 
     kk = path_returns
@@ -667,10 +664,7 @@ def beta(rays, path_samples, path_returns, vox_sample_length, agg_sample_length,
 
     return rays
 
-def beta_lookup(rays, path_samples, path_returns, weights=1):
-
-    post_a = path_returns
-    post_b = path_samples
+def beta_lookup(rays, post_a, post_b, weights=1):
 
     # normal approximation of sum
     returns_mean = np.nansum(weights * post_a/(post_a + post_b), axis=1)
