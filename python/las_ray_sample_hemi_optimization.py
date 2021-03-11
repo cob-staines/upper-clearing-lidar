@@ -9,19 +9,19 @@ def main():
     vox = vc.vox
 
 
-    # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_vox_agg_test\\'
-    batch_dir = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\batches\\lrs_hemi_opt_test\\'
+    batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_045_050_052\\'
+    # batch_dir = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\batches\\lrs_hemi_opt_test\\'
 
-    # img_lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
-    img_lookup_in = 'C:\\Users\\jas600\\workzone\\data\\las\\hemi_lookup_cleaned.csv'
+    img_lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
+    # img_lookup_in = 'C:\\Users\\jas600\\workzone\\data\\las\\hemi_lookup_cleaned.csv'
     max_quality = 4
-    las_day = "19_050"
+    las_day = ["19_045", "19_050", "19_052"]
     # import hemi_lookup
     img_lookup = pd.read_csv(img_lookup_in)
     # filter lookup by quality
     img_lookup = img_lookup[img_lookup.quality_code <= max_quality]
     # filter lookup by las_day
-    img_lookup = img_lookup[img_lookup.folder == las_day]
+    img_lookup = img_lookup[np.in1d(img_lookup.folder, las_day)]
 
     [file.replace('.JPG', '') for file in img_lookup.filename]
 

@@ -611,8 +611,7 @@ def beta_lookup_prior_calc(vox, z_slices=1, agg_sample_length=None):
 
     # calculate and write prior lookup
     sample_length_correction = vox.sample_length / agg_sample_length
-    # post_dtype = np.float32
-    post_dtype = vox.sample_dtype
+    post_dtype = np.float32  # make sure to use float, as prior will not be integer
 
     with h5py.File(vox.vox_hdf5, mode='r+') as hf:
         post = hf.create_group("post")
