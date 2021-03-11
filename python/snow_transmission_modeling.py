@@ -18,8 +18,8 @@ hemimeta = pd.read_csv(batch_dir + 'rshmetalog.csv')
 imsize = hemimeta.img_size_px[0]
 
 # specify which time interval
-# interval = "045-050"
-interval = "050-052"
+interval = "045-050"
+# interval = "050-052"
 
 # load covariant
 count_045 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\RAS\\19_045_ground_point_density_r.25m.bil'
@@ -28,11 +28,11 @@ count_052 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\
 count_149 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RAS\\19_149_ground_point_density_r.25m.bil'
 
 if interval == "045-050":
-    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\alin\\interp_2x\\19_045-19_050\\masked\\dswe_alin_19_045-19_050_r.05m_interp2x_masked.tif'
-    # var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ahpl\\interp_2x\\19_045-19_050\\masked\\dswe_ahpl_19_045-19_050_r.05m_interp2x_masked.tif'
+    # var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\alin\\interp_2x\\19_045-19_050\\masked\\dswe_alin_19_045-19_050_r.05m_interp2x_masked.tif'
+    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ahpl\\interp_2x\\19_045-19_050\\masked\\dswe_ahpl_19_045-19_050_r.05m_interp2x_masked.tif'
 elif interval == "050-052":
-    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\alin\\interp_2x\\19_050-19_052\\masked\\dswe_alin_19_050-19_052_r.05m_interp2x_masked.tif'
-    # var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ahpl\\interp_2x\\19_050-19_052\\masked\\dswe_ahpl_19_050-19_052_r.05m_interp2x_masked.tif'
+    # var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\alin\\interp_2x\\19_050-19_052\\masked\\dswe_alin_19_050-19_052_r.05m_interp2x_masked.tif'
+    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ahpl\\interp_2x\\19_050-19_052\\masked\\dswe_ahpl_19_050-19_052_r.05m_interp2x_masked.tif'
 
 ddict = {'count_045': count_045,
          'count_050': count_050,
@@ -304,56 +304,58 @@ if interval == "045-050":
 elif interval == "050-052":
     fig.savefig(plot_out_dir + "dSWE vs DWST 050-052.png")
 
-# ## calculate interaction scalar across hemisphere
-# plt.scatter(np.log(hemi_var.covariant[hemi_var.training_set.values]), -w_stack, s=2, alpha=.25)
-# np.nanmean(-np.log(hemi_var.covariant[hemi_var.training_set.values]) / w_stack)
-#
-# from scipy.optimize import curve_fit
-#
-# corcoef_each = np.full((imsize, imsize), np.nan)
-# is_each = np.full((imsize, imsize), np.nan)
-# gg_each = np.full((imsize, imsize), np.nan)
-#
-# for ii in range(0, imsize):
-#     for jj in range(0, imsize):
-#         if imrange[jj, ii]:
-#             def expfunc(p1):
-#                 return -np.corrcoef(hemi_var.covariant[hemi_var.training_set.values], np.exp(-p1 * imstack[jj, ii, :]))[0, 1]
-#
-#
-#             [popt, ffopt, ggopt, BBopt, func_calls, grad_calls, warnflg] = \
-#                 fmin_bfgs(expfunc,
-#                           1,
-#                           maxiter=100,
-#                           full_output=True,
-#                           retall=False)
-#
-#             is_each[jj, ii] = popt[0]
-#             corcoef_each[jj, ii] = -ffopt
-#             gg_each[jj, ii] = ggopt
-#
-#     print(ii)
-#
-# is_each_qc = is_each.copy()
-# is_each_qc[gg_each > .00001] = np.nan
-# is_each_qc[is_each_qc < 0] = np.nan
-#
-# plt.imshow(is_each_qc)
-# plt.imshow(gg_each)
-# corcoef_each_qc = corcoef_each.copy()
-# corcoef_each_qc[corcoef_each_qc == 1] = np.nan
-# plt.imshow(corcoef_each_qc)
-# plt.colorbar()
-#
-#
-# # Here you give the initial parameters for p0 which Python then iterates over
-# # to find the best fit
-# jj = 90
-# ii = 90
-#
-# popt, pcov = curve_fit(expfunc, w_stack, hemi_var.covariant[hemi_var.training_set.values], p0=(20.0), bounds=(0, np.inf))
-#
-# plt.scatter(hemi_var.covariant[hemi_var.training_set.values], np.exp(-popt[0] * w_stack), s=2, alpha=.25)
+
+####### calculate interaction scalar across hemisphere #######
+plt.scatter(np.log(hemi_var.covariant[hemi_var.training_set.values]), -w_stack, s=2, alpha=.25)
+np.nanmean(-np.log(hemi_var.covariant[hemi_var.training_set.values]) / w_stack)
+
+from scipy.optimize import curve_fit
+
+corcoef_each = np.full((imsize, imsize), np.nan)
+is_each = np.full((imsize, imsize), np.nan)
+gg_each = np.full((imsize, imsize), np.nan)
+
+for ii in range(0, imsize):
+    for jj in range(0, imsize):
+        if imrange[jj, ii]:
+            def expfunc(p1):
+                return -np.corrcoef(hemi_var.covariant[hemi_var.training_set.values], np.exp(-p1 * imstack[jj, ii, :]))[0, 1]
+
+
+            [popt, ffopt, ggopt, BBopt, func_calls, grad_calls, warnflg] = \
+                fmin_bfgs(expfunc,
+                          1,
+                          maxiter=100,
+                          full_output=True,
+                          retall=False)
+
+            is_each[jj, ii] = popt[0]
+            corcoef_each[jj, ii] = -ffopt
+            gg_each[jj, ii] = ggopt
+
+    print(ii)
+
+is_each_qc = is_each.copy()
+is_each_qc[gg_each > .00001] = np.nan
+is_each_qc[is_each_qc < 0] = np.nan
+is_each_qc[is_each_qc > 1000] = np.nan
+
+plt.imshow(is_each_qc)
+plt.imshow(gg_each)
+corcoef_each_qc = corcoef_each.copy()
+corcoef_each_qc[corcoef_each_qc == 1] = np.nan
+plt.imshow(corcoef_each_qc)
+plt.colorbar()
+
+
+# Here you give the initial parameters for p0 which Python then iterates over
+# to find the best fit
+jj = 90
+ii = 90
+
+popt, pcov = curve_fit(expfunc, w_stack, hemi_var.covariant[hemi_var.training_set.values], p0=(20.0), bounds=(0, np.inf))
+
+plt.scatter(hemi_var.covariant[hemi_var.training_set.values], np.exp(-popt[0] * w_stack), s=2, alpha=.25)
 
 ## plot optimization topography
 
