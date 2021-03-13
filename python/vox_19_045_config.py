@@ -29,5 +29,5 @@ z_slices = 8
 # vox = lrs.las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False, calc_prior=False)
 
 # # LOAD VOX
-vox = lrs.load_vox_meta(vox.vox_hdf5, load_data=False)
+vox = lrs.load_vox(vox.vox_hdf5, load_data=False)
 

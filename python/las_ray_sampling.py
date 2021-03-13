@@ -74,7 +74,7 @@ def update_vox_meta(vox):
         meta['vox_sample_length'][()] = vox.sample_length
 
 
-def load_vox_meta(hdf5_path, load_data=False, load_post=False):
+def load_vox(hdf5_path, load_data=False, load_post=False):
     vox = VoxelObj()
     vox.vox_hdf5 = hdf5_path
 
@@ -108,6 +108,7 @@ def load_vox_meta(hdf5_path, load_data=False, load_post=False):
             vox.valid_count = post.get('valid_count')[()]
             vox.prior_alpha = post.get('prior_alpha')[()]
             vox.prior_beta = post.get('prior_beta')[()]
+            vox.agg_sample_length = post.get('agg_sample_length')[()]
             if load_data:
                 vox.posterior_alpha = post.get('posterior_alpha')[()]
                 vox.posterior_beta = post.get('posterior_beta')[()]
@@ -500,7 +501,7 @@ def vox_addition(voxList, vox_out, z_slices=1):
     v0_file = voxList[0]
 
     # load v0 meta
-    vout = load_vox_meta(v0_file, load_data=False)
+    vout = load_vox(v0_file, load_data=False)
 
     # define z_step
     z_step = np.ceil(vout.ncells[2] / z_slices).astype(int)
@@ -530,7 +531,7 @@ def vox_addition(voxList, vox_out, z_slices=1):
 
     # loop through remaining voxel objects in list
     for nn in range(1, len(voxList)):
-        vox_n = load_vox_meta(voxList[nn], load_data=False)
+        vox_n = load_vox(voxList[nn], load_data=False)
 
         prog_desc = "Vox " + str(nn)
         for zz in tqdm(range(0, z_slices), leave=True, ncols=100, desc=prog_desc):
@@ -548,8 +549,20 @@ def vox_addition(voxList, vox_out, z_slices=1):
                     hf_0['return_data'][:, :, z_low:z_high] = hf_0['return_data'][:, :, z_low:z_high] + hf_0['return_data'][:, :, z_low:z_high]
 
 
-def beta_lookup_prior_calc(vox, z_slices=1, agg_sample_length=None):
-    # set agg_sample length to vox.sample_length in not specified
+def beta_lookup_post_calc(vox, z_slices=1, agg_sample_length=None):
+    """
+    Calculates beta posterior from sample_data and return_data of voxel object.
+    :param vox: voxel object, or path (str) pointing to voxel object hdf5 file
+    :param z_slices: number of slices of voxel space, increase to avoid memory overflow
+    :param agg_sample_length: sample length to be used for aggregation. If none, voxel sample length is used.
+    :return: posterior data along with priors and descriptive stats are saved to voxel object hdf5 file in group "post"
+    """
+
+    if isinstance(vox, str):
+        vox_in = vox
+        vox = load_vox(vox_in, load_data=False, load_post=False)
+
+    # set agg_sample length to vox.sample_length if not otherwise specified
     if agg_sample_length is None:
         agg_sample_length = vox.sample_length
 
@@ -574,7 +587,7 @@ def beta_lookup_prior_calc(vox, z_slices=1, agg_sample_length=None):
     rate_sq_sum = 0  # cumulative sum of square of rates
 
     # loop through z_slices
-    for zz in tqdm(range(0, z_slices), leave=True, ncols=100, desc="Prior calc"):
+    for zz in tqdm(range(0, z_slices), leave=True, ncols=100, desc="Post calc"):
 
         z_low = zz * z_step
         if zz != (z_slices - 1):
@@ -582,7 +595,7 @@ def beta_lookup_prior_calc(vox, z_slices=1, agg_sample_length=None):
         else:
             z_high = vox.ncells[2]
 
-
+        # load slice
         with h5py.File(vox.vox_hdf5, mode='r') as hf:
             s_data = hf['sample_data'][:, :, z_low:z_high]
             r_data = hf['return_data'][:, :, z_low:z_high]
@@ -603,9 +616,11 @@ def beta_lookup_prior_calc(vox, z_slices=1, agg_sample_length=None):
         rate_sum += np.sum(rate)
         rate_sq_sum += np.sum(rate ** 2)
 
+    # prior mean and variance
     mu = rate_sum / valid_count
     sig2 = (rate_sq_sum - (rate_sum ** 2)/valid_count)/(valid_count - 1)
 
+    # prior hyperparameters
     prior_alpha = ((1 - mu)/sig2 - 1/mu) * (mu ** 2)
     prior_beta = prior_alpha * (1/mu - 1)
 
@@ -624,6 +639,7 @@ def beta_lookup_prior_calc(vox, z_slices=1, agg_sample_length=None):
         post.create_dataset('valid_count', data=valid_count)
         post.create_dataset('prior_alpha', data=prior_alpha)
         post.create_dataset('prior_beta', data=prior_beta)
+        post.create_dataset('agg_sample_length', data=agg_sample_length)
 
     # loop through z_slices
     for zz in tqdm(range(0, z_slices), leave=True, ncols=100, desc="Write posterior"):
@@ -1177,7 +1193,7 @@ def hemi_rays_to_img(rays_out, img_path, img_size, area_factor):
     imageio.imsave(img_path, img)
 
 
-def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False, calc_prior=True):
+def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False, posterior_calc=True):
     if run_las_traj:
         # interpolate trajectory
         laslib.las_traj(vox.las_in, vox.traj_in, vox.las_traj_hdf5, vox.las_traj_chunksize, vox.return_set, vox.drop_class)
@@ -1186,9 +1202,9 @@ def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False, calc_prior
     vox = las_ray_sample_by_z_slice(vox, z_slices, fail_overflow)
     vox.save()
 
-    if calc_prior:
-        vox = load_vox_meta(vox.vox_hdf5, load_data=True)
-        beta_lookup_prior_calc(vox)
+    if posterior_calc:
+        vox = load_vox(vox.vox_hdf5, load_data=True)
+        beta_lookup_post_calc(vox)
 
     return vox
 
@@ -1286,13 +1302,11 @@ class RaySampleGridMetaObj(object):
         self.agg_method = None
 
 
-def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, nrows=4, commentation=False):
+def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, nrows=4):
 
     vox_sub = subset_vox(rshm.loc[:, ['x_utm11n', 'y_utm11n', 'elevation_m']].values, vox, rshmeta.max_distance, rshmeta.lookup_db)
 
-    for ii in tqdm(range(0, len(rshm)), position=process_id, desc=str(process_id), leave=True, ncols=100, nrows=nrows):
-        if commentation:
-            print(str(ii + 1) + " of " + str(len(rshm)) + ': ', end='')
+    for ii in tqdm(range(0, len(rshm)), position=process_id, desc=str(process_id), leave=True, ncols=100, nrows=nrows + 1):
         it_time = time.time()
 
         iid = rshm.index[ii]
@@ -1310,7 +1324,7 @@ def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, nrows=4, commentati
             # ray_iterations = rshmeta.ray_iterations
             # commentation = True
             # method = rshmeta.agg_method
-            rays_out = single_ray_agg(vox_sub, rays_in, rshmeta.agg_sample_length, rshmeta.lookup_db, rshmeta.prior, commentation)
+            rays_out = single_ray_agg(vox_sub, rays_in, rshmeta.agg_sample_length, rshmeta.lookup_db, rshmeta.prior)
         elif rshmeta.agg_method == "vox_agg":
 
             # vox_bu = vox
@@ -1338,9 +1352,6 @@ def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, nrows=4, commentati
 
         # write to log file
         rshm.iloc[ii:ii + 1].to_csv(log_path, encoding='utf-8', mode='a', header=False, index=False)
-
-        if commentation:
-            print("done in " + str(rshm.computation_time_s.iloc[ii]) + " seconds")
 
     return rshm
 
@@ -1398,7 +1409,7 @@ def rs_hemigen(rshmeta, vox, tile_count_1d=1, n_cores=1):
                 log.write(",".join(rshm.columns) + '\n')
             log.close()
 
-        rshm = rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, nrows=1, commentation=False)
+        rshm = rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, nrows=1)
 
     else:
         # multiple tiles

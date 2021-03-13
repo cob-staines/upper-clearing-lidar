@@ -38,7 +38,7 @@ def main():
     rshmeta.lookup_db = 'posterior'
 
     rshmeta.agg_method = 'single_ray_agg'
-    rshmeta.agg_sample_length = vox.sample_length
+    rshmeta.agg_sample_length = vox.agg_sample_length
 
 
     # rshmeta.agg_method = 'vox_agg'  # vox_shell_agg?
@@ -114,23 +114,18 @@ def main():
     phi_bands = [0, 15, 30, 45, 60, 75]
 
     cnlog.loc[:, ["rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5"]] = np.nan
-    # cnlog.loc[:, ["rsm_med_1", "rsm_med_2", "rsm_med_3", "rsm_med_4", "rsm_med_5"]] = np.nan
     cnlog.loc[:, ["rsm_std_1", "rsm_std_2", "rsm_std_3", "rsm_std_4", "rsm_std_5"]] = np.nan
     for ii in range(0, len(cnlog)):
         img = tif.imread(cnlog.file_dir[ii] + cnlog.file_name[ii])
         mean = img[:, :, 0]
-        # med = img[:, :, 1]
         std = img[:, :, 1]
         mean_temp = []
-        # med_temp = []
         std_temp = []
         for jj in range(0, 5):
             mask = (phi >= phi_bands[jj]) & (phi < phi_bands[jj + 1])
             mean_temp.append(np.nanmean(mean[mask]))
-            # med_temp.append(np.nanmean(med[mask]))
             std_temp.append(np.nanmean(std[mask]))
         cnlog.loc[ii, ["rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5"]] = mean_temp
-        # cnlog.loc[ii, ["rsm_med_1", "rsm_med_2", "rsm_med_3", "rsm_med_4", "rsm_med_5"]] = med_temp
         cnlog.loc[ii, ["rsm_std_1", "rsm_std_2", "rsm_std_3", "rsm_std_4", "rsm_std_5"]] = std_temp
 
     cnlog.to_csv(cnlog.file_dir[0] + "contact_number_optimization.csv")

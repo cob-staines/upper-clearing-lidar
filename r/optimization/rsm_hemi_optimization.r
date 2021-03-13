@@ -20,10 +20,10 @@ photos = photos[, c("original_file", "contactnum_1", "contactnum_2", "contactnum
 # photos = photos[, c("original_file", "transmission_1", "transmission_2", "transmission_3", "transmission_4", "transmission_5")]
 
 
-rsm_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_beta_exp/outputs/contact_number_optimization.csv"
+# rsm_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_beta_exp/outputs/contact_number_optimization.csv"
+rsm_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_045_050_052/outputs/contact_number_optimization.csv"
 rsm = read.csv(rsm_in, header=TRUE, na.strings = c("NA",""), sep=",")
 rsm$id = as.character(rsm$id)
-# rsm = rsm[, c("id", "rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5", "rsm_med_1", "rsm_med_2", "rsm_med_3", "rsm_med_4", "rsm_med_5")]
 rsm = rsm[, c("id", "rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5", "rsm_std_1", "rsm_std_2", "rsm_std_3", "rsm_std_4", "rsm_std_5")]
 
 df = merge(rsm, photos, by.x='id', by.y='original_file', all.x=TRUE)
