@@ -119,6 +119,7 @@ def las_xyz_to_hdf5(las_in, hdf5_out, drop_class=None, keep_class=None):
     :return: None
     """
     import pandas as pd
+    import h5py
 
     # load xyz from las_in
     las_data = las_xyz_load(las_in, drop_class=drop_class, keep_class=keep_class)
@@ -129,7 +130,10 @@ def las_xyz_to_hdf5(las_in, hdf5_out, drop_class=None, keep_class=None):
         'z': las_data[:, 2]
     })
 
-    p0.to_hdf(hdf5_out, key='las_data', mode='w', format='table')
+    # p0.to_hdf(hdf5_out, key='las_data', mode='w', format='fixed')
+
+    with h5py.File(hdf5_out, 'w') as hf:
+        hf.create_dataset('las_data', p0.shape, data=p0.values, compression='gzip')
 
 
 def hemigen(hdf5_path, hemimeta, initial_index=0):
@@ -150,6 +154,7 @@ def hemigen(hdf5_path, hemimeta, initial_index=0):
     matplotlib.use('Agg')
     # matplotlib.use('TkAgg')  # use for interactive plotting
     import matplotlib.pyplot as plt
+    import h5py
     import time
     import os
 
@@ -166,7 +171,10 @@ def hemigen(hdf5_path, hemimeta, initial_index=0):
         raise Exception('origin_coords and img_out_path have different lengths, execution halted.')
 
     # load data
-    p0 = pd.read_hdf(hdf5_path, key='las_data', columns=["x", "y", "z"])
+    # p0 = pd.read_hdf(hdf5_path, key='las_data', columns=["x", "y", "z"])
+    with h5py.File(hdf5_path, 'r') as hf:
+        p0 = hf["las_data"][()]
+
 
     # pre-plot
     fig = plt.figure(figsize=(hemimeta.img_size, hemimeta.img_size), dpi=hemimeta.img_resolution, frameon=True)
@@ -207,7 +215,7 @@ def hemigen(hdf5_path, hemimeta, initial_index=0):
         start = time.time()
         print("Generating " + hemimeta.file_name[ii] + " ...")
 
-        p1 = p0.values - hemimeta.origin[ii]
+        p1 = p0 - hemimeta.origin[ii]
 
         # if no max_radius, set to +inf
         if hemimeta.max_distance is None:

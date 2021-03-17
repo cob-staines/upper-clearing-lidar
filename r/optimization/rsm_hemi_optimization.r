@@ -16,12 +16,12 @@ photos_meta = read.csv(photos_meta_in, header=TRUE, na.strings = c("NA",""), sep
 photos_meta$id <- as.numeric(rownames(photos_meta)) - 1
 
 photos = merge(photos_lai, photos_meta, by.x='original_file', by.y='filename', all.x=TRUE)
-photos = photos[, c("original_file", "contactnum_1", "contactnum_2", "contactnum_3", "contactnum_4", "contactnum_5")]
-# photos = photos[, c("original_file", "transmission_1", "transmission_2", "transmission_3", "transmission_4", "transmission_5")]
+# photos = photos[, c("original_file", "contactnum_1", "contactnum_2", "contactnum_3", "contactnum_4", "contactnum_5")]
+photos = photos[, c("original_file", "transmission_1", "transmission_2", "transmission_3", "transmission_4", "transmission_5")]
 
 
-# rsm_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_beta_exp/outputs/contact_number_optimization.csv"
-rsm_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_045_050_052/outputs/contact_number_optimization.csv"
+rsm_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_beta_exp/outputs/contact_number_optimization.csv"
+# rsm_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_045_050_052/outputs/contact_number_optimization.csv"
 rsm = read.csv(rsm_in, header=TRUE, na.strings = c("NA",""), sep=",")
 rsm$id = as.character(rsm$id)
 rsm = rsm[, c("id", "rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5", "rsm_std_1", "rsm_std_2", "rsm_std_3", "rsm_std_4", "rsm_std_5")]
@@ -36,18 +36,25 @@ df = df %>%
 # calculate error
 
 ggplot(df, aes(x=contactnum, y=rsm_mean, color=ring_number)) +
-  geom_point() +
-  geom_abline(intercept = 0, slope = 1/rsm_mean_lm$coefficients['df_anal$rsm_mean']) +
-  geom_abline(intercept = 0, slope = 1/rsm_mean_lm_all$coefficients['df$rsm_mean'])
+  geom_point()
 
+# ggplot(df, aes(x=transmission, y=rsm_mean, color=ring_number)) +
+#   geom_point()
+# 
+# ggplot(df, aes(x=-log(transmission), y=rsm_mean, color=ring_number)) +
+#   geom_point()
 
 
 rsm_mean_lm_all = lm(df$contactnum ~ 0 + df$rsm_mean)
 summary(rsm_mean_lm_all)
+# 
+# rsm_mean_tx_lm_all = lm(-log(df$transmission) ~ 0 + df$rsm_mean)
+# summary(rsm_mean_tx_lm_all)
 
 # remove 5th ring due to horizon clipping
 df_anal = df[df$ring_number != 5,]
 rsm_mean_lm = lm(df_anal$contactnum ~ 0 + df_anal$rsm_mean)
+# rsm_mean_lm = lm(-log(df_anal$transmission) ~ 0 + df_anal$rsm_mean)
 summary(rsm_mean_lm)
 
 

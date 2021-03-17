@@ -78,7 +78,7 @@ import laslib
 import os
 
 
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\pp_hemi_optimization_pr.15_os10\\'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\opt\\hemi_optimization_pr.15_os10\\'
 las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las"
 
 
@@ -123,14 +123,14 @@ else:
     if hemimeta.poisson_sampling_radius > 0:
         # poisson sampling
         las_poisson_path = hemimeta.src_las_file.replace('.las', '_poisson_' + str(hemimeta.poisson_sampling_radius) + '.las')
-        laslib.las_poisson_sample(hemimeta.src_las_file, hemimeta.poisson_sampling_radius, classification=hemimeta.src_keep_class, las_out=las_poisson_path)  # takes 10 minutes
+        # laslib.las_poisson_sample(hemimeta.src_las_file, hemimeta.poisson_sampling_radius, classification=hemimeta.src_keep_class, las_out=las_poisson_path)  # takes 10 minutes
     else:
         raise Exception('hemimeta.poisson_sampling_radius should be a numeric >= 0 or None.')
 
 # export las to hdf5
 print("-------- Exporting to HDF5 --------")
 hdf5_path = las_poisson_path.replace('.las', '.hdf5')
-laslib.las_xyz_to_hdf5(las_poisson_path, hdf5_path, keep_class=hemimeta.src_keep_class)
+# laslib.las_xyz_to_hdf5(las_poisson_path, hdf5_path, keep_class=hemimeta.src_keep_class)
 
 # import hemi-photo lookup
 lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"

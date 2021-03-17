@@ -74,7 +74,7 @@ def update_vox_meta(vox):
         meta['vox_sample_length'][()] = vox.sample_length
 
 
-def load_vox(hdf5_path, load_data=False, load_post=False):
+def load_vox(hdf5_path, load_data=False, load_post=False, load_post_data=False):
     vox = VoxelObj()
     vox.vox_hdf5 = hdf5_path
 
@@ -96,6 +96,7 @@ def load_vox(hdf5_path, load_data=False, load_post=False):
         vox.below_floor_count = meta.get('below_floor_count')
         vox.sample_dtype = h5f.get('sample_data').dtype
         vox.return_dtype = h5f.get('return_data').dtype
+
         if load_data:
             vox.sample_data = h5f.get('sample_data')[()]
             vox.return_data = h5f.get('return_data')[()]
@@ -109,9 +110,11 @@ def load_vox(hdf5_path, load_data=False, load_post=False):
             vox.prior_alpha = post.get('prior_alpha')[()]
             vox.prior_beta = post.get('prior_beta')[()]
             vox.agg_sample_length = post.get('agg_sample_length')[()]
-            if load_data:
-                vox.posterior_alpha = post.get('posterior_alpha')[()]
-                vox.posterior_beta = post.get('posterior_beta')[()]
+
+        if load_post_data:
+            post = h5f.get('post')
+            vox.posterior_alpha = post.get('posterior_alpha')[()]
+            vox.posterior_beta = post.get('posterior_beta')[()]
     return vox
 
 
@@ -1207,6 +1210,66 @@ def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False, posterior_
         beta_lookup_post_calc(vox)
 
     return vox
+
+las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_all_WGS84_utm11N.las'
+vox = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox.h5'
+las_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox_resampled.las'
+samps_per_vox = 10
+sample_threshold = 0
+
+def vox_to_las(vox, las_out, samps_per_vox=1, sample_threshold=0):
+    # generate las file with point density according to return rate
+
+    import laspy
+
+    # load vox if not already done
+    if isinstance(vox, str):
+        vox_in = vox
+        vox = load_vox(vox_in, load_data=True, load_post=True, load_post_data=True)
+
+    rate = vox.posterior_alpha / (vox.posterior_alpha + vox.posterior_beta)  # units of returns per agg sample length
+    valid = (vox.sample_data >= sample_threshold)  # do not try to sample voxels with sampled below the sample threshold
+
+    # sampled = vox.sample_data > 0
+
+    vox.sample_data = None
+    vox.return_data = None
+    vox.posterior_alpha = None
+    vox.posterior_beta = None
+
+    for ii in tqdm(range(samps_per_vox), desc="vox samples", ncols=100):
+        accept = (np.random.random(rate.shape) <= rate) & valid
+        vox_accept = np.where(accept)
+        # vox_classification = sampled[accept]
+        vox_address = np.array([vox_accept[0], vox_accept[1], vox_accept[2]]).swapaxes(0, 1)
+
+        if ii == 0:
+            vox_address_all = vox_address
+            # vox_classification_all = vox_classification
+        else:
+            vox_address_all = np.concatenate((vox_address_all, vox_address), axis=0)
+            # vox_classification_all = np.concatenate((vox_classification_all, vox_classification), axis=0)
+
+    # add/subtract sub-voxel noise
+    vox_address_noise = np.random.random(vox_address_all.shape) - 0.5 + vox_address_all
+
+    # convert to utm
+    utm_points = vox_to_utm(vox, vox_address_noise)
+
+    # hdr = laspy.header.Header(file_version=1.4, point_format=7)
+    hdr = laspy.header.Header()
+    mins = np.floor(np.min(utm_points, axis=0))
+    scale = [0.00025, 0.00025, 0.00025]
+    with laspy.file.File(las_out, mode="w", header=hdr) as outfile:
+        outfile.header.offset = mins
+        outfile.header.scale = scale
+        outfile.x = utm_points[:, 0]
+        outfile.y = utm_points[:, 1]
+        outfile.z = utm_points[:, 2]
+        # outfile.classification = vox_classification_all.astype(np.uint8)
+
+
+
 
 
 def subset_vox(pts, vox, buffer, lookup_db='posterior'):
