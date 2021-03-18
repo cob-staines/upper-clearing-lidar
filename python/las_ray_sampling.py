@@ -1211,11 +1211,6 @@ def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False, posterior_
 
     return vox
 
-las_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_all_WGS84_utm11N.las'
-vox = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox.h5'
-las_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox_resampled.las'
-samps_per_vox = 10
-sample_threshold = 0
 
 def vox_to_las(vox, las_out, samps_per_vox=1, sample_threshold=0):
     # generate las file with point density according to return rate
@@ -1224,8 +1219,10 @@ def vox_to_las(vox, las_out, samps_per_vox=1, sample_threshold=0):
 
     # load vox if not already done
     if isinstance(vox, str):
+        print("loading vox...", end="")
         vox_in = vox
         vox = load_vox(vox_in, load_data=True, load_post=True, load_post_data=True)
+        print("done")
 
     rate = vox.posterior_alpha / (vox.posterior_alpha + vox.posterior_beta)  # units of returns per agg sample length
     valid = (vox.sample_data >= sample_threshold)  # do not try to sample voxels with sampled below the sample threshold
@@ -1250,8 +1247,8 @@ def vox_to_las(vox, las_out, samps_per_vox=1, sample_threshold=0):
             vox_address_all = np.concatenate((vox_address_all, vox_address), axis=0)
             # vox_classification_all = np.concatenate((vox_classification_all, vox_classification), axis=0)
 
-    # add/subtract sub-voxel noise
-    vox_address_noise = np.random.random(vox_address_all.shape) - 0.5 + vox_address_all
+    # add sub-voxel noise
+    vox_address_noise = vox_address_all + np.random.random(vox_address_all.shape)
 
     # convert to utm
     utm_points = vox_to_utm(vox, vox_address_noise)
@@ -1259,14 +1256,23 @@ def vox_to_las(vox, las_out, samps_per_vox=1, sample_threshold=0):
     # hdr = laspy.header.Header(file_version=1.4, point_format=7)
     hdr = laspy.header.Header()
     mins = np.floor(np.min(utm_points, axis=0))
+    maxs = np.ceil(np.max(utm_points, axis=0))
     scale = [0.00025, 0.00025, 0.00025]
+    print("writing las...", end="")
     with laspy.file.File(las_out, mode="w", header=hdr) as outfile:
+        # header attributes
+        outfile.software_id = "las_ray_sampling.py/vox_to_las"
         outfile.header.offset = mins
         outfile.header.scale = scale
+        outfile.header.min = mins
+        outfile.header.max = maxs
+
+        # points
         outfile.x = utm_points[:, 0]
         outfile.y = utm_points[:, 1]
         outfile.z = utm_points[:, 2]
         # outfile.classification = vox_classification_all.astype(np.uint8)
+    print("done")
 
 
 
