@@ -194,7 +194,7 @@ lm_ahpl_045 = lm((density - 89.26) ~ 0 + snow_depth_cm, data = a_045)
 lm_ahpl_050 = lm((density - 85.39) ~ 0 + snow_depth_cm, data = a_050)
 lm_ahpl_052 = lm((density - 72.05) ~ 0 + snow_depth_cm, data = a_052)
 
-summary(lm_cc_123)
+summary(lm_flin_052)
 summary(lm_alin_123)
 
 # all combined linear density
@@ -319,10 +319,10 @@ ggplot(survey_c, aes(x=snow_depth_cm, y=swe_mm)) +
   facet_grid(. ~ doy) +
   geom_point(aes(shape=cover)) +
   scale_shape_manual(values=c(1, 16)) +
-  # geom_line(aes(x = snow_depth_cm, y=swe_flin, color="f_linear")) +
-  # geom_line(aes(x = snow_depth_cm, y=swe_fc, color="f_const")) +
-  # geom_line(aes(x = snow_depth_cm, y=swe_clin, color="c_linear")) +
-  # geom_line(aes(x = snow_depth_cm, y=swe_cc, color="c_const")) +
+  geom_line(aes(x = snow_depth_cm, y=swe_flin, color="f_linear")) +
+  geom_line(aes(x = snow_depth_cm, y=swe_fc, color="f_const")) +
+  geom_line(aes(x = snow_depth_cm, y=swe_clin, color="c_linear")) +
+  geom_line(aes(x = snow_depth_cm, y=swe_cc, color="c_const")) +
   # geom_line(data=survey_m, aes(x = snow_depth_cm, y=swe_alin, color="a_linear")) +
   # geom_line(data=survey_m, aes(x = snow_depth_cm, y=swe_ac, color="a_const")) +
   # geom_line(data=survey_m, aes(x = snow_depth_cm, y=swe_ax, color="a_exp")) +
@@ -337,10 +337,10 @@ ggplot(survey_c, aes(x=snow_depth_cm, y=100 * swe_mm/snow_depth_cm)) +
   facet_grid(. ~ doy) +
   geom_point(aes(shape=cover)) +
   scale_shape_manual(values=c(1, 16)) +
-  # geom_line(aes(x = snow_depth_cm, y=100 * swe_flin / snow_depth_cm, color="f_linear")) +
-  # geom_line(aes(x = snow_depth_cm, y=100 * swe_fc / snow_depth_cm, color="f_const")) +
-  # geom_line(aes(x = snow_depth_cm, y=100 * swe_clin / snow_depth_cm, color="c_linear")) +
-  # geom_line(aes(x = snow_depth_cm, y=100 * swe_cc / snow_depth_cm, color="c_const")) +
+  geom_line(aes(x = snow_depth_cm, y=100 * swe_flin / snow_depth_cm, color="f_linear")) +
+  geom_line(aes(x = snow_depth_cm, y=100 * swe_fc / snow_depth_cm, color="f_const")) +
+  geom_line(aes(x = snow_depth_cm, y=100 * swe_clin / snow_depth_cm, color="c_linear")) +
+  geom_line(aes(x = snow_depth_cm, y=100 * swe_cc / snow_depth_cm, color="c_const")) +
   # geom_line(data=survey_m, aes(x = snow_depth_cm, y=100 * swe_alin / snow_depth_cm, color="a_linear")) +
   # geom_line(data=survey_m, aes(x = snow_depth_cm, y=100 * swe_ac / snow_depth_cm, color="a_const")) +
   # geom_line(data=survey_m, aes(x = snow_depth_cm, y=100 * swe_ax / snow_depth_cm, color="a_exp")) +
