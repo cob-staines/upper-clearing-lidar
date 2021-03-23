@@ -5,6 +5,9 @@ import os
 
 snow_on_ass = {}
 snow_on_ass["alin"] = ["19_045", "19_050", "19_052", "19_107", "19_123"]
+snow_on_ass["clin"] = ["19_045", "19_050", "19_052", "19_107", "19_123"]
+snow_on_ass["fcon"] = ["19_045", "19_050", "19_052", "19_107", "19_123"]
+snow_on_ass["ccon"] = ["19_045", "19_050", "19_052", "19_107", "19_123"]
 snow_on_ass["ahpl"] = ["19_045", "19_050", "19_052"]
 snow_on = ["19_045", "19_050", "19_052", "19_107", "19_123"]
 # snow_on = ["19_045", "19_050", "19_052"]
@@ -15,8 +18,11 @@ resolution = [".05", ".10", ".25", "1.00"]
 
 interpolation_lengths = ["1", "2", "3"]
 
+new_snow_density = [85.08949, 72.235068, None, None]
+
 dens_ass = {}
 #
+
 # coefficients for snow depth [cm], swe [mm]
 # all veg, each day, linear depth-density
 depth_to_density_intercept = dict(zip(snow_on, [109.1403, 110.2249, 72.5015, 224.6406, 223.5683]))
@@ -33,10 +39,21 @@ dens_ass["alin"] = (depth_to_density_intercept, depth_to_density_slope)
 # depth_to_density_slope = dict(zip(snow_on, np.array([0, 0, 0, 0, 0])))
 # dens_ass["acon"] = (depth_to_density_intercept, depth_to_density_slope)
 #
-# # forest only, each day, constant density
-# depth_to_density_intercept = dict(zip(snow_on, np.array([199.321, 158.56, 134.48, 263.22, 291.14])))
-# depth_to_density_slope = dict(zip(snow_on, np.array([0, 0, 0, 0, 0])))
-# dens_ass["fcon"] = (depth_to_density_intercept, depth_to_density_slope)
+# forest only, each day, constant density
+depth_to_density_intercept = dict(zip(snow_on, np.array([199.321, 158.56, 134.48, 263.22, 291.14])))
+depth_to_density_slope = dict(zip(snow_on, np.array([0, 0, 0, 0, 0])))
+dens_ass["fcon"] = (depth_to_density_intercept, depth_to_density_slope)
+
+# clearing only, each day, constant density
+depth_to_density_intercept = dict(zip(snow_on, np.array([189.022, 194.30, 180.780, 308.129, 303.181])))
+depth_to_density_slope = dict(zip(snow_on, np.array([0, 0, 0, 0, 0])))
+dens_ass["ccon"] = (depth_to_density_intercept, depth_to_density_slope)
+
+# clearing only, each day, linear depth-density
+depth_to_density_intercept = dict(zip(snow_on, np.array([109.1403, 79.0724, 75.2462, 284.3746, 291.7717])))
+depth_to_density_slope = dict(zip(snow_on, np.array([1.2717, 1.6568, 1.4417, 0.5656, 0.1317])))
+dens_ass["clin"] = (depth_to_density_intercept, depth_to_density_slope)
+
 #
 # hedstrom pomeroy intercept linear
 depth_to_density_intercept = dict(zip(snow_on, np.array([89.26, 85.39, 72.05])))
@@ -91,11 +108,6 @@ dswe_file_template = 'dswe_<ASS>_<DDI>-<DDJ>_r<RES>m_interp<INTLEN>x.tif'
 
 dswe_masked_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\<ASS>\\interp_<INTLEN>x\\<DDI>-<DDJ>\\masked\\'
 dswe_masked_file_template = 'dswe_<ASS>_<DDI>-<DDJ>_r<RES>m_interp<INTLEN>x_masked.tif'
-
-# THIS MAY BE TRASH...
-# int_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\DEM\\interpolated\\'
-# int_file_template = '<DATE>_dem_r<RES>m_q<QUANT>_interpolated_t<ITN>.tif'
-#
 
 point_dens_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\RAS\\'
 point_dens_file_template = '<DATE>_ground_point_density_r<RES>m.bil'
@@ -334,24 +346,11 @@ hs_bias.to_csv(hs_bias_file_out, index=False)
 #             # save
 #             rastools.raster_save(ras, hs_eroded_dir + hs_eroded_file)
 
-# differential snow depth products
-for ii in range(0, len(snow_on) - 1):
-    ddi = snow_on[ii]
-    ddj = snow_on[ii + 1]
-    for intlen in interpolation_lengths:
-        # update file paths with dates
-        dhs_dir = path_sub(dhs_dir_template, ddi=ddi, ddj=ddj, intlen=intlen)
 
-        # create SWE directory if does not exist
-        if not os.path.exists(dhs_dir):
-            os.makedirs(dhs_dir)
 
-        for rr in resolution:
-            ddi_in = path_sub([hs_clean_dir_template, hs_clean_file_template], dd=ddi, rr=rr, intlen=intlen)
-            ddj_in = path_sub([hs_clean_dir_template, hs_clean_file_template], dd=ddj, rr=rr, intlen=intlen)
-            dhs_out = path_sub([dhs_dir_template, dhs_file_template], ddi=ddi, ddj=ddj, rr=rr, intlen=intlen)
 
-            hs = rastools.raster_dif_gdal(ddj_in, ddi_in, inherit_from=2, dif_out=dhs_out)
+
+
 
 
 # run density analysis in r

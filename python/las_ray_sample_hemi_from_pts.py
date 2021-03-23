@@ -5,7 +5,7 @@ def main():
     import os
 
     # call voxel config
-    import vox_19_052_config as vc
+    import vox_045_050_052_config as vc
     vox = vc.vox
 
 
@@ -18,7 +18,6 @@ def main():
 
     # load points
     pts = pd.read_csv(pts_in)
-
 
     rshmeta = lrs.RaySampleGridMetaObj()
 

@@ -22,7 +22,10 @@ vox.vox_hdf5 = vox.las_in.replace('.las', "_" + config_id + '_vox.h5')
 z_slices = 4
 
 # # BUILD VOX
-vox = lrs.las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False, posterior_calc=False)
+# vox = lrs.las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False, posterior_calc=False)
 
 # # LOAD VOX
-vox = lrs.load_vox(vox.vox_hdf5, load_data=False)
+vox = lrs.load_vox(vox.vox_hdf5, load_data=False, load_post=True)
+
+las_out = vox.vox_hdf5.replace(".h5", "_resampled.las")
+lrs.vox_to_las(vox.vox_hdf5, las_out, samps_per_vox=30, sample_threshold=1)
