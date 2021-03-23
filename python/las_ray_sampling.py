@@ -694,7 +694,7 @@ def beta_lookup(rays, post_a, post_b, weights=1):
     return rays
 
 
-def single_ray_agg(vox, rays, agg_sample_length, lookup_db, prior, commentation=False):
+def single_ray_agg(vox, rays, agg_sample_length, lookup_db="posterior", prior=None, commentation=False):
 
     # pull ray endpoints
     p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
@@ -1373,7 +1373,7 @@ class RaySampleGridMetaObj(object):
 
 def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, nrows=4):
 
-    vox_sub = subset_vox(rshm.loc[:, ['x_utm11n', 'y_utm11n', 'elevation_m']].values, vox, rshmeta.max_distance, rshmeta.lookup_db)
+    vox_sub = subset_vox(rshm.loc[:, ['x_utm11n', 'y_utm11n', 'elevation_m']].values, vox, rshmeta.max_distance)
 
     for ii in tqdm(range(0, len(rshm)), position=process_id, desc=str(process_id), leave=True, ncols=100, nrows=nrows + 1):
         it_time = time.time()
@@ -1393,7 +1393,7 @@ def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, nrows=4):
             # ray_iterations = rshmeta.ray_iterations
             # commentation = True
             # method = rshmeta.agg_method
-            rays_out = single_ray_agg(vox_sub, rays_in, rshmeta.agg_sample_length, rshmeta.lookup_db, rshmeta.prior)
+            rays_out = single_ray_agg(vox_sub, rays_in, rshmeta.agg_sample_length)
         elif rshmeta.agg_method == "vox_agg":
 
             # vox_bu = vox
@@ -1513,11 +1513,14 @@ def rs_hemigen(rshmeta, vox, tile_count_1d=1, n_cores=1):
         if n_cores > 1:
             # multiple cores
             with mpp.ThreadPool(processes=n_cores) as pool:
-                mm = pool.starmap(rshm_iterate, zip(rshm_list, repeat(rshmeta), repeat(vox), log_path_list, np.arange(0, len(tiles)), repeat(len(tiles) + 1)))
+                # mm = pool.starmap(rshm_iterate, zip(rshm_list, repeat(rshmeta), repeat(vox), log_path_list, np.arange(0, len(tiles)), repeat(len(tiles) + 1)))
+                mm = pool.starmap(rshm_iterate,
+                                  zip(rshm_list, repeat(rshmeta), repeat(vox), log_path_list, np.arange(0, len(tiles)),
+                                      repeat(len(tiles))))
         else:
             # single core
-            for ii in range(0, len(tiles)):
-                rshm_tile = rshm_iterate(rshm_list[ii], rshmeta, vox, log_path_list[ii], ii, len(tiles) + 1)
+            for jj in range(0, len(tiles)):
+                rshm_tile = rshm_iterate(rshm_list[jj], rshmeta, vox, log_path_list[jj], jj, 1)
 
         # compile tile log files
         t_loglist = os.listdir(rshmeta.file_dir + "\\tile_logs\\")

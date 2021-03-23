@@ -9,12 +9,12 @@ def main():
     vox = vc.vox
 
 
-    batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_mb_15_r.25_px181_test\\'
-    pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\dem_r.25_points_mb_15.csv"
+    # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_mb_15_r.25_px181_test\\'
+    # pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\dem_r.25_points_mb_15.csv"
 
 
-    # batch_dir = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\batches\\lrs_uf_1m\\'
-    # pts_in = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\mb_65_1m\\1m_dem_points_uf.csv'
+    batch_dir = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\batches\\lrs_uf_r.25_px181\\'
+    pts_in = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\sources\\mb_65_r.25m\\dem_r.25_points_uf.csv'
 
     # load points
     pts = pd.read_csv(pts_in)
@@ -22,35 +22,7 @@ def main():
     rshmeta = lrs.RaySampleGridMetaObj()
 
     rshmeta.agg_sample_length = vox.sample_length
-    rshmeta.agg_method = 'beta_lookup'
-
-    print('Calculating prior... ', end='')
-    if rshmeta.agg_method == 'nb_lookup':
-        mean_path_length = 2 * np.pi / (6 + np.pi) * voxel_length  # mean path length through a voxel cube across angles (m)
-        prior_weight = 5  # in units of scans (1 <=> equivalent weight to 1 expected voxel scan)
-        prior_b = mean_path_length * prior_weight
-        prior_a = prior_b * 0.01
-        rshmeta.prior = [prior_a, prior_b]
-        rshmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
-    elif rshmeta.agg_method == 'linear':
-        samps = (vox.sample_data > 0)
-        trans = vox.return_data[samps] // (vox.sample_data[samps] * vox.sample_length)
-        rshmeta.prior = np.var(trans)
-    elif rshmeta.agg_method == 'beta':
-        val = (vox.sample_data > 0)  # roughly 50% at .25m
-        rate = vox.return_data[val] / vox.sample_data[val]
-        mu = np.mean(rate)
-        sig2 = np.var(rate)
-
-        alpha = ((1 - mu)/sig2 - 1/mu) * (mu ** 2)
-        beta = alpha * (1/mu - 1)
-        rshmeta.prior = [alpha, beta]
-    elif rshmeta.agg_method == 'beta_lookup':
-        # lrs.beta_lookup_prior_calc(vox, rshmeta.ray_sample_length)
-        pass
-    else:
-        raise Exception('Aggregation method ' + rshmeta.agg_method + ' unknown.')
-    print('done')
+    rshmeta.agg_method = 'single_ray_agg'
 
     # ray geometry
     # phi_step = (np.pi / 2) / (180 * 2)
@@ -59,7 +31,7 @@ def main():
     rshmeta.max_phi_rad = np.pi/2
     hemi_m_above_ground = 0  # meters
     rshmeta.max_distance = 50  # meters
-    rshmeta.min_distance = voxel_length * np.sqrt(3)  # meters
+    rshmeta.min_distance = vox.step[0] * np.sqrt(3)  # meters
 
     # create batch dir (with error handling)
     # if batch file dir exists
@@ -103,8 +75,7 @@ def main():
 
     rshmeta.file_name = ["las_19_149_id_" + str(id) + ".tif" for id in pts.id]
 
-    # rshm = lrs.rs_hemigen(rshmeta, vox)
-    rshm = lrs.rs_hemigen_tile(rshmeta, vox, tile_count_1d=5, n_cores=3)
+    rshm = lrs.rs_hemigen(rshmeta, vox, tile_count_1d=5, n_cores=3)
 
     ###
     #
