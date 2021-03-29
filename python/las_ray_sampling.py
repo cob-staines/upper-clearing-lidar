@@ -710,12 +710,12 @@ def beta_lookup_post_calc(vox, z_slices=1, agg_sample_length=None):
     # preallocate posterior if does not exist
     with h5py.File(vox.vox_hdf5, mode='r+') as hf:
         try:
+            post = hf.create_group("post")
+            post_exists = False
+        except ValueError:
             post = hf.get('post')
             post_exists = True
             print("Previous posterior exists -- Writing over")
-        except ValueError:
-            post = hf.create_group("post")
-            post_exists = False
 
         if not post_exists:
             post.create_dataset('posterior_alpha', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
