@@ -13,13 +13,16 @@ def main():
     # pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\dem_r.25_points_mb_15.csv"
 
 
-    batch_dir = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\batches\\lrs_uf_r.25_px181\\'
+    batch_dir = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\'
     pts_in = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\sources\\mb_65_r.25m\\dem_r.25_points_uf.csv'
 
     # load points
     pts = pd.read_csv(pts_in)
 
     rshmeta = lrs.RaySampleGridMetaObj()
+
+    # rshmeta.lookup_db = 'count'
+    rshmeta.lookup_db = 'posterior'
 
     rshmeta.agg_sample_length = vox.sample_length
     rshmeta.agg_method = 'single_ray_agg'
