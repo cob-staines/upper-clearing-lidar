@@ -28,6 +28,8 @@ class VoxelObj(object):
         self.sample_length = None
         self.sample_dtype = None
         self.return_dtype = None
+
+        # voxel object data
         self.sample_data = None
         self.return_data = None
 
@@ -35,11 +37,15 @@ class VoxelObj(object):
         from copy import deepcopy
         return deepcopy(self)
 
-    def save(self):
+    def save_meta(self):
         save_vox_meta(self)
 
-    def update(self):
+    def save_post(self):
+        save_vox_post(self)
+
+    def update_meta(self):
         update_vox_meta(self)
+
 
 def save_vox_meta(vox):
     with h5py.File(vox.vox_hdf5, 'a') as h5f:
@@ -56,6 +62,23 @@ def save_vox_meta(vox):
         meta.create_dataset('vox_step', data=vox.step)
         meta.create_dataset('vox_ncells', data=vox.ncells)
         meta.create_dataset('vox_sample_length', data=vox.sample_length)
+
+
+def save_vox_post(vox):
+    with h5py.File(vox.vox_hdf5, 'a') as h5f:
+
+        try:
+            post = h5f.get('post')
+        except ValueError:
+            post = h5f.create_group("post")
+
+        post.create_dataset('under_count', data=vox.under_count)
+        post.create_dataset('unsamp_count', data=vox.unsamp_count)
+        post.create_dataset('valid_count', data=vox.valid_count)
+        post.create_dataset('prior_alpha', data=vox.prior_alpha)
+        post.create_dataset('prior_beta', data=vox.prior_beta)
+        post.create_dataset('agg_sample_length', data=vox.agg_sample_length)
+
 
 def update_vox_meta(vox):
     with h5py.File(vox.vox_hdf5, 'a') as h5f:
@@ -93,7 +116,7 @@ def load_vox(hdf5_path, load_data=False, load_post=False, load_post_data=False):
         vox.step = meta.get('vox_step')[()]
         vox.ncells = meta.get('vox_ncells')[()]
         vox.sample_length = meta.get('vox_sample_length')[()]
-        vox.below_floor_count = meta.get('below_floor_count')
+
         vox.sample_dtype = h5f.get('sample_data').dtype
         vox.return_dtype = h5f.get('return_data').dtype
 
@@ -116,6 +139,62 @@ def load_vox(hdf5_path, load_data=False, load_post=False, load_post_data=False):
             vox.posterior_alpha = post.get('posterior_alpha')[()]
             vox.posterior_beta = post.get('posterior_beta')[()]
     return vox
+
+
+def duplicate_vox(vox, hdf5_out, duplicate_post=False, z_slices=1):
+
+    if isinstance(vox, str):
+        vox_in = vox
+        vox = load_vox(vox_in, load_data=False, load_post=duplicate_post, load_post_data=False)
+
+    # define z_step
+    z_step = np.ceil(vox.ncells[2] / z_slices).astype(int)
+
+    # memory test of slice size (attempt to trigger memory error early)
+    try:
+        m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.sample_dtype)
+        m_test = np.zeros((vox.ncells[0], vox.ncells[1], z_step), dtype=vox.return_dtype)
+    except MemoryError:
+        print("Size of z_slices is too large for memory. Try more z_slices.")
+        raise
+    finally:
+        m_test = None
+
+    # preallocate datasets
+    with h5py.File(hdf5_out, mode='w') as hf_out:
+        hf_out.create_dataset('sample_data', dtype=vox.sample_dtype, shape=vox.ncells, chunks=True, compression='gzip')
+        hf_out.create_dataset('return_data', dtype=vox.return_dtype, shape=vox.ncells, chunks=True, compression='gzip')
+
+        if duplicate_post:
+            post_dtype = np.float32  # explicitly define posterior data type
+            post = hf_out.create_group("post")
+            post.create_dataset('posterior_alpha', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
+            post.create_dataset('posterior_beta', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
+
+    # copy datasets by z_slice
+    for zz in tqdm(range(0, z_slices), leave=True, ncols=100, desc="Write data"):
+        z_low = zz * z_step
+        if zz != (z_slices - 1):
+            z_high = (zz + 1) * z_step
+        else:
+            z_high = vox.ncells[2]
+
+        with h5py.File(vox.vox_hdf5, mode='r') as hf_in:
+            with h5py.File(hdf5_out, mode='r+') as hf_out:
+                hf_out['sample_data'][:, :, z_low:z_high] = hf_in['sample_data'][:, :, z_low:z_high]
+                hf_out['return_data'][:, :, z_low:z_high] = hf_in['return_data'][:, :, z_low:z_high]
+
+                if duplicate_post:
+                    hf_out['/post/posterior_alpha'][:, :, z_low:z_high] = hf_in['/post/posterior_alpha'][:, :, z_low:z_high]
+                    hf_out['/post/posterior_beta'][:, :, z_low:z_high] = hf_in['/post/posterior_beta'][:, :, z_low:z_high]
+
+    # update vox.vox_hdf5
+    vox.vox_hdf5 = hdf5_out
+
+    # save metadata
+    vox.save_meta()
+    if duplicate_post:
+        vox.save_post()
 
 
 def z_rotmat(theta):
@@ -530,7 +609,7 @@ def vox_addition(voxList, vox_out, z_slices=1):
     vout.return_set = ''
     vout.below_floor_count = -1
 
-    vout.update()
+    vout.update_meta()
 
     # loop through remaining voxel objects in list
     for nn in range(1, len(voxList)):
@@ -538,8 +617,6 @@ def vox_addition(voxList, vox_out, z_slices=1):
 
         prog_desc = "Vox " + str(nn)
         for zz in tqdm(range(0, z_slices), leave=True, ncols=100, desc=prog_desc):
-        # for zz in range(0, z_slices):
-            # print('\tSlice ' + str(zz + 1) + ' of ' + str(z_slices) + ': ', end='')
             z_low = zz * z_step
             if zz != (z_slices - 1):
                 z_high = (zz + 1) * z_step
@@ -628,21 +705,24 @@ def beta_lookup_post_calc(vox, z_slices=1, agg_sample_length=None):
     prior_beta = prior_alpha * (1/mu - 1)
 
     # calculate and write prior lookup
-    sample_length_correction = vox.sample_length / agg_sample_length
-    post_dtype = np.float32  # make sure to use float, as prior will not be integer
+    post_dtype = np.float32  # make sure to use float
 
+    # preallocate posterior if does not exist
     with h5py.File(vox.vox_hdf5, mode='r+') as hf:
-        post = hf.create_group("post")
-        post.create_dataset('posterior_alpha', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
-        post.create_dataset('posterior_beta', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
+        try:
+            post = hf.get('post')
+            post_exists = True
+            print("Previous posterior exists -- Writing over")
+        except ValueError:
+            post = hf.create_group("post")
+            post_exists = False
 
-        # record prior and count values
-        post.create_dataset('under_count', data=under_count)
-        post.create_dataset('unsamp_count', data=unsamp_count)
-        post.create_dataset('valid_count', data=valid_count)
-        post.create_dataset('prior_alpha', data=prior_alpha)
-        post.create_dataset('prior_beta', data=prior_beta)
-        post.create_dataset('agg_sample_length', data=agg_sample_length)
+        if not post_exists:
+            post.create_dataset('posterior_alpha', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
+            post.create_dataset('posterior_beta', dtype=post_dtype, shape=vox.ncells, chunks=True, compression='gzip')
+
+
+    sample_length_correction = vox.sample_length / agg_sample_length
 
     # loop through z_slices
     for zz in tqdm(range(0, z_slices), leave=True, ncols=100, desc="Write posterior"):
@@ -661,20 +741,43 @@ def beta_lookup_post_calc(vox, z_slices=1, agg_sample_length=None):
             under = (s_data < r_data)
             s_data[under] = r_data[under]
 
-            hf['/post/posterior_alpha'][:, :, z_low:z_high] = r_data + prior_alpha
-            hf['/post/posterior_beta'][:, :, z_low:z_high] = s_data * sample_length_correction + r_data + prior_beta
+            kk = r_data
+            nn = s_data * sample_length_correction
+
+            hf['/post/posterior_alpha'][:, :, z_low:z_high] = prior_alpha + kk
+            hf['/post/posterior_beta'][:, :, z_low:z_high] = prior_beta + nn - kk
+
+    with h5py.File(vox.vox_hdf5, mode='r+') as hf:
+        post = hf.get('post')
+
+        # record prior and count values
+        if post_exists:
+            post['under_count'][()] = under_count
+            post['unsamp_count'][()] = unsamp_count
+            post['valid_count'][()] = valid_count
+            post['prior_alpha'][()] = prior_alpha
+            post['prior_beta'][()] = prior_beta
+            post['agg_sample_length'][()] = agg_sample_length
+        else:
+
+            post.create_dataset('under_count', data=under_count)
+            post.create_dataset('unsamp_count', data=unsamp_count)
+            post.create_dataset('valid_count', data=valid_count)
+            post.create_dataset('prior_alpha', data=prior_alpha)
+            post.create_dataset('prior_beta', data=prior_beta)
+            post.create_dataset('agg_sample_length', data=agg_sample_length)
 
 
-def beta(rays, path_samples, path_returns, vox_sample_length, agg_sample_length, prior, weights=1):
+def beta(rays, path_returns, path_samples, vox_sample_length, agg_sample_length, prior, weights=1):
 
     kk = path_returns
     nn = path_samples * vox_sample_length / agg_sample_length
 
-    post_a = kk + prior[0]
-    post_b = nn + kk + prior[1]
+    post_a = prior[0] + kk
+    post_b = prior[1] + nn - kk
 
     # normal approximation of sum
-    returns_mean = np.nansum(weights * post_a/(post_a + post_b), axis=1)
+    returns_mean = np.nansum(weights * post_a / (post_a + post_b), axis=1)
     returns_std = np.sqrt(np.nansum(weights * post_a * post_b / ((post_a + post_b) ** 2 * (post_a + post_b + 1)), axis=1))
 
     rays = rays.assign(returns_mean=returns_mean)
@@ -693,8 +796,16 @@ def beta_lookup(rays, post_a, post_b, weights=1):
 
     return rays
 
+def single_ray_agg(vox, rays, agg_sample_length, lookup_db="posterior"):
 
-def single_ray_agg(vox, rays, agg_sample_length, lookup_db="posterior", prior=None, commentation=False):
+    if lookup_db == 'count':
+        a_data = vox.return_data
+        b_data = vox.sample_data
+    elif lookup_db == 'posterior':
+        a_data = vox.posterior_alpha
+        b_data = vox.posterior_beta
+    else:
+        raise Exception('Not a valid lookup_db: ' + lookup_db)
 
     # pull ray endpoints
     p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
@@ -715,13 +826,10 @@ def single_ray_agg(vox, rays, agg_sample_length, lookup_db="posterior", prior=No
     max_steps = np.max(n_samples)
 
     # preallocate aggregate lists
-    path_samples = np.full([len(p0), max_steps], np.nan)
-    path_returns = np.full([len(p0), max_steps], np.nan)
+    a_path_samps = np.full([len(p0), max_steps], np.nan)
+    b_path_samps = np.full([len(p0), max_steps], np.nan)
 
     # for each sample step
-    if commentation:
-        print('Sampling voxels', end='')
-        cur_cent = 0
     for ii in range(0, max_steps):
         # distance from p0 along ray
         sample_dist = (ii + offset) * agg_sample_length
@@ -737,26 +845,15 @@ def single_ray_agg(vox, rays, agg_sample_length, lookup_db="posterior", prior=No
             sample_vox = utm_to_vox(vox, sample_points).astype(int)
             sample_address = (sample_vox[:, 0], sample_vox[:, 1], sample_vox[:, 2])
 
-            path_samples[in_range, ii] = vox.sample_data[sample_address]
-            path_returns[in_range, ii] = vox.return_data[sample_address]
+            a_path_samps[in_range, ii] = a_data[sample_address]
+            b_path_samps[in_range, ii] = b_data[sample_address]
 
-        if commentation:
-            past_cent = cur_cent
-            cur_cent = int(100 * (ii + 1) / max_steps)
-            if cur_cent > past_cent:
-                for jj in range(0, cur_cent - past_cent):
-                    if (past_cent + jj + 1) % 10 == 0:
-                        print(str(past_cent + jj + 1), end='')
-                    else:
-                        print('.', end='')
-
-    if commentation:
-        print(' -- Calculating returns... ', end='')
 
     if lookup_db == 'count':
-        rays_out = beta(rays, path_samples, path_returns, vox.sample_length, agg_sample_length, prior)
+        prior = (vox.prior_alpha, vox.prior_beta)
+        rays_out = beta(rays, a_path_samps, b_path_samps, vox.sample_length, agg_sample_length, prior)
     elif lookup_db == 'posterior':
-        rays_out = beta_lookup(rays, path_samples, path_returns)
+        rays_out = beta_lookup(rays, a_path_samps, b_path_samps)
     else:
         raise Exception('Not a valid lookup_db: ' + lookup_db)
 
@@ -764,7 +861,7 @@ def single_ray_agg(vox, rays, agg_sample_length, lookup_db="posterior", prior=No
 
 
 
-def single_ray_group_agg(vox, rays, agg_sample_length, lookup_db, prior, commentation=False):
+def single_ray_group_agg(vox, rays, agg_sample_length, lookup_db, prior):
 
     # pull ray endpoints
     p0 = rays.loc[:, ['x0', 'y0', 'z0']].values
@@ -789,9 +886,6 @@ def single_ray_group_agg(vox, rays, agg_sample_length, lookup_db, prior, comment
     path_returns = np.full([len(p0), max_steps], np.nan)
 
     # for each sample step
-    if commentation:
-        print('Sampling voxels', end='')
-        cur_cent = 0
     for ii in range(0, max_steps):
         # distance from p0 along ray
         sample_dist = (ii + offset) * agg_sample_length
@@ -810,21 +904,9 @@ def single_ray_group_agg(vox, rays, agg_sample_length, lookup_db, prior, comment
             path_samples[in_range, ii] = vox.sample_data[sample_address]
             path_returns[in_range, ii] = vox.return_data[sample_address]
 
-        if commentation:
-            past_cent = cur_cent
-            cur_cent = int(100 * (ii + 1) / max_steps)
-            if cur_cent > past_cent:
-                for jj in range(0, cur_cent - past_cent):
-                    if (past_cent + jj + 1) % 10 == 0:
-                        print(str(past_cent + jj + 1), end='')
-                    else:
-                        print('.', end='')
-
-    if commentation:
-        print(' -- Calculating returns... ', end='')
 
     if lookup_db == 'count':
-        rays_out = beta(rays, path_samples, path_returns, vox.sample_length, agg_sample_length, prior)
+        rays_out = beta(rays, path_returns, path_samples, vox.sample_length, agg_sample_length, prior)
     elif lookup_db == 'posterior':
         rays_out = beta_lookup(rays, path_samples, path_returns)
     else:
@@ -1203,7 +1285,7 @@ def las_to_vox(vox, z_slices, run_las_traj=True, fail_overflow=False, posterior_
 
     # sample voxel space from las_traj hdf5
     vox = las_ray_sample_by_z_slice(vox, z_slices, fail_overflow)
-    vox.save()
+    vox.save_meta()
 
     if posterior_calc:
         vox = load_vox(vox.vox_hdf5, load_data=True)
@@ -1295,6 +1377,11 @@ def subset_vox(pts, vox, buffer, lookup_db='posterior'):
     vox_sub.sample_length = vox.sample_length
     vox_sub.step = vox.step
 
+    # from post
+    vox_sub.prior_alpha = vox.prior_alpha
+    vox_sub.prior_beta = vox.prior_beta
+    vox_sub.agg_sample_length = vox.agg_sample_length
+
     # convert pts to rotated utm if needed
     if vox.cw_rotation != 0:
         pts = np.matmul(pts, z_rotmat(vox.cw_rotation))
@@ -1326,8 +1413,8 @@ def subset_vox(pts, vox, buffer, lookup_db='posterior'):
             vox_sub.return_data = hf['return_data'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
     elif lookup_db == 'posterior':
         with h5py.File(vox_sub.vox_hdf5, mode='r') as hf:
-            vox_sub.sample_data = hf['/post/posterior_beta'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
-            vox_sub.return_data = hf['/post/posterior_alpha'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
+            vox_sub.posterior_alpha = hf['/post/posterior_alpha'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
+            vox_sub.posterior_beta = hf['/post/posterior_beta'][vox_sub_min[0]:vox_sub_max[0], vox_sub_min[1]:vox_sub_max[1], vox_sub_min[2]:vox_sub_max[2]]
     else:
         raise Exception('invalid specification for "lookup_db": ' + str(lookup_db))
 
@@ -1373,7 +1460,7 @@ class RaySampleGridMetaObj(object):
 
 def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, nrows=4):
 
-    vox_sub = subset_vox(rshm.loc[:, ['x_utm11n', 'y_utm11n', 'elevation_m']].values, vox, rshmeta.max_distance)
+    vox_sub = subset_vox(rshm.loc[:, ['x_utm11n', 'y_utm11n', 'elevation_m']].values, vox, rshmeta.max_distance, rshmeta.lookup_db)
 
     for ii in tqdm(range(0, len(rshm)), position=process_id, desc=str(process_id), leave=True, ncols=100, nrows=nrows + 1):
         it_time = time.time()
@@ -1387,13 +1474,12 @@ def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, nrows=4):
             rays_in = point_to_hemi_rays(origin, vox_sub, rshmeta.img_size, rshmeta.max_phi_rad, max_dist=rshmeta.max_distance, min_dist=rshmeta.min_distance)
 
             # # sample rays
+            # vox_old = vox
+            # vox = vox_sub
             # rays = rays_in
             # agg_sample_length = rshmeta.agg_sample_length
-            # prior = rshmeta.prior
-            # ray_iterations = rshmeta.ray_iterations
-            # commentation = True
-            # method = rshmeta.agg_method
-            rays_out = single_ray_agg(vox_sub, rays_in, rshmeta.agg_sample_length)
+            # lookup_db = rshmeta.lookup_db
+            rays_out = single_ray_agg(vox_sub, rays_in, rshmeta.agg_sample_length, lookup_db=rshmeta.lookup_db)
         elif rshmeta.agg_method == "vox_agg":
 
             # vox_bu = vox
@@ -1457,7 +1543,6 @@ def rs_hemigen(rshmeta, vox, tile_count_1d=1, n_cores=1):
                         "max_distance_m": rshmeta.max_distance,
                         "lookup_db": rshmeta.lookup_db,
                         "agg_method": rshmeta.agg_method,
-                        "prior": str(rshmeta.prior),
                         "created_datetime": np.nan,
                         "computation_time_s": np.nan})
 

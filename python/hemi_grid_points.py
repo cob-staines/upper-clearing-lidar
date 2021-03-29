@@ -44,7 +44,7 @@ rastools.raster_burn(mb_65_plot_dir, mb_65_poly, 1)
 # load plot data
 mb_65_plot = rastools.raster_load(mb_65_plot_dir)
 
-# # add flag for mb_65
+# # add flag for mb_15
 # load template
 site_plot = rastools.raster_load(dem_in)
 # fill data with zeros
@@ -105,16 +105,27 @@ pts_dir = batch_dir + 'dem_r.25_points_uf.csv'
 pts_uf.to_csv(pts_dir, index=False)
 
 # create cookie cutters of sites for each resolution
-# for rr in resolution:
-#     file_out = 'uf_plot_r' + rr + 'm.tif'
-#     site_poly = uf_poly
-#     template_in = template_scheme.replace('<RES>', rr)
-#     ras = rastools.raster_load(template_in)
-#     ras.data = np.full((ras.rows, ras.cols), 0)
-#     ras.no_data = 0
-#     ras_out = batch_dir + file_out
-#     rastools.raster_save(ras, ras_out, data_format='byte')
-#     rastools.raster_burn(ras_out, site_poly, 1)
+for rr in resolution:
+    file_out = 'uf_plot_r' + rr + 'm.tif'
+    site_poly = uf_poly
+    template_in = template_scheme.replace('<RES>', rr)
+    ras = rastools.raster_load(template_in)
+    ras.data = np.full((ras.rows, ras.cols), 0)
+    ras.no_data = 0
+    ras_out = batch_dir + file_out
+    rastools.raster_save(ras, ras_out, data_format='byte')
+    rastools.raster_burn(ras_out, site_poly, 1)
+
+for rr in resolution:
+    file_out = 'uc_plot_r' + rr + 'm.tif'
+    site_poly = uc_poly
+    template_in = template_scheme.replace('<RES>', rr)
+    ras = rastools.raster_load(template_in)
+    ras.data = np.full((ras.rows, ras.cols), 0)
+    ras.no_data = 0
+    ras_out = batch_dir + file_out
+    rastools.raster_save(ras, ras_out, data_format='byte')
+    rastools.raster_burn(ras_out, site_poly, 1)
 
 for rr in resolution:
     file_out = 'site_plots_r' + rr + 'm.tif'

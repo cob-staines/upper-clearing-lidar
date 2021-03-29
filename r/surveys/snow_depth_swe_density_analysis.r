@@ -35,7 +35,7 @@ survey = survey[,c('snow_depth_cm', 'swe_raw_cm', 'swe_tare_cm', 'swe_quality_fl
 survey = survey[!is.na(survey$swe_raw_cm),]
 survey = survey[survey$swe_quality_flag == 0,]
 # filter to depths greater than 20cm
-# survey = survey[survey$snow_depth_cm >= 20,]
+survey = survey[survey$snow_depth_cm >= 20,]
 
 
 p_swe = ggplot(survey, aes(x=snow_depth_cm, y=swe_mm, color=cover)) +
@@ -194,7 +194,7 @@ lm_ahpl_045 = lm((density - 89.26) ~ 0 + snow_depth_cm, data = a_045)
 lm_ahpl_050 = lm((density - 85.39) ~ 0 + snow_depth_cm, data = a_050)
 lm_ahpl_052 = lm((density - 72.05) ~ 0 + snow_depth_cm, data = a_052)
 
-summary(lm_flin_052)
+summary(lm_clin_123)
 summary(lm_alin_123)
 
 # all combined linear density

@@ -18,8 +18,8 @@ hemimeta = pd.read_csv(batch_dir + 'rshmetalog.csv')
 imsize = hemimeta.img_size_px[0]
 
 # specify which time interval
-interval = "045-050"
-# interval = "050-052"
+# interval = "045-050"
+interval = "050-052"
 
 # load covariant
 count_045 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\RAS\\19_045_ground_point_density_r.25m.bil'
@@ -29,10 +29,10 @@ count_149 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\
 
 if interval == "045-050":
     # var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\alin\\interp_2x\\19_045-19_050\\masked\\dswe_alin_19_045-19_050_r.05m_interp2x_masked.tif'
-    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ahpl\\interp_2x\\19_045-19_050\\masked\\dswe_ahpl_19_045-19_050_r.05m_interp2x_masked.tif'
+    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_045-19_050\\masked\\dswe_fnsd_19_045-19_050_r.05m_interp2x_masked.tif'
 elif interval == "050-052":
     # var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\alin\\interp_2x\\19_050-19_052\\masked\\dswe_alin_19_050-19_052_r.05m_interp2x_masked.tif'
-    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\ahpl\\interp_2x\\19_050-19_052\\masked\\dswe_ahpl_19_050-19_052_r.05m_interp2x_masked.tif'
+    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_050-19_052\\masked\\dswe_fnsd_19_050-19_052_r.05m_interp2x_masked.tif'
 
 ddict = {'count_045': count_045,
          'count_050': count_050,
@@ -220,8 +220,10 @@ if interval == "045-050":
     # p0 = np.array([0.11779021, 0.88873142, 0.09885492, 2.48813593, 9.52537669, -1.45475159])  # 19_045-19_050, alin, min_ct >= 10, alin, r2 = 0.173103
     # p0 = np.array([0.13003656, 1.25413136, 0.09995546, 2.49116541, 11.42591721, -1.56140183])  # 19_045-19_050, ahpl, min_ct >= 10, ahpl, r2 = 0.260354
 
-    p0 = np.array([0.11868072, 1.09587946, 0.10320082, 2.51346561, 8.24466212])  # 19_045-19_050, min_ct >= 25, alin, no bb, 50% of data, r2 = 0.246279
-    p0 = np.array([0.12311107, 1.53782685, 0.09861554, 2.49519406, 9.51433871])  # 19_045-19_050, min_ct >= 25, ahpl, no bb, 50% of data, r2 = 0.322026
+    # p0 = np.array([0.11868072, 1.09587946, 0.10320082, 2.51346561, 8.24466212])  # 19_045-19_050, min_ct >= 25, alin, no bb, 50% of data, r2 = 0.246279
+    # p0 = np.array([0.12311107, 1.53782685, 0.09861554, 2.49519406, 9.51433871])  # 19_045-19_050, min_ct >= 25, ahpl, no bb, 50% of data, r2 = 0.322026
+
+    p0 = np.array([0.10532079, 0.73071573, 0.10330251, 2.46862271, 3.06933602])  # 19_045-19_050, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.146263
 
 elif interval == "050-052":
     # p0 = np.array([0.16484606, 2.26669136, 0.18210887, 2.52394167, 18.89760106])  # 19_050-19_052 (dropping min_ct < 10), alin, no bb, r2 = 0.265145  -- these look bad... transmission too low
@@ -230,14 +232,16 @@ elif interval == "050-052":
     # p0 = np.array([0.13587388, 2.42821223, 0.16443314, 2.62978447, 13.41904737, 4.3388157])  # 19_050-19_052, min_ct >= 10, ahpl, r2 = 0.217985 -- same problem, absorption factor too high, transmission too low.
 
 
-    p0 = np.array([ 0.15603763,  2.16304588,  0.15021845,  2.66995801, 18.30307134])  # 19_050-19_052, min_ct >= 25, alin, no bb, 50% of data, r2 = 0.409706
-    p0 = np.array([0.16483349, 1.08482362, 0.18124984, 2.60465732, 16.32643726])  # 19_050-19_052, min_ct >= 25, ahpl, no bb, 50% of data, r2 = 0.286698
+    # p0 = np.array([ 0.15603763,  2.16304588,  0.15021845,  2.66995801, 18.30307134])  # 19_050-19_052, min_ct >= 25, alin, no bb, 50% of data, r2 = 0.409706
+    # p0 = np.array([0.16483349, 1.08482362, 0.18124984, 2.60465732, 16.32643726])  # 19_050-19_052, min_ct >= 25, ahpl, no bb, 50% of data, r2 = 0.286698
+
+    p0 = np.array([0.15505797, 0.48624771, 0.19076394, 2.59588345, 7.128711])  # 19_050-19_052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.2205624
 
 # run optimization
 [popt, fopt, gopt, Bopt, func_calls, grad_calls, warnflg] = \
     fmin_bfgs(dwst, p0, callback=callbackF, maxiter=50, full_output=True, retall=False)
 
-u_out = (180 / np.pi, 1, 180 / np.pi, 180/np.pi, 1)
+# u_out = (180 / np.pi, 1, 180 / np.pi, 180/np.pi, 1)
 
 
 

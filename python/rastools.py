@@ -321,9 +321,10 @@ def raster_to_pd(ras, colnames, include_nans=False):
     nan_vals = np.all(nan_vals, axis=2)
 
     if include_nans:
+        # inlcude all
         pts_index = np.where(all_vals)
     else:
-        # only non nans
+        # only include non nans
         pts_index = np.where(~nan_vals)
 
     pts_flop = (pts_index[1], pts_index[0])

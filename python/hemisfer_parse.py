@@ -132,42 +132,14 @@ def parse_file(file_in, file_out, hemimeta_in=None):
 
     return data
 
-file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\mb_15_1m_pr.15_os10\\outputs\\LAI.dat"
-hemimeta_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\mb_15_1m_pr.15_os10\\outputs\\hemimetalog.dat'
+# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\mb_15_1m_pr.15_os10\\outputs\\LAI.dat"
+# hemimeta_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\mb_15_1m_pr.15_os10\\outputs\\hemimetalog.dat'
+# file_out = file_in.replace('.dat', '_parsed.dat')
+#
+# lai_parsed = parse_file(file_in, file_out, hemimeta_in=hemimeta_in)
+
+file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\045_052_050\\LAI_045_050_052.dat"
 file_out = file_in.replace('.dat', '_parsed.dat')
 
-# with open(file_in) as file:
-#     file_contents = file.read()
-#     print(file_contents)
+lai_parsed = parse_file(file_in, file_out)
 
-lai_parsed = parse_file(file_in, file_out, hemimeta_in=hemimeta_in)
-
-# create raster products
-import numpy as np
-import rastools
-import pandas as pd
-
-lai_parsed = pd.read_csv(file_out)
-lai_parsed.loc[:, 'canopy_closure'] = 1 - lai_parsed.openness
-
-point_raster_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\1m_dem_point_ids.tif"
-point_raster = rastools.raster_load(point_raster_in)
-lai_ras = rastools.raster_load(point_raster_in)
-cc_ras = rastools.raster_load(point_raster_in)
-
-lai_ras.data = np.full((lai_ras.rows, lai_ras.cols), lai_ras.no_data)
-cc_ras.data = np.full((cc_ras.rows, cc_ras.cols), cc_ras.no_data)
-for ii in range(0, len(lai_parsed)):
-    lai_ras.data[np.where(point_raster.data == lai_parsed.id[ii])] = lai_parsed.lai_s_cc[ii]
-    cc_ras.data[np.where(point_raster.data == lai_parsed.id[ii])] = lai_parsed.canopy_closure[ii]
-
-lai_out = file_out.replace('LAI_parsed.dat', 'lai_ras.tif')
-rastools.raster_save(lai_ras, lai_out)
-
-cc_out = file_out.replace('LAI_parsed.dat', 'cc_ras.tif')
-rastools.raster_save(cc_ras, cc_out)
-
-# import matplotlib
-# matplotlib.use("TkAgg")
-# import matplotlib.pyplot as plt
-# plt.imshow(peace, interpolation="nearest")

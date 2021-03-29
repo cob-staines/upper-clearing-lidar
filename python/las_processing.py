@@ -22,6 +22,8 @@ import hs_swe_data_products
 import tree_top_kho
 # dce
 import distance_to_canopy_edge
+# mCH
+import mean_canopy_height
 # lpm calculation
 import lpm_map_gen
 # ray_sampling_method

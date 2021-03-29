@@ -5,17 +5,18 @@ def main():
     import os
 
     # call voxel config
-    import vox_045_050_052_config as vc
+    import vox_19_149_config as vc
     vox = vc.vox
 
-
-    batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_045_050_052\\'
+    batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_19_149\\'
     # batch_dir = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\batches\\lrs_hemi_opt_test\\'
+
 
     img_lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
     # img_lookup_in = 'C:\\Users\\jas600\\workzone\\data\\las\\hemi_lookup_cleaned.csv'
     max_quality = 4
-    las_day = ["19_045", "19_050", "19_052"]
+    # las_day = ["19_045", "19_050", "19_052"]
+    las_day = ["19_149"]
     # import hemi_lookup
     img_lookup = pd.read_csv(img_lookup_in)
     # filter lookup by quality
@@ -34,7 +35,7 @@ def main():
 
     rshmeta = lrs.RaySampleGridMetaObj()
 
-    #rshmeta.lookup_db = 'count'
+    # rshmeta.lookup_db = 'count'
     rshmeta.lookup_db = 'posterior'
 
     rshmeta.agg_method = 'single_ray_agg'
@@ -135,32 +136,39 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 #
-import numpy as np
-import pandas as pd
-import matplotlib
-matplotlib.use('Qt5Agg')
-import matplotlib.pyplot as plt
-import tifffile as tif
-
-
-# load rshmetalog
-batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000\\"
-rshmeta = pd.read_csv(batch_dir + "outputs\\rshmetalog.csv")
-
-ii = 0
-
-img = tif.imread(batch_dir + "outputs\\" + rshmeta.file_name[ii])
-cn = img[:, :, 1] * 0.194475
-# cn = img[:, :, 1] * 0.3171
-tx = np.exp(-cn)
-
-
-##
-
-fig, ax = plt.subplots(figsize=(12, 12))
-img = ax.imshow(tx, interpolation='nearest', cmap='Greys_r')
-ax.set_axis_off()
-
-fig.savefig(batch_dir + 'light_transmission_plot_' + rshmeta.file_name[ii] + '.png')
+# #
+# import numpy as np
+# import pandas as pd
+# import matplotlib
+# matplotlib.use('Qt5Agg')
+# import matplotlib.pyplot as plt
+# import tifffile as tif
+#
+#
+# # load rshmetalog
+# # batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000\\"
+# # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_045_050_052\\'
+# # batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\"
+# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_045_050_052_debug\\'
+# # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_19_149_debug\\'
+#
+# rshmeta = pd.read_csv(batch_dir + "outputs\\rshmetalog.csv")
+#
+# ii = 0
+#
+# img = tif.imread(batch_dir + "outputs\\" + rshmeta.file_name[ii])
+# rt = img[:, :, 0]
+# # cn = img[:, :, 0] * 0.194475
+# # cn = img[:, :, 0] * 0.3171
+# #tx = np.exp(-cn)
+#
+#
+# ##
+#
+#
+# fig, ax = plt.subplots(figsize=(12, 12))
+# img = ax.imshow(rt, interpolation='nearest', cmap='Greys_r')
+# ax.set_axis_off()
+#
+# fig.savefig(batch_dir + 'light_transmission_plot_' + rshmeta.file_name[ii] + '.png')
