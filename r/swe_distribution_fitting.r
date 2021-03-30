@@ -10,47 +10,47 @@ p_height = 5.7  # inches
 dpi = 100
 
 # upper forest plot
-uf_045_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_045_uf_ahpl_r.05m_interp2x_by_lpml15.csv'
+uf_045_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_swe_19_045_uf_fcon_r.05m_interp2x_by_lpml15.csv'
 uf_045 = read.csv(uf_045_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
-  rename(swe = swe_19_045)
+  rename(swe = swe_fcon_19_045)
 
-uf_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_050_uf_ahpl_r.05m_interp2x_by_lpml15.csv'
+uf_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_swe_19_050_uf_fcon_r.05m_interp2x_by_lpml15.csv'
 uf_050 = read.csv(uf_050_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
-  rename(swe = swe_19_050)
+  rename(swe = swe_fcon_19_050)
 
-uf_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_052_uf_ahpl_r.05m_interp2x_by_lpml15.csv'
+uf_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_swe_19_052_uf_fcon_r.05m_interp2x_by_lpml15.csv'
 uf_052 = read.csv(uf_052_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
-  rename(swe = swe_19_052)
+  rename(swe = swe_fcon_19_052)
 
-uf_045_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_dswe_19_045-19_050_uf_ahpl_r.05m_interp2x_by_lpml15.csv'
+uf_045_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_dswe_19_045-19_050_uf_fnsd_r.05m_interp2x_by_lpml15.csv'
 uf_045_050 = read.csv(uf_045_050_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
-  rename(dswe = "dswe_19_045.19_050")
+  rename(dswe = "dswe_fnsd_19_045.19_050")
 
-uf_050_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_dswe_19_050-19_052_uf_ahpl_r.05m_interp2x_by_lpml15.csv'
+uf_050_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_dswe_19_050-19_052_uf_fnsd_r.05m_interp2x_by_lpml15.csv'
 uf_050_052 = read.csv(uf_050_052_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
-  rename(dswe = "dswe_19_050.19_052")
+  rename(dswe = "dswe_fnsd_19_050.19_052")
 
 
 # upper clearing plot
-uc_045_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_045_uc_ahpl_r.05m_interp2x_by_lpml15.csv'
+uc_045_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_swe_19_045_uc_clin_r.05m_interp2x_by_lpml15.csv'
 uc_045 = read.csv(uc_045_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
-  rename(swe = swe_19_045)
+  rename(swe = swe_clin_19_045)
 
-uc_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_050_uc_ahpl_r.05m_interp2x_by_lpml15.csv'
+uc_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_swe_19_050_uc_clin_r.05m_interp2x_by_lpml15.csv'
 uc_050 = read.csv(uc_050_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
-  rename(swe = swe_19_050)
+  rename(swe = swe_clin_19_050)
 
-uc_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_swe_19_052_uc_ahpl_r.05m_interp2x_by_lpml15.csv'
+uc_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_swe_19_052_uc_clin_r.05m_interp2x_by_lpml15.csv'
 uc_052 = read.csv(uc_052_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
-  rename(swe = swe_19_052)
+  rename(swe = swe_clin_19_052)
 
-uc_045_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_dswe_19_045-19_050_uc_ahpl_r.05m_interp2x_by_lpml15.csv'
+uc_045_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_dswe_19_045-19_050_uc_cnsd_r.05m_interp2x_by_lpml15.csv'
 uc_045_050 = read.csv(uc_045_050_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
-  rename(dswe = "dswe_19_045.19_050")
+  rename(dswe = "dswe_cnsd_19_045.19_050")
 
-uc_050_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analysis/rejection_sampled/resampled_dswe_19_050-19_052_uc_ahpl_r.05m_interp2x_by_lpml15.csv'
+uc_050_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_dswe_19_050-19_052_uc_cnsd_r.05m_interp2x_by_lpml15.csv'
 uc_050_052 = read.csv(uc_050_052_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
-  rename(dswe = "dswe_19_050.19_052")
+  rename(dswe = "dswe_cnsd_19_050.19_052")
 
 
 # coefficient of variation
@@ -110,7 +110,7 @@ ggplot(k_045, aes(x=k_vals, y=swe)) +
   labs(x='K', y='SWE (mm)', title=paste0('SWE - lognormal Q-Q plot for 14 Feb. 2019 (n=', as.character(nrow(k_045)), ')\nUpper Forest, 5cm resolution, bias corrected with LPM-Last')) + 
   theme_minimal() +
   geom_smooth(method='lm', se=FALSE, alpha=.15, color='turquoise4', linetype='dashed') 
-ggsave(paste0(plot_out_dir, "swe_19_045_ahpl_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
+ggsave(paste0(plot_out_dir, "swe_19_045_fcon_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
 
 # 050
 ggplot(k_050, aes(x=k_vals, y=swe)) +
@@ -118,7 +118,7 @@ ggplot(k_050, aes(x=k_vals, y=swe)) +
   labs(x='K', y='SWE (mm)', title=paste0('SWE - lognormal Q-Q plot for 19 Feb. 2019 (n=', as.character(nrow(k_050)), ')\nUpper Forest, 5cm resolution, bias corrected with LPM-Last')) +
   theme_minimal() +
   geom_smooth(method='lm', se=FALSE, alpha=.15, color='turquoise4', linetype='dashed') 
-ggsave(paste0(plot_out_dir, "swe_19_050_ahpl_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
+ggsave(paste0(plot_out_dir, "swe_19_050_fcon_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
 
 # 052
 ggplot(k_052, aes(x=k_vals, y=swe)) +
@@ -126,7 +126,7 @@ ggplot(k_052, aes(x=k_vals, y=swe)) +
   labs(x='K', y='SWE (mm)', title=paste0('SWE - lognormal Q-Q plot for 21 Feb. 2019 (n=', as.character(nrow(k_052)), ')\nUpper Forest, 5cm resolution, bias corrected with LPM-Last')) +
   theme_minimal() +
   geom_smooth(method='lm', se=FALSE, alpha=.15, color='turquoise4', linetype='dashed') 
-ggsave(paste0(plot_out_dir, "swe_19_052_ahpl_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
+ggsave(paste0(plot_out_dir, "swe_19_052_fcon_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
 
 
 # linear fitting
@@ -156,22 +156,22 @@ m_045 = lognorm_model(k_045, lm_045)
 ggplot(k_045, aes(x=swe)) +
   geom_histogram(aes(y=..density..), fill='cornflowerblue', alpha=1, binwidth = 1) +
   geom_line(data=m_045, aes(x=x_vals, y=y_vals), size=1) +
-  labs(x='SWE [mm]', y='Density [-]', title='SWE observed and lognormal modeled distributions for\n14 Feb. 2019 Upper Forest, 5cm resolution, bias corrected')
-ggsave(paste0(plot_out_dir, "swe_19_045_ahpl_lognormal_model_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
+  labs(x='SWE [mm]', y='Density [-]', title='SWE observed and lognormal modeled distributions for\n14 Feb. 2019 Upper Forest, 5cm res., rejection sampled')
+ggsave(paste0(plot_out_dir, "swe_19_045_fcon_lognormal_model_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
 
 m_050 = lognorm_model(k_050, lm_050)
 ggplot(k_050, aes(x=swe)) +
   geom_histogram(aes(y=..density..), fill='cornflowerblue', alpha=1, binwidth = 1) +
   geom_line(data=m_050, aes(x=x_vals, y=y_vals), size=1) +
-  labs(x='SWE [mm]', y='Density [-]', title='SWE observed and lognormal modeled distributions for\n19 Feb. 2019 Upper Forest, 5cm resolution, bias corrected')
-ggsave(paste0(plot_out_dir, "swe_19_050_ahpl_lognormal_model_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
+  labs(x='SWE [mm]', y='Density [-]', title='SWE observed and lognormal modeled distributions for\n19 Feb. 2019 Upper Forest, 5cm res., rejection sampled')
+ggsave(paste0(plot_out_dir, "swe_19_050_fcon_lognormal_model_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
 
 m_052 = lognorm_model(k_052, lm_052)
 ggplot(k_052, aes(x=swe)) +
   geom_histogram(aes(y=..density..), fill='cornflowerblue', alpha=1, binwidth = 1) +
   geom_line(data=m_052, aes(x=x_vals, y=y_vals), size=1) +
-  labs(x='SWE [mm]', y='Density [-]', title='SWE observed and lognormal modeled distributions for\n21 Feb. 2019 Upper Forest, 5cm resolution, bias corrected')
-ggsave(paste0(plot_out_dir, "swe_19_052_ahpl_lognormal_model_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
+  labs(x='SWE [mm]', y='Density [-]', title='SWE observed and lognormal modeled distributions for\n21 Feb. 2019 Upper Forest, 5cm res., rejection sampled')
+ggsave(paste0(plot_out_dir, "swe_19_052_fcon_lognormal_model_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
 
 # 
 # ### old hat below
@@ -240,7 +240,7 @@ ggsave(paste0(plot_out_dir, "swe_19_052_ahpl_lognormal_model_lpml15.png"), width
 # 
 # 
 # 
-# ##### Everything below is old hat #####
+# ##### Everything below is old, OLD hat #####
 # 
 # datelist = levels(data_hs$date)
 # mu <- numeric(length = length(datelist))

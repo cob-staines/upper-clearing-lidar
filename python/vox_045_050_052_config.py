@@ -24,5 +24,5 @@ z_slices = 8
 vox = lrs.load_vox(vox_out, load_data=False, load_post=True, load_post_data=False)
 
 # # export vox_to_las
-# las_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox_resampled.las'
-# lrs.vox_to_las(vox_out, las_out, samps_per_vox=30, sample_threshold=1)
+las_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox_resampled.las'
+lrs.vox_to_las(vox_out, las_out, samps_per_vox=50, sample_threshold=1)

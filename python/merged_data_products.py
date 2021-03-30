@@ -1,4 +1,4 @@
-def merge_data_products(ddict, file_out, hemi_data_in=None, mode='nearest'):
+def merge_data_products(ddict, file_out, sup_data_in=None, sup_id_col=None, mode='nearest'):
     import pandas as pd
     import rastools
     import numpy as np
@@ -8,21 +8,25 @@ def merge_data_products(ddict, file_out, hemi_data_in=None, mode='nearest'):
     if 'dce' in ddict.keys():
         data.dce = np.rint(data.dce * 10)/10
 
-    if hemi_data_in is not None:
-        # merge with hemisfer outputs
-        print('Merging with hemi_data... ', end='')
-        hemi_data = pd.read_csv(hemi_data_in)
-        merged = data.merge(hemi_data, how='left', left_on='hemi_id', right_on='id')
-        merged = merged.drop(columns='id')
-        print('done')
-    else:
-        merged = data
+    if sup_data_in is not None:
+        if isinstance(sup_data_in, str):
+            sup_data_in = [sup_data_in]  # nest in list if not already
+        if isinstance(sup_id_col, str):
+            sup_id_col = [sup_id_col]  # nest in list if not already
 
+        for ii in range(len(sup_data_in)):
+            # merge with hemisfer outputs
+            print('Merging with hemi_data... ', end='')
+            sup_data = pd.read_csv(sup_data_in[ii])
+            data = data.merge(sup_data, how='left', left_on=sup_id_col[ii], right_on='id')
+            print('done')
+
+        data = data.drop(columns='id')
 
 
     # save to file
     print('saving to file... ', end='')
-    merged.to_csv(file_out, index=False)
+    data.to_csv(file_out, index=False)
     print('done')
 
 
@@ -39,7 +43,7 @@ ddict = {
 
 hemi_data_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\mb_15_1m_pr.15_os10\\outputs\\LAI_parsed.dat'
 file_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\merged_data_products\\merged_mb_15_r.25m_canopy_19_149.csv'
-merge_data_products(ddict, file_out, hemi_data_in)
+merge_data_products(ddict, file_out, sup_data_in=hemi_data_in, sup_id_col='hemi_id')
 
 # 25cm products and median swe/dswe over plots
 ddict = {
@@ -58,7 +62,7 @@ ddict = {
 
 hemi_data_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\mb_15_1m_pr.15_os10\\outputs\\LAI_parsed.dat'
 file_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\merged_data_products\\merged_uc_r.25m_canopy_19_149_median-snow.csv'
-merge_data_products(ddict, file_out, hemi_data_in, mode='median')
+merge_data_products(ddict, file_out, sup_data_in=hemi_data_in, sup_id_col='hemi_id', mode='median')
 
 # 25cm products and median swe/dswe over upper forest
 ddict = {
@@ -74,7 +78,7 @@ ddict = {
 
 hemi_data_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\mb_15_1m_pr.15_os10\\outputs\\LAI_parsed.dat'
 file_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\merged_data_products\\merged_uf_r.25m_canopy_19_149_median-snow.csv'
-merge_data_products(ddict, file_out, hemi_data_in, mode='median')
+merge_data_products(ddict, file_out, sup_data_in=hemi_data_in, sup_id_col='hemi_id', mode='median')
 
 # 10cm products over mb_15
 ddict = {
