@@ -20,6 +20,9 @@ def main():
 
     rsgmeta = lrs.RaySampleGridMetaObj()
 
+    # # rshmeta.lookup_db = 'count'
+    # rshmeta.lookup_db = 'posterior'
+
     rsgmeta.agg_sample_length = vox.sample_length
     rsgmeta.agg_method = 'beta_lookup'
 
