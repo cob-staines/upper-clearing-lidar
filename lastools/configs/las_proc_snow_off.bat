@@ -45,25 +45,25 @@ SET GROUND_SPIKE=.1
 SET GROUND_THIN_STEP=.05
 SET GROUND_THIN_PERCENTILE=50
 
-call %DIR_BAT%\las_02_ground_classification.bat
+:: call %DIR_BAT%\las_02_ground_classification.bat
 
 
 :: _____DEM [3]_____
 SET DEM_RESOLUTION=.05
 SET DEM_MAX_TIN_EDGE=.15
-call %DIR_BAT%\las_03_dem.bat
+:: call %DIR_BAT%\las_03_dem.bat
 
 SET DEM_RESOLUTION=.10
 SET DEM_MAX_TIN_EDGE=.30
-call %DIR_BAT%\las_03_dem.bat
+:: call %DIR_BAT%\las_03_dem.bat
 
 SET DEM_RESOLUTION=.25
 SET DEM_MAX_TIN_EDGE=.75
-call %DIR_BAT%\las_03_dem.bat
+:: call %DIR_BAT%\las_03_dem.bat
 
 SET DEM_RESOLUTION=1.00
 SET DEM_MAX_TIN_EDGE=3.00
-call %DIR_BAT%\las_03_dem.bat
+:: call %DIR_BAT%\las_03_dem.bat
 
 
 :: _____CANOPY CLASSIFICATION [4]_____
@@ -98,7 +98,7 @@ SET CAN_MAX_TIN_EDGE=3.00
 
 :: _____COMPILE LAS [8]_____
 :: call %DIR_BAT%\las_06_compile.bat
-call %DIR_BAT%\las_06_compile_uf.bat
+:: call %DIR_BAT%\las_06_compile_uf.bat
 
 :: _____RASTER PRODUCTS [6]_____
 SET RAS_RESOLUTION=.10
@@ -106,11 +106,9 @@ SET RAS_RESOLUTION=.10
 SET RAS_RESOLUTION=.25
 :: call %DIR_BAT%\las_07_raster_ground_point_density.bat
 
-SET RAS_MAX_ANGLE=5
-:: call %DIR_BAT%\las_07_raster_products.bat
+SET RAS_RESOLUTION=.10
 SET RAS_MAX_ANGLE=15
-:: call %DIR_BAT%\las_07_raster_products.bat
-
+call %DIR_BAT%\las_07_raster_products.bat
 
 
 :: _____RASTER TEMPLATES [7]_____

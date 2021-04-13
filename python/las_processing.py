@@ -25,7 +25,11 @@ import distance_to_canopy_edge
 
 # lpm calculation
 import lpm_map_gen
+
 # ray_sampling_method
+# ---------------------
+# this needs to be filled in
+# ---------------------
 
 # mCH
 import mean_canopy_height

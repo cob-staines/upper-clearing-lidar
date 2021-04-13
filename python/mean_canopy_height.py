@@ -1,15 +1,25 @@
 import subprocess
 import rastools
+import laspy
+import numpy as np
+import pandas as pd
+import seaborn as sns
 
 lastools_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\code_lib\\lastools\\LAStools\\bin\\"
 
+
 def mCH(las_file):
     norm_file = las_file.replace(".las", "_normalized.las")
+    noise_file = las_file.replace(".las", "_noise.las")
     mch_file = las_file.replace(".las", "_mCH.bil")
 
     epsg = '32611'
     res = str(0.10)
     gp_file = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_ground_thinned_merged.las"
+
+    noise_class = str(7)
+    noise_isolation = str(2)
+    noise_step = str(0.25)
 
     z_min = str(1)
     z_max = str(30)
@@ -26,11 +36,24 @@ def mCH(las_file):
     pcs = subprocess.Popen(lasheight_cmd)  # start process
     pcs.wait()  # wait for it to finish
 
+    # normalize heights
+    lasnoise_cmd = [lastools_dir + "lasnoise.exe",
+                    '-i', norm_file,
+                    '-epsg', epsg,
+                    '-isolated', noise_isolation,
+                    '-step', noise_step,
+                    '-classify_as', noise_class,
+                    '-o', noise_file]
+
+    pcs = subprocess.Popen(lasnoise_cmd)  # start process
+    pcs.wait()  # wait for it to finish
+
     # calculate mean canopy height
     lasgrid_cmd = [lastools_dir + "lasgrid.exe",
-                '-i', norm_file,
+                '-i', noise_file,
                 '-epsg', epsg,
                 '-keep_z', z_min, z_max,
+                '-drop_class', noise_class,
                 '-step', res,
                 '-elevation',
                 '-mean',
@@ -48,6 +71,71 @@ las_in = ["C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\l
           r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged.las",
           r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged_poisson_0.15.las"]
 
-
+ff = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox_resampled.las"
 for ff in las_in:
     mCH(ff)
+
+
+las_file = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged_19_149_r0.25m_vox_resampled_noise.las'
+las_file = r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged_noise.las"
+las_file = r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged_poisson_0.15_noise.las"
+las_file = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox_resampled_noise.las"
+shp_file = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\upper_forest_poly_UTM11N.shp'
+
+
+# canopy height distribution (LAS)
+def las_clip(las_file, shp_file):
+
+    epsg = '32611'
+    clip_file = las_file.replace(".las", "_clipped.las")
+    lasclip_cmd = [lastools_dir + "lasclip.exe",
+                   '-i', las_file,
+                   '-epsg', epsg,
+                   '-poly', shp_file,
+                   '-o', clip_file]
+
+    pcs = subprocess.Popen(lasclip_cmd)  # start process
+    pcs.wait()  # wait for it to finish
+
+
+
+las_list = [r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged_noise_clipped.las",
+            r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged_poisson_0.15_noise_clipped.las",
+            'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged_19_149_r0.25m_vox_resampled_noise_clipped.las',
+            # "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox_resampled_noise_clipped.las"
+]
+
+
+def comparison_histogram(las_list):
+
+    for ii in range(len(las_list)):
+        print('Loading LAS file... ', end='')
+        # load las_in
+        inFile = laspy.file.File(las_list[ii], mode="r")
+        # load data
+        p0 = pd.DataFrame({"x": inFile.x,
+                           "y": inFile.y,
+                           "z": inFile.z,
+                           "classification": inFile.classification})
+        # close las_in
+        inFile.close()
+        print('done')
+
+        # drop noise & points below 1m
+        valid = (p0.z >= 1) & (p0.classification != 7)
+
+        p0 = p0.assign(file=ii)
+        p0 = p0.loc[valid, ["z", "file"]]
+
+        # print(str(np.mean(p0.z)))
+        if ii == 0:
+            composite = p0
+        else:
+            composite = pd.concat([composite, p0])
+
+
+    plot = sns.histplot(composite, x="z", bins="auto", stat="density", hue="file", common_norm=False, element="step")
+    return plot
+
+    # plot histogram of z
+

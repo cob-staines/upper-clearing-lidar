@@ -15,6 +15,7 @@ snow_on_ass["ccon"] = ["19_045", "19_050", "19_052", "19_107", "19_123"]
 snow_on_ass["ahpl"] = ["19_045", "19_050", "19_052"]
 
 resolution = [".05", ".10", ".25", "1.00"]
+resamp_resolution = [".10", ".25", "1.00"]
 
 interpolation_lengths = ["1", "2", "3"]
 
@@ -38,14 +39,14 @@ swe_dens_ass = {}
 # dens_ass["acon"] = (depth_to_density_intercept, depth_to_density_slope)
 #
 # forest only, each day, constant density
-depth_to_density_intercept = dict(zip(snow_on, np.array([199.321, 158.56, 134.48, 263.22, 291.14])))
+depth_to_density_intercept = dict(zip(snow_on, np.array([165.05, 158.56, 134.48, 263.22, 291.14])))
 depth_to_density_slope = dict(zip(snow_on, np.array([0, 0, 0, 0, 0])))
 swe_dens_ass["fcon"] = (depth_to_density_intercept, depth_to_density_slope)
 
-# clearing only, each day, constant density
-depth_to_density_intercept = dict(zip(snow_on, np.array([189.022, 193.585, 181.896, 304.722, 303.800])))
-depth_to_density_slope = dict(zip(snow_on, np.array([0, 0, 0, 0, 0])))
-swe_dens_ass["ccon"] = (depth_to_density_intercept, depth_to_density_slope)
+# # clearing only, each day, constant density
+# depth_to_density_intercept = dict(zip(snow_on, np.array([189.022, 193.585, 181.896, 304.722, 303.800])))
+# depth_to_density_slope = dict(zip(snow_on, np.array([0, 0, 0, 0, 0])))
+# swe_dens_ass["ccon"] = (depth_to_density_intercept, depth_to_density_slope)
 
 # clearing only, each day, linear depth-density
 depth_to_density_intercept = dict(zip(snow_on, np.array([109.1403, 118.8462, 76.6577, 263.4744, 254.5358])))
@@ -89,8 +90,8 @@ hs_bc_file_template = hs_merged_file_template.replace('.tif', '_bias_corrected.t
 hs_clean_dir_template = hs_merged_dir_template + 'clean\\'
 hs_clean_file_template = hs_merged_file_template.replace('.tif', '_clean.tif')
 
-hs_eroded_dir_template = hs_merged_dir_template + 'eroded\\'
-hs_eroded_file_template = hs_merged_file_template.replace('.tif', '_eroded.tif')
+hs_resamp_dir_template = hs_merged_dir_template + 'resamp\\'
+hs_resamp_file_template = hs_clean_file_template.replace('.tif', '_resamp.tif')
 
 dhs_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dHS\\interp_<INTLEN>x\\<DDI>-<DDJ>\\'
 dhs_file_template = 'dhs_<DDI>-<DDJ>_r<RES>m_interp<INTLEN>x.tif'
@@ -114,6 +115,7 @@ initial_pts_file = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters
 hs_uncorrected_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_hs_point_samples_uncorrected.csv"
 hs_uncorrected_pts_path_out_sst = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_hs_point_samples_uncorrected_sst.csv"
 hs_clean_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_hs_point_samples_clean.csv"
+hs_resamp_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_hs_point_samples_resamp.csv"
 swe_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_swe_point_samples.csv"
 point_dens_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_point_density_point_samples.csv"
 dem_pts_path_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\validation\\lidar_dem_point_samples.csv"
@@ -301,6 +303,25 @@ for dd in snow_on:
 
 hs_bias.to_csv(hs_bias_file_out, index=False)
 
+# resample points
+for dd in snow_on:
+    for intlen in interpolation_lengths:
+        # update file paths with date
+        hs_resamp_dir = path_sub(hs_resamp_dir_template, dd=dd, intlen=intlen)
+
+        # create DEM directory if does not exist
+        if not os.path.exists(hs_resamp_dir):
+            os.makedirs(hs_resamp_dir)
+
+        hs_data_file = path_sub(hs_clean_dir_template + hs_clean_file_template, dd=dd, rr=".05", intlen=intlen)
+
+        for rr in resamp_resolution:
+            hs_format_in = path_sub(hs_clean_dir_template + hs_clean_file_template, dd=dd, rr=rr, intlen=intlen)
+            # out file
+            hs_resamp_out = path_sub(hs_resamp_dir_template + hs_resamp_file_template, dd=dd, rr=rr, intlen=intlen)
+
+            rastools.ras_reproject(hs_data_file, hs_format_in, hs_resamp_out, mode="median")
+
 
 # differential snow depth (dHS)
 for ii in range(0, len(snow_on) - 1):
@@ -438,6 +459,7 @@ for ass in dswe_dens_ass.keys():
 #                 rastools.raster_burn(dswe_masked_file, trail_mask, ras.no_data)
 
 
+
 # point samples of hs
 pts_file_in = initial_pts_file
 for dd in snow_on:
@@ -452,6 +474,22 @@ for dd in snow_on:
 
             except AttributeError:
                 print('File does not exist')
+
+# resampled points
+pts_file_in = initial_pts_file
+for dd in snow_on:
+    for intlen in interpolation_lengths:
+        for rr in resamp_resolution:
+            try:
+                hs_resamp_path = path_sub(hs_resamp_dir_template + hs_resamp_file_template, dd=dd, rr=rr, intlen=intlen)
+                colname = str(dd) + '_' + str(rr) + '_' + str(intlen)
+                rastools.csv_sample_raster(hs_resamp_path, pts_file_in, hs_resamp_pts_path_out, "xcoordUTM11",
+                                           "ycoordUTM11", colname, sample_no_data_value='')
+                pts_file_in = hs_resamp_pts_path_out
+
+            except AttributeError:
+                print('File does not exist')
+
 
 
 # point samples of swe
@@ -485,13 +523,14 @@ for dd in snow_on + snow_off:
 pts_file_in = initial_pts_file
 for dd in (snow_on + snow_off):
     for rr in resolution:
-        dem_path = path_sub(dem_merged_dir_template + dem_merged_file_template, dd=dd, rr=rr)
-        colname = str(dd) + '_' + str(rr)
+        for intlen in interpolation_lengths:
+            dem_path = path_sub(dem_merged_dir_template + dem_merged_file_template, dd=dd, rr=rr)
+            colname = str(dd) + '_' + str(rr)
 
-        rastools.csv_sample_raster(dem_path, pts_file_in, dem_pts_path_out, "xcoordUTM11", "ycoordUTM11", colname, sample_no_data_value='')
-        pts_file_in = dem_pts_path_out
+            rastools.csv_sample_raster(dem_path, pts_file_in, dem_pts_path_out, "xcoordUTM11", "ycoordUTM11", colname, sample_no_data_value='')
+            pts_file_in = dem_pts_path_out
 
-        print(rr)
+            print(rr)
 
 # point sample HS products to merge with snow surveys
 

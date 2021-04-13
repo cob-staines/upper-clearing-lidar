@@ -2,24 +2,28 @@ import rastools
 import numpy as np
 import pandas as pd
 import tifffile as tif
+from tqdm import tqdm
 from scipy.optimize import fmin_bfgs
 
 plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\thesis_graphics\\modeling snow accumulation\\"
 
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_uf_.25m_180px\\outputs\\'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\outputs\\'
 # batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\mb_15_1m_pr.15_os10\\outputs\\'
 
 # scaling coefficient converts from expected returns to expected contact number
 # scaling_coef = 0.166104  # all rings
-scaling_coef = 0.194475  # dropping 5th ring
+# scaling_coef = 0.194475  # dropping 5th ring
+scaling_coef = 0.132154  # 045_050_052
 
 # load img meta
 hemimeta = pd.read_csv(batch_dir + 'rshmetalog.csv')
 imsize = hemimeta.img_size_px[0]
 
-# specify which time interval
-# interval = "045-050"
-interval = "050-052"
+# specify which time date
+# date = "045-050"
+# date = "050-052"
+# date = "19_050"
+date = "19_052"
 
 # load covariant
 count_045 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\RAS\\19_045_ground_point_density_r.25m.bil'
@@ -27,12 +31,16 @@ count_050 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\
 count_052 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\RAS\\19_052_ground_point_density_r.25m.bil'
 count_149 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RAS\\19_149_ground_point_density_r.25m.bil'
 
-if interval == "045-050":
-    # var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\alin\\interp_2x\\19_045-19_050\\masked\\dswe_alin_19_045-19_050_r.05m_interp2x_masked.tif'
+if date == "045-050":
     var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_045-19_050\\masked\\dswe_fnsd_19_045-19_050_r.05m_interp2x_masked.tif'
-elif interval == "050-052":
-    # var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\alin\\interp_2x\\19_050-19_052\\masked\\dswe_alin_19_050-19_052_r.05m_interp2x_masked.tif'
+elif date == "050-052":
     var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_050-19_052\\masked\\dswe_fnsd_19_050-19_052_r.05m_interp2x_masked.tif'
+elif date == "19_050":
+    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_050_r.05m_interp2x_masked.tif'
+elif date == "19_052":
+    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_052_r.05m_interp2x_masked.tif'
+
+
 
 ddict = {'count_045': count_045,
          'count_050': count_050,
@@ -41,21 +49,20 @@ ddict = {'count_045': count_045,
          'covariant': var_in}
 var = rastools.pd_sample_raster_gdal(ddict, include_nans=True, mode="median")
 
-# # cull outliers
-# lb = np.nanquantile(var.covariant, .001)
-# ub = np.nanquantile(var.covariant, .999)
-# outliers = (var.covariant < lb) | (var.covariant > ub)
-# var.loc[outliers, "covariant"] = np.nan
 
 var = var.loc[~np.isnan(var.covariant), :]  # drop nans in covariant
 
-if interval == "045-050":
+if date == "045-050":
     var.loc[:, "min_pc"] = np.nanmin((var.count_045, var.count_050, var.count_149), axis=0) * (.25 ** 2)
-elif interval == "050-052":
+elif date == "050-052":
     var.loc[:, "min_pc"] = np.nanmin((var.count_050, var.count_052, var.count_149), axis=0) * (.25 ** 2)
+elif date == "19_050":
+    var.loc[:, "min_pc"] = np.nanmin((var.count_050, var.count_149), axis=0) * (.25 ** 2)
+elif date == "19_052":
+    var.loc[:, "min_pc"] = np.nanmin((var.count_052, var.count_149), axis=0) * (.25 ** 2)
 
 # filter by min point count
-var = var.loc[var.min_pc >= 25, :]
+var = var.loc[var.min_pc >= 0, :]
 
 
 # merge with image meta
@@ -78,7 +85,7 @@ imrange[phi <= max_phi] = True
 
 # # filter hemimeta to desired images
 # delineate training set (set_param < param_thresh) and test set (set_param >= param thresh)
-param_thresh = 0.50
+param_thresh = 0.25
 set_param = np.random.random(len(hemi_var))
 hemi_var.loc[:, 'training_set'] = set_param < param_thresh
 # build hemiList from training_set only
@@ -86,9 +93,9 @@ hemiList = hemi_var.loc[hemi_var.training_set, :].reset_index()
 
 # load hemiList images to imstack
 imstack = np.full([imsize, imsize, len(hemiList)], np.nan)
-for ii in range(0, len(hemiList)):
+for ii in tqdm(range(0, len(hemiList)), desc="loading images", ncols=100, leave=True):
     imstack[:, :, ii] = tif.imread(batch_dir + hemiList.file_name[ii])[:, :, 0] * scaling_coef
-    print(str(ii + 1) + ' of ' + str(len(hemiList)))
+    # print(str(ii + 1) + ' of ' + str(len(hemiList)))
 #
 # # preview of correlation coefficient
 # # covar = np.full((imsize, imsize), np.nan)
@@ -161,37 +168,45 @@ from scipy.special import i0
 
 def dwst(p0):
     # unpack parameters
-    sig = p0[0]  # standard deviation of angular gaussian in radians
-    intnum = p0[1]  # interaction number
-    phi_0 = p0[2]  # central phi in radians
-    theta_0 = p0[3]  # central theta in radians
-    mm = p0[4]
+    phi_0 = p0[0]  # central phi in radians
+    theta_0 = p0[1]  # central theta in radians
+    sig = p0[2]  # standard deviation of angular gaussian in radians
+    mm = p0[3]
+    gaus_intnum = p0[4]  # interaction number
+    nn = p0[5]
+    unif_intnum = p0[6]  # interaction number
     # bb = p0[5]
+
+    # # old!
+    # sig = p0[0]  # standard deviation of angular gaussian in radians
+    # gaus_intnum = p0[1]  # interaction number
+    # phi_0 = p0[2]  # central phi in radians
+    # theta_0 = p0[3]  # central theta in radians
+    # mm = p0[4]
+    # # bb = p0[5]
 
     # calculate angle of each pixel from (phi_0, theta_0)
     radist = np.arccos(np.cos(phi_0) * np.cos(phi) + np.sin(phi_0) * np.sin(phi) * np.cos(theta_0 - theta))
-
-    # radist = 2 * np.arcsin(np.sqrt((np.cos((phi_0 - phi) / 2) ** 2) + np.sin(phi_0) * np.sin(phi) * (np.sin((theta_0 - theta) / 2) ** 2)))
     # calculate gaussian angle weights
-    weights = np.exp(- 0.5 * (radist / sig) ** 2)  # gaussian
-
-    # # calculate gaussian/vonmises weights
-    # weights = np.exp(- 0.5 * (phi_0 - phi / sig) ** 2) * np.exp(kk * np.cos(theta - theta_0)) / i0(kk)  # gaussian * von mises
-
-    weights[np.isnan(phi)] = 0
-    weights = weights / np.sum(weights)
-
+    gaus_weights = np.exp(- 0.5 * (radist / sig) ** 2)  # gaussian
+    gaus_weights[np.isnan(phi)] = 0
+    #gaus_weights = gaus_weights / np.sum(gaus_weights)
     # calculate weighted mean of contact number for each ground points
-    w_stack = np.average(imstack_long, weights=weights.ravel(), axis=1)
+    gaus_stack = np.average(imstack_long, weights=gaus_weights.ravel(), axis=1)
+
+    unif_weights = (phi < 75 * np.pi / 180)
+    unif_stack = np.average(imstack_long, weights=unif_weights.ravel(), axis=1)
 
     # model snow accumulation with snowfall transmittance over all ground points
-    snowacc = mm * np.exp(-intnum * w_stack)
+    gaus_term = mm * np.exp(-gaus_intnum * gaus_stack)
+    unif_term = nn * np.exp(-unif_intnum * unif_stack)
+
     # snowacc = mm * np.exp(-intnum * w_stack) + bb
 
     dswe = hemiList.covariant
 
     # calculate sum of square residuals
-    ssres = np.sum((dswe - snowacc) ** 2)
+    ssres = np.sum((dswe - gaus_term - unif_term) ** 2)
 
     return ssres
 
@@ -206,36 +221,31 @@ def rsq(p0):
 Nfeval = 1
 def callbackF(Xi):
     global Nfeval
-    print('{0:4d}   {1: 3.6f}   {2: 3.6f}   {3: 3.6f}   {4: 3.6f}   {5: 3.6f}   {6: 3.6f}   {7: 3.6f}'.format(Nfeval, Xi[0], Xi[1], Xi[2], Xi[3], Xi[4], dwst(Xi), rsq(Xi)))
-    # print('{0:4d}   {1: 3.6f}   {2: 3.6f}   {3: 3.6f}   {4: 3.6f}   {5: 3.6f}   {6: 3.6f}   {7: 3.6f}   {8: 3.6f}'.format(Nfeval, Xi[0], Xi[1], Xi[2], Xi[3], Xi[4], Xi[5], dwst(Xi), rsq(Xi)))
+    # print('{0:4d}   {1: 3.6f}   {2: 3.6f}   {3: 3.6f}   {4: 3.6f}   {5: 3.6f}   {6: 3.6f}   {7: 3.6f}'.format(Nfeval, Xi[0], Xi[1], Xi[2], Xi[3], Xi[4], dwst(Xi), rsq(Xi)))
+    print('{0:4d}   {1: 3.6f}   {2: 3.6f}   {3: 3.6f}   {4: 3.6f}   {5: 3.6f}   {6: 3.6f}   {7: 3.6f}   {8: 3.6f}   {9: 3.6f}'.format(Nfeval, Xi[0], Xi[1], Xi[2], Xi[3], Xi[4], Xi[5], Xi[6], dwst(Xi), rsq(Xi)))
     Nfeval += 1
 
-print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}   {6:9s}   {7:9s}'.format('Iter', ' sig', ' intnum', 'phi', 'theta', 'mm','f(X)', 'R2'))
-# print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}   {6:9s}   {7:9s}   {8:9s}'.format('Iter', ' sig', ' intnum', 'phi', 'theta', 'mm', 'bb', 'f(X)', 'R2'))
+# print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}   {6:9s}   {7:9s}'.format('Iter', ' sig', ' intnum', 'phi', 'theta', 'mm','f(X)', 'R2'))
+print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}   {6:9s}   {7:9s}   {8:9s}   {9:9s}'.format('Iter', 'phi', 'theta', ' sig', 'mm', 'gaus_intnum', 'nn', 'unif_intnum', 'f(X)', 'R2'))
 
 
-if interval == "045-050":
-    # p0 = np.array([0.11133662, 1.18626547, 0.09616933, 2.49615144, 8.15912542])  # 19_045-19_050, min_ct >= 10, alin, no bb, r2 = 0.172494
-    # p0 = np.array([0.12009855, 1.72308774, 0.09704997, 2.50291223, 10.0493321])  # 19_045-19_050, min_ct >= 10, ahpl, no bb, r2 = 0.258417
-    # p0 = np.array([0.11779021, 0.88873142, 0.09885492, 2.48813593, 9.52537669, -1.45475159])  # 19_045-19_050, alin, min_ct >= 10, alin, r2 = 0.173103
-    # p0 = np.array([0.13003656, 1.25413136, 0.09995546, 2.49116541, 11.42591721, -1.56140183])  # 19_045-19_050, ahpl, min_ct >= 10, ahpl, r2 = 0.260354
+if date == "045-050":
+    # p0 = np.array([0.11534765, 0.57799291, 0.11109643, 2.4170248, 3.68344911])  # 19_045-19_050, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.094308
+    # p0 = np.array([0.11481182, 0.56503876, 0.10936873, 2.44018817, 3.71200706])  # 19_045-19_050, 045-050-052, min_ct >= 10, fnsd, no bb, 25% of data, r2 = 0.119853
+    p0 = np.array([0.12120457, 0.45225687, 0.11644756, 2.46708285, 3.47311711])  # 19_045-19_050, 045-050-052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.130916
 
-    # p0 = np.array([0.11868072, 1.09587946, 0.10320082, 2.51346561, 8.24466212])  # 19_045-19_050, min_ct >= 25, alin, no bb, 50% of data, r2 = 0.246279
-    # p0 = np.array([0.12311107, 1.53782685, 0.09861554, 2.49519406, 9.51433871])  # 19_045-19_050, min_ct >= 25, ahpl, no bb, 50% of data, r2 = 0.322026
+elif date == "050-052":
+    # p0 = np.array([0.14113609, 0.24675274, 0.21223623, 2.46673482, 6.93602817])  # 19_050-19_052, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.085339
+    # p0 = np.array([0.14024832, 0.25270547, 0.19313204, 2.49243517, 7.00353594])  # 19_050-19_052, 045-050-052, min_ct >= 10, fnsd, no bb, 25% of data, r2 = 0.108983
+    p0 = np.array([0.14959617, 0.27760338, 0.20224104, 2.58846094, 7.47697446])  # 19_050-19_052, 045-050-052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.170783
 
-    p0 = np.array([0.10532079, 0.73071573, 0.10330251, 2.46862271, 3.06933602])  # 19_045-19_050, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.146263
-
-elif interval == "050-052":
-    # p0 = np.array([0.16484606, 2.26669136, 0.18210887, 2.52394167, 18.89760106])  # 19_050-19_052 (dropping min_ct < 10), alin, no bb, r2 = 0.265145  -- these look bad... transmission too low
-    # p0 = np.array([0.1713302, 1.16210526, 0.18899996, 2.54200686, 16.80013182])  # 19_050-19_052, min_ct >= 10, ahpl, no bb, r2 = 0.209451 -- still somewhat of a blob. Could it be that outliers are responsible?
-    # p0 = np.array([0.1355174, 3.34151497, 0.1542143, 2.55194135, 17.27915456, 1.68683719])  # 19_050-19_052 (dropping min_ct < 10), alin, r2 = 0.272531 -- these look bad... transmission too low
-    # p0 = np.array([0.13587388, 2.42821223, 0.16443314, 2.62978447, 13.41904737, 4.3388157])  # 19_050-19_052, min_ct >= 10, ahpl, r2 = 0.217985 -- same problem, absorption factor too high, transmission too low.
-
-
-    # p0 = np.array([ 0.15603763,  2.16304588,  0.15021845,  2.66995801, 18.30307134])  # 19_050-19_052, min_ct >= 25, alin, no bb, 50% of data, r2 = 0.409706
-    # p0 = np.array([0.16483349, 1.08482362, 0.18124984, 2.60465732, 16.32643726])  # 19_050-19_052, min_ct >= 25, ahpl, no bb, 50% of data, r2 = 0.286698
-
-    p0 = np.array([0.15505797, 0.48624771, 0.19076394, 2.59588345, 7.128711])  # 19_050-19_052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.2205624
+elif date == "19_050":
+    # p0 = np.array([ 0.138614188,  0.690715658,  0.0936716022, 2.3379370836, 116.016191])  # 19_050, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.601032
+    p0 = np.array([0.0936716022, 2.3379370836, 0.138614188, 116.016191, 0.690715658, 0, 1])  # 19_050, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.601032
+    p0 = np.array([ 0.0920301084,  2.34857672,  0.164146886,  152.314633, 0.309102598, -162.167554,  0.404501947])  # 19_050, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.700743
+elif date == "19_052":
+    # p0 = np.array([0.14113609, 0.24675274, 0.21223623, 2.46673482, 6.93602817])  # 19_052, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = ??
+    p0 = np.array([ 0.0920301084,  2.34857672,  0.164146886,  152.314633, 0.309102598, -162.167554,  0.404501947])  # 19_050, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.700743
 
 # run optimization
 [popt, fopt, gopt, Bopt, func_calls, grad_calls, warnflg] = \
@@ -260,52 +270,63 @@ matplotlib.use('Qt5Agg')
 # matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-# p0 = popt.copy()
+p0 = popt.copy()
 
-sig = p0[0]  # standard deviation of angular gaussian in radians
-intnum = p0[1]  # interaction number
-phi_0 = p0[2]  # central phi in radians
-theta_0 = p0[3]  # central theta in radians
-mm = p0[4]
+phi_0 = p0[0]  # central phi in radians
+theta_0 = p0[1]  # central theta in radians
+sig = p0[2]  # standard deviation of angular gaussian in radians
+mm = p0[3]
+gaus_intnum = p0[4]  # interaction number
+nn = p0[5]
+unif_intnum = p0[6]
+
 # bb = p0[5]
 bb = 0
 
+# # old
+# sig = p0[0]  # standard deviation of angular gaussian in radians
+# intnum = p0[1]  # interaction number
+# phi_0 = p0[2]  # central phi in radians
+# theta_0 = p0[3]  # central theta in radians
+# mm = p0[4]
+# # bb = p0[5]
+# bb = 0
+
 # calculate angle of each pixel from (phi_0, theta_0)
 radist = np.arccos(np.cos(phi_0) * np.cos(phi) + np.sin(phi_0) * np.sin(phi) * np.cos(theta_0 - theta))
-
-# radist = 2 * np.arcsin(np.sqrt((np.cos((phi_0 - phi) / 2) ** 2) + np.sin(phi_0) * np.sin(phi) * (np.sin((theta_0 - theta) / 2) ** 2)))
 # calculate gaussian angle weights
-weights = np.exp(- 0.5 * (radist / sig) ** 2)  # gaussian
-
-# # calculate gaussian/vonmises weights
-# weights = np.exp(- 0.5 * (phi_0 - phi / sig) ** 2) * np.exp(kk * np.cos(theta - theta_0)) / i0(kk)  # gaussian * von mises
-
-weights[np.isnan(phi)] = 0
-weights = weights / np.sum(weights)
-
+gaus_weights = np.exp(- 0.5 * (radist / sig) ** 2)  # gaussian
+gaus_weights[np.isnan(phi)] = 0
+# gaus_weights = gaus_weights / np.sum(gaus_weights)
 # calculate weighted mean of contact number for each ground points
-w_stack = np.average(imstack_long, weights=weights.ravel(), axis=1)
+gaus_stack = np.average(imstack_long, weights=gaus_weights.ravel(), axis=1)
+
+unif_weights = (phi < 75 * np.pi / 180)
+unif_stack = np.average(imstack_long, weights=unif_weights.ravel(), axis=1)
 
 # model snow accumulation with snowfall transmittance over all ground points
-# snowacc = mm * np.exp(-intnum * w_stack) + bb
-transmittance = np.exp(-intnum * w_stack)
+gaus_term = mm * np.exp(-gaus_intnum * gaus_stack)
+unif_term = nn * np.exp(-unif_intnum * unif_stack)
+
 
 fig = plt.figure()
 fig.subplots_adjust(top=0.90, bottom=0.12, left=0.12)
 ax1 = fig.add_subplot(111)
-if interval == "045-050":
+if date == "045-050":
     ax1.set_title('$\Delta$SWE vs. directionally weighted snowfall transmission $T^{*}_{(x, y)}$\n Upper Forest, 14-19 Feb. 2019, 25cm resolution')
-elif interval == "050-052":
+elif date == "050-052":
     ax1.set_title('$\Delta$SWE vs. directionally weighted snowfall transmission $T^{*}_{(x, y)}$\n Upper Forest, 19-21 Feb. 2019, 25cm resolution')
 ax1.set_xlabel("$\Delta$SWE [mm]")
 ax1.set_ylabel("$T^{*}_{(x, y)}$ [-]")
-plt.scatter(hemiList.covariant, transmittance, s=2, alpha=.25)
+plt.scatter(hemiList.covariant, gaus_term, s=2, alpha=.25)
+plt.scatter(hemiList.covariant, unif_term, s=2, alpha=.25)
+plt.scatter(hemiList.covariant, gaus_term + unif_term, s=2, alpha=.25)
 mm_mod = np.array([np.nanmin(transmittance), np.nanmax(transmittance)])
 plt.plot(mm_mod * mm + bb, mm_mod, c='Black', linestyle='dashed', linewidth=1.5)
 plt.ylim(0, 1)
-if interval == "045-050":
+if date == "045-050":
     fig.savefig(plot_out_dir + "dSWE vs DWST 045-050.png")
-elif interval == "050-052":
+elif date == "050-052":
     fig.savefig(plot_out_dir + "dSWE vs DWST 050-052.png")
 
 
@@ -385,16 +406,16 @@ for vv in v_list:
 fig = plt.figure()
 fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
 ax1 = fig.add_subplot(111)
-if interval == "045-050":
+if date == "045-050":
     ax1.set_title('Optimization of Gaussian weight function width $\sigma$\nUpper Forest, 14-19 Feb. 2019, 25cm resolution')
-elif interval == "050-052":
+elif date == "050-052":
     ax1.set_title('Optimization of Gaussian weight function width $\sigma$\nUpper Forest, 19-21 Feb. 2019, 25cm resolution')
 ax1.set_ylabel("$R^2$ for $\Delta$SWE vs. modeled snow accumulation")
 ax1.set_xlabel("Standard deviation of Gausian weight function $\sigma$ [$^{\circ}$]")
 plt.plot(w_data.sig * 180 / np.pi, w_data.r2)
-if interval == "045-050":
+if date == "045-050":
     fig.savefig(plot_out_dir + "optimization of gaussian weight function width sigma 045-050.png")
-elif interval == "050-052":
+elif date == "050-052":
     fig.savefig(plot_out_dir + "optimization of gaussian weight function width sigma 050-052.png")
 
 #####
@@ -419,17 +440,17 @@ for vv in v_list:
 fig = plt.figure()
 fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
 ax1 = fig.add_subplot(111)
-if interval == "045-050":
+if date == "045-050":
     ax1.set_title('Optimization of snowfall absorbtion coefficient $\mu^*$\nUpper Forest, 14-19 Feb. 2019, 25cm resolution')
-elif interval == "050-052":
+elif date == "050-052":
     ax1.set_title('Optimization of snowfall absorbtion coefficient $\mu^*$\nUpper Forest, 19-21 Feb. 2019, 25cm resolution')
 ax1.set_ylabel("$R^2$ for $\Delta$SWE vs. modeled snow accumulation")
 ax1.set_xlabel("snowfall absorbtion coefficient $\mu^*$ [-]")
 plt.plot(w_data.mu, w_data.r2)
 plt.ylim(-1, )
-if interval == "045-050":
+if date == "045-050":
     fig.savefig(plot_out_dir + "optimization of snow absorption coefficient mu 045-050.png")
-elif interval == "050-052":
+elif date == "050-052":
     fig.savefig(plot_out_dir + "optimization of snow absorption coefficient mu 050-052.png")
 
 
@@ -492,9 +513,9 @@ cmap = matplotlib.cm.RdBu
 
 # plot with axes
 fig = plt.figure(figsize=(7, 7))
-if interval == "045-050":
+if date == "045-050":
     fig.suptitle("Correlation of $\Delta$SWE with snowfall transmission over hemisphere\nUpward-looking, Upper Forest, 14-19 Feb 2019, 25cm resolution")
-elif interval == "050-052":
+elif date == "050-052":
     fig.suptitle("Correlation of $\Delta$SWE with snowfall transmission over hemisphere\nUpward-looking, Upper Forest, 19-21 Feb 2019, 25cm resolution")
 #create axes in the background to show cartesian image
 ax0 = fig.add_subplot(111)
@@ -516,18 +537,18 @@ cbar_ax = fig.add_axes([0.85, 0.20, 0.03, 0.6])
 fig.colorbar(im, cax=cbar_ax)
 cbar_ax.set_ylabel("Pearson's correlation coefficient")
 
-if interval == "045-050":
+if date == "045-050":
     fig.savefig(plot_out_dir + "footprint corcoef dswe with snowfall transmission 045-050.png")
-elif interval == "050-052":
+elif date == "050-052":
     fig.savefig(plot_out_dir + "footprint corcoef dswe with snowfall transmission 050-052.png")
 
 
 # plot with contours
 # plot with axes
 fig = plt.figure(figsize=(7, 7))
-if interval == "045-050":
+if date == "045-050":
     fig.suptitle("Correlation of $\Delta$SWE with snowfall transmission over hemisphere\nUpward-looking, Upper Forest, 14-19 Feb 2019, 25cm resolution")
-elif interval == "050-052":
+elif date == "050-052":
     fig.suptitle("Correlation of $\Delta$SWE with snowfall transmission over hemisphere\nUpward-looking, Upper Forest, 19-21 Feb 2019, 25cm resolution")
 #create axes in the background to show cartesian image
 ax0 = fig.add_subplot(111)
@@ -557,9 +578,9 @@ matplotlib.rcParams["lines.linewidth"] = 1
 CS = ax0.contour(set, np.linspace(-.4, .4, 9), colors="k")
 plt.clabel(CS, inline=1, fontsize=8)
 
-if interval == "045-050":
+if date == "045-050":
     fig.savefig(plot_out_dir + "footprint corcoef dswe with snowfall transmission 045-050 contours.png")
-elif interval == "050-052":
+elif date == "050-052":
     fig.savefig(plot_out_dir + "footprint corcoef dswe with snowfall transmission 050-052 contours.png")
 
 #

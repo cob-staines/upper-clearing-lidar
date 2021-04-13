@@ -27,7 +27,7 @@ survey$cover[survey$cover == "edge"] = "clearing"
 survey$swe_quality_flag[is.na(survey$swe_quality_flag)] = 0
 
 # flag all forest points from 19_045
-# survey$swe_quality_flag[(survey$doy == "19_045") & (survey$cover == "forest")] = 1
+survey$swe_quality_flag[(survey$doy == "19_045") & (survey$cover == "forest")] = 1
 
 # drop unnecesary columns
 survey = survey[,c('snow_depth_cm', 'swe_raw_cm', 'swe_tare_cm', 'swe_quality_flag', 'doy', 'swe_mm', 'density', 'cover', 'swe_quality_flag')]
@@ -194,7 +194,7 @@ lm_ahpl_045 = lm((density - 89.26) ~ 0 + snow_depth_cm, data = a_045)
 lm_ahpl_050 = lm((density - 85.39) ~ 0 + snow_depth_cm, data = a_050)
 lm_ahpl_052 = lm((density - 72.05) ~ 0 + snow_depth_cm, data = a_052)
 
-summary(lm_clin_123)
+summary(lm_fc_052)
 summary(lm_alin_123)
 
 # all combined linear density
@@ -553,4 +553,34 @@ qplot(x, values, data=dswe_045_050, group = ind, colour = ind, geom = "line")
 
 
 ggplot()
+
+
+# TIME SERIES OF UPPER OREST SNOW DENSITY OBSERVATIONS
+ts_in = "C:/Users/Cob/index/educational/usask/research/masters/data/surveys/depth_swe/2018-2019_uf_snow_density.csv"
+ts = read.csv(ts_in, header=TRUE, na.strings = c("NA",""), sep=";")
+ts$date = as.POSIXct(ts$ï..Date, format="%d/%m/%Y",tz="MST")
+ts$Density[ts$Flag == 1] = NA
+
+
+ggplot(ts, aes(x=date, y=Density)) +
+  geom_point()
+
+ts_surv = ts %>%
+  group_by(date) %>%
+  summarise(mDens=mean(Density, na.rm = TRUE))
+
+
+ts_sum = rbind(ts_surv, NA)
+ts_sum$date[nrow(ts_sum)] = as.POSIXct("19/2/2019", format="%d/%m/%Y",tz="MST")
+ts_sum$mDens[nrow(ts_sum)] = 158.56
+ts_sum = rbind(ts_sum, NA)
+ts_sum$date[nrow(ts_sum)] = as.POSIXct("21/2/2019", format="%d/%m/%Y",tz="MST")
+ts_sum$mDens[nrow(ts_sum)] = 134.48
+
+ggplot(ts_sum, aes(x=date, y=mDens)) +
+  geom_point()
+
+# approx
+x_out = c(as.POSIXct("14/2/2019", format="%d/%m/%Y",tz="MST"))
+tt = approx(ts_sum$date, ts_sum$mDens, xout = x_out)
 

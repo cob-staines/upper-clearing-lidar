@@ -92,37 +92,37 @@ SET DSM_MAX_TIN_EDGE=1.00
 SET INTERP_LEN=2
 SET DSM_RESOLUTION=.05
 SET DSM_MAX_TIN_EDGE=.10
-call %DIR_BAT%\las_10_snow_dsm.bat
+:: call %DIR_BAT%\las_10_snow_dsm.bat
 
 SET DSM_RESOLUTION=.10
 SET DSM_MAX_TIN_EDGE=.20
-call %DIR_BAT%\las_10_snow_dsm.bat
+:: call %DIR_BAT%\las_10_snow_dsm.bat
 
 SET DSM_RESOLUTION=.25
 SET DSM_MAX_TIN_EDGE=.50
-call %DIR_BAT%\las_10_snow_dsm.bat
+:: call %DIR_BAT%\las_10_snow_dsm.bat
 
 SET DSM_RESOLUTION=1.00
 SET DSM_MAX_TIN_EDGE=2.00
-call %DIR_BAT%\las_10_snow_dsm.bat
+:: call %DIR_BAT%\las_10_snow_dsm.bat
 
 
 SET INTERP_LEN=3
 SET DSM_RESOLUTION=.05
 SET DSM_MAX_TIN_EDGE=.15
-call %DIR_BAT%\las_10_snow_dsm.bat
+:: call %DIR_BAT%\las_10_snow_dsm.bat
 
 SET DSM_RESOLUTION=.10
 SET DSM_MAX_TIN_EDGE=.30
-call %DIR_BAT%\las_10_snow_dsm.bat
+:: call %DIR_BAT%\las_10_snow_dsm.bat
 
 SET DSM_RESOLUTION=.25
 SET DSM_MAX_TIN_EDGE=.75
-call %DIR_BAT%\las_10_snow_dsm.bat
+:: call %DIR_BAT%\las_10_snow_dsm.bat
 
 SET DSM_RESOLUTION=1.00
 SET DSM_MAX_TIN_EDGE=3.00
-call %DIR_BAT%\las_10_snow_dsm.bat
+:: call %DIR_BAT%\las_10_snow_dsm.bat
 
 
 ::_____COMPILE [6]_____
@@ -133,3 +133,7 @@ SET RAS_RESOLUTION=.10
 :: call %DIR_BAT%\las_07_raster_ground_point_density.bat
 SET RAS_RESOLUTION=.25
 :: call %DIR_BAT%\las_07_raster_ground_point_density.bat
+
+SET RAS_RESOLUTION=.10
+SET RAS_MAX_ANGLE=15
+call %DIR_BAT%\las_07_raster_products.bat

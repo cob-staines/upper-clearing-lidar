@@ -398,7 +398,7 @@ def gdal_raster_reproject(src, match, nodatavalue=np.nan, mode="nearest"):
     # Set the geotransform
     dest.SetGeoTransform(match_geotrans)
     dest.SetProjection(match_proj)
-    # Perform the projection/resampling
+    # Perform projection/resampling
     # res = gdal.ReprojectImage(src, dest, src_proj, match_proj, gdal.GRA_Bilinear)
     res = gdal.ReprojectImage(src, dest, src_proj, match_proj, gdal_mode)
 
@@ -409,6 +409,17 @@ def gdal_raster_reproject(src, match, nodatavalue=np.nan, mode="nearest"):
     del dest  # Flush
 
     return rp_array
+
+
+def ras_reproject(ras_data, ras_proj, ras_reproj_out, mode="nearest"):
+
+    samp = raster_load(ras_data)
+
+    ras_data_out = gdal_raster_reproject(ras_data, ras_proj, nodatavalue=samp.no_data, mode=mode)
+
+    ras = raster_load(ras_proj)
+    ras.data = ras_data_out[:, :, 0]
+    raster_save(ras, ras_reproj_out)
 
 
 def pd_sample_raster_gdal(data_dict, include_nans=False, nodatavalue=np.nan, mode="nearest"):

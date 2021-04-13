@@ -25,7 +25,7 @@ hs_parsed <- hs %>%
 hs_parsed$doy = as.numeric(hs_parsed$doy)
 
 swe_parsed <- swe %>%
-  gather('key', 'lidar_swe', 13:108) %>%
+  gather('key', 'lidar_swe', 13:132) %>%
   mutate(doy=substr(key, 5, 7), lidar_res=as.numeric(substr(key, 9, 11)), density_assumption=str_sub(key,-6,-3), interp_len=str_sub(key,-1,-1)) %>%
   select(uid, doy, lidar_res, lidar_swe, density_assumption, interp_len)
 swe_parsed$doy = as.numeric(swe_parsed$doy)
@@ -51,16 +51,22 @@ survey$vegetation[survey$vegetation == "edge"] = "forest"
 survey$vegetation[survey$vegetation == "newtrees"] = "clearing"
 
 # filter to first 3 days only
-survey = filter(survey, doy %in% c(45, 50, 52))
+# survey = filter(survey, doy %in% c(45, 50, 52))
 
 
 # merge along uid
 hs_merge <- merge(survey, hs_parsed, all.y = TRUE, by=c('uid', 'doy')) %>%
   filter(!is.na(Point.Id), !is.na(snow_depth_cm)) %>%
   mutate(hs_dif = lidar_hs - snow_depth_cm/100)
+
 swe_merge <- merge(survey, swe_parsed, all.y = TRUE, by=c('uid', 'doy')) %>%
   filter(!is.na(Point.Id), !is.na(swe_mm)) %>%
   mutate(swe_dif = lidar_swe - swe_mm)
+swe_merge = swe_merge[(swe_merge$cover == "clearing" & swe_merge$density_assumption == "clin") | (swe_merge$cover == "forest" & swe_merge$density_assumption == "fcon"), ]
+swe_merge$swe_quality_flag[(swe_merge$doy == 45) & (swe_merge$cover == "forest")] = 1
+swe_merge$swe_quality_flag[swe_merge$snow_depth_cm < 20] = 1
+swe_merge = swe_merge[swe_merge$swe_quality_flag == 0,]
+swe_merge = swe_merge[swe_merge$interp_len == 2,]
 
 hs_swe = merge(hs_parsed, swe_parsed, all = TRUE, by=c('uid', 'doy', 'lidar_res'))
 hs_swe_pd = merge(pd_parsed, hs_swe, all = TRUE, by=c('uid', 'doy', 'lidar_res'))
@@ -87,6 +93,12 @@ hs_merge %>%
     labs(title="Lidar snow depth (HS) validation", x="manual HS (m)", y="lidar HS (m)")
 ggsave(paste0(plot_out_dir, "hs_validation_intnum2.png"), width=p_width, height=p_height, dpi=dpi)
 
+# ggplot(hs_merge, aes(x=snow_depth_cm /100, y=lidar_hs, color=as.factor(doy))) +
+#   facet_grid(interp_len ~ lidar_res) +
+#   geom_point() +
+#   geom_abline(intercept = 0, slope = 1, size=1) +
+#   labs(title="Lidar snow depth (HS) validation", x="manual HS (m)", y="lidar HS (m)")
+
 hs_merge %>%
   filter(interp_len == 2) %>%
   ggplot(., aes(x=snow_depth_cm /100, y=lidar_hs*100/snow_depth_cm, color=vegetation)) +
@@ -98,7 +110,7 @@ hs_merge %>%
 ggsave(paste0(plot_out_dir, "hs_fractional_validation_intnum2.png"), width=p_width, height=p_height, dpi=dpi)
 
 swe_merge %>%
-  filter(interp_len == 2, density_assumption == "ahpl") %>%
+  filter(interp_len == 2) %>%
   ggplot(., aes(x=swe_mm, y=lidar_swe, color=vegetation)) +
     facet_grid(doy ~ lidar_res) +
     geom_point() +
@@ -107,7 +119,7 @@ swe_merge %>%
 ggsave(paste0(plot_out_dir, "swe_validation_intnum2.png"), width=p_width, height=p_height, dpi=dpi)
 
 swe_merge %>%
-  filter(interp_len == 2, density_assumption == "ahpl") %>%
+  filter(interp_len == 2) %>%
   ggplot(., aes(x=swe_mm, y=lidar_swe / swe_mm, color=vegetation)) +
   facet_grid(doy ~ lidar_res) +
   geom_point() +

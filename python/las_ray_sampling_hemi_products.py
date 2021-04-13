@@ -33,28 +33,3 @@ for ii in range(0, len(cnlog)):
 
 cnlog.to_csv(cnlog.file_dir[0] + "contact_number_optimization.csv")
 
-
-# create raster LAI and CC products
-import numpy as np
-import rastools
-import pandas as pd
-
-lai_parsed = pd.read_csv(file_out)
-lai_parsed.loc[:, 'canopy_closure'] = 1 - lai_parsed.openness
-
-point_raster_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\1m_dem_point_ids.tif"
-point_raster = rastools.raster_load(point_raster_in)
-lai_ras = rastools.raster_load(point_raster_in)
-cc_ras = rastools.raster_load(point_raster_in)
-
-lai_ras.data = np.full((lai_ras.rows, lai_ras.cols), lai_ras.no_data)
-cc_ras.data = np.full((cc_ras.rows, cc_ras.cols), cc_ras.no_data)
-for ii in range(0, len(lai_parsed)):
-    lai_ras.data[np.where(point_raster.data == lai_parsed.id[ii])] = lai_parsed.lai_s_cc[ii]
-    cc_ras.data[np.where(point_raster.data == lai_parsed.id[ii])] = lai_parsed.canopy_closure[ii]
-
-lai_out = file_out.replace('LAI_parsed.dat', 'lai_ras.tif')
-rastools.raster_save(lai_ras, lai_out)
-
-cc_out = file_out.replace('LAI_parsed.dat', 'cc_ras.tif')
-rastools.raster_save(cc_ras, cc_out)

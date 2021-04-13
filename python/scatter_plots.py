@@ -10,29 +10,21 @@ from scipy.stats import spearmanr, pearsonr, f_oneway
 
 plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\thesis_graphics\\scatter plots\\"
 
-df_10_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\uf_merged_.10m_ahpl_median_canopy_19_149.csv'
+df_10_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\merged_data_products\\merged_uf_r.10m_canopy_19_149_median-snow.csv'
 df_10 = pd.read_csv(df_10_in)
-df_10 = df_10.loc[df_10.plots == 1, :]
-df_10.loc[:, 'chm_1'] = df_10.loc[:, 'chm']
-df_10.loc[df_10.chm < 1, 'chm_1'] = np.nan
+# df_10.loc[:, 'chm_1'] = df_10.loc[:, 'chm']
+# df_10.loc[df_10.chm < 1, 'chm_1'] = np.nan
 
-df_25_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.25m_ahpl_median_canopy_19_149.csv'
+df_25_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\merged_data_products\\merged_uf_r.25m_canopy_19_149_median-snow.csv'
 df_25 = pd.read_csv(df_25_in)
-df_25 = df_25.loc[df_25.plots == 1, :]
-df_25.loc[:, 'cn_mean'] = df_25.loc[:, 'er_p0_mean'] * 0.19447
-df_25.loc[:, 'cn_mean_25'] = df_25.loc[:, 'cn_mean']
-df_25.loc[df_25.cn_mean_25 < .25, 'cn_mean_25'] = np.nan
-df_25.loc[:, 'transmission_rs'] = np.exp(-df_25.loc[:, 'cn_mean'])
 df_25.loc[:, 'cc'] = 1 - df_25.loc[:, 'openness']
 
 df_all = pd.concat([df_10, df_25])
 # dirty renames
-df_all.loc[:, ['lai_rs', 'lai_hemi', 'hemi_75_deg_tx', 'hemi_15_deg_tx', 'ray_sampled_tx']] = df_all.loc[:, ['cn_mean_25', 'lai_s_cc', 'transmission', 'transmission_1', 'transmission_rs']].values
+# df_all.loc[:, ['lai_rs', 'lai_hemi', 'hemi_75_deg_tx', 'hemi_15_deg_tx', 'ray_sampled_tx']] = df_all.loc[:, ['cn_mean_25', 'lai_s_cc', 'transmission', 'transmission_1', 'transmission_rs']].values
 
 
 # combined scatter plots
-
-
 x_vars = ['swe_19_045', 'swe_19_050', 'swe_19_052', 'dswe_19_045-19_050', 'dswe_19_050-19_052']
 y_vars = ['chm_1', 'dnt', 'dce']
 hmm = ['chm', 'chm', 'chm', 'chm', 'chm', 'dnt', 'dnt', 'dnt', 'dnt', 'dnt', 'dce', 'dce', 'dce', 'dce', 'dce']
@@ -200,8 +192,27 @@ for xx in x_vars:
 # calculate correlation and spearmans rank
 stat_file = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\scatter_stats\\'
 
-x_vars = ['swe_19_045', 'swe_19_050', 'swe_19_052', 'dswe_19_045-19_050', 'dswe_19_050-19_052']
-y_vars = ['chm', 'dnt', 'dce', 'cc', 'lai_hemi', 'contactnum_1', 'lai_rs', 'transmission', 'transmission_1', 'transmission_rs', 'lpmf15', 'lpml15', 'lpmc15']
+x_vars = ['swe_fcon_19_045', 'swe_fcon_19_050', 'swe_fcon_19_052', 'dswe_fnsd_19_045-19_050', 'dswe_fnsd_19_050-19_052']
+# y_vars = ['chm', 'dnt', 'dce', 'cc', 'mCH_19_149', 'mCH_19_149_resampled', 'mCH_045_050_052_resampled', 'lai_hemi', 'contactnum_1', 'lai_rs', 'transmission', 'transmission_1', 'transmission_rs', 'lpmf15', 'lpml15', 'lpmc15']
+y_vars = ['dnt', 'dce', 'chm',
+          'lpmf15', 'lpml15', 'lpmc15',
+          'mCH_19_149', 'mCH_19_149_resampled', 'mCH_045_050_052_resampled',
+          'transmission_s_1', 'contactnum_1',
+          'transmission_s_2', 'contactnum_2',
+          'transmission_s_3', 'contactnum_3',
+          'transmission_s_4', 'contactnum_4',
+          'transmission_s_5', 'contactnum_5',
+          'transmission_gaps', 'openness',
+          'lai_s_cc', 'laa_s_cc',
+          'lrs_cn_1', 'lrs_tx_1',
+          'lrs_cn_2', 'lrs_tx_2',
+          'lrs_cn_3', 'lrs_tx_3',
+          'lrs_cn_4', 'lrs_tx_4',
+          'lrs_cn_5', 'lrs_tx_5',
+          'lrs_cn_1_deg', 'lrs_tx_1_deg',
+          'lrs_cn_75_deg', 'lrs_tx_75_deg',
+          'lrs_cn_90_deg', 'lrs_tx_90_deg',
+          'lrs_sky_view', 'cc']
 
 spr = np.full((len(y_vars), len(x_vars)), np.nan)
 spr_p = np.full((len(y_vars), len(x_vars)), np.nan)

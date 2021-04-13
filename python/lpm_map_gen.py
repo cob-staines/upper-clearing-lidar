@@ -2,37 +2,41 @@ import rastools
 import numpy as np
 import os
 
-angle_set = [5, 15]
+angle = 15
+doy_set = ["19_045", "19_050", "19_052", "19_107", "19_123", "19_149"]
 
-for angle in angle_set:
+for doy in doy_set:
+
     # load components
-    dir_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RAS\\"
-    FG_in = "19_149_las_proc_627950_5646550_first_ground_point_density_a%ANGLE%_r.10m.bil".replace('%ANGLE%', str(angle))
-    LG_in = "19_149_las_proc_627950_5646550_last_ground_point_density_a%ANGLE%_r.10m.bil".replace('%ANGLE%', str(angle))
-    FC_in = "19_149_las_proc_627950_5646550_first_veg_point_density_a%ANGLE%_r.10m.bil".replace('%ANGLE%', str(angle))
+    dir_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\%DOY%\\%DOY%_las_proc\\OUTPUT_FILES\\RAS\\".replace("%DOY%", doy)
+    FG_in = "%DOY%_first_ground_point_density_a%ANGLE%_r.10m.bil".replace('%ANGLE%', str(angle)).replace("%DOY%", doy)
+    LG_in = "%DOY%_last_ground_point_density_a%ANGLE%_r.10m.bil".replace('%ANGLE%', str(angle)).replace("%DOY%", doy)
+    FC_in = "%DOY%_first_veg_point_density_a%ANGLE%_r.10m.bil".replace('%ANGLE%', str(angle)).replace("%DOY%", doy)
 
     # outputs
-    dir_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LPM\\"
-    lpmf_out = "19_149_LPM-first_a%ANGLE%_r0.10m.tif".replace('%ANGLE%', str(angle))
-    lpml_out = "19_149_LPM-last_a%ANGLE%_r0.10m.tif".replace('%ANGLE%', str(angle))
-    lpmc_out = "19_149_LPM-canopy_a%ANGLE%_r0.10m.tif".replace('%ANGLE%', str(angle))
+    dir_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\%DOY%\\%DOY%_las_proc\\OUTPUT_FILES\\LPM\\".replace("%DOY%", doy)
+    lpmf_out = "%DOY%_LPM-first_a%ANGLE%_r0.10m.tif".replace('%ANGLE%', str(angle)).replace("%DOY%", doy)
+    lpml_out = "%DOY%_LPM-last_a%ANGLE%_r0.10m.tif".replace('%ANGLE%', str(angle)).replace("%DOY%", doy)
+    lpmc_out = "%DOY%_LPM-canopy_a%ANGLE%_r0.10m.tif".replace('%ANGLE%', str(angle)).replace("%DOY%", doy)
 
     # load raster data in
     FG = rastools.raster_load(dir_in + FG_in)
     LG = rastools.raster_load(dir_in + LG_in)
     FC = rastools.raster_load(dir_in + FC_in)
 
+    # store no-data value
     no_data = FG.no_data
 
-    FG.data[FG.data == no_data] = 0
-    LG.data[LG.data == no_data] = 0
-    FC.data[FC.data == no_data] = 0
+    # set no_data points to np.nan
+    FG.data[FG.data == no_data] = np.nan
+    LG.data[LG.data == no_data] = np.nan
+    FC.data[FC.data == no_data] = np.nan
 
     # do calculations
     lpmf = rastools.raster_load(dir_in + FG_in)
     num = FG.data
     denom = (FG.data + FC.data)
-    denom[denom == 0] = np.nan
+    # denom[denom == 0] = np.nan
     lpmf.data = num/denom
 
     lpml = rastools.raster_load(dir_in + FG_in)

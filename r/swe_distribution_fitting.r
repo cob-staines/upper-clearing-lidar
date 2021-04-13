@@ -173,6 +173,24 @@ ggplot(k_052, aes(x=swe)) +
   labs(x='SWE [mm]', y='Density [-]', title='SWE observed and lognormal modeled distributions for\n21 Feb. 2019 Upper Forest, 5cm res., rejection sampled')
 ggsave(paste0(plot_out_dir, "swe_19_052_fcon_lognormal_model_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
 
+# compute correlation of snow depth with point count
+pc_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/merged_data_products/merged_uf_r.10m_point_density_median_snow_depth.csv'
+pc = read.csv(pc_in, header=TRUE, na.strings = c("NA",""), sep=",")
+
+# calculate pearsons r
+cor.test(pc$X19_045_pdens, pc$X19_045_hs, method="pearson")
+cor.test(pc$X19_050_pdens, pc$X19_050_hs, method="pearson")
+cor.test(pc$X19_052_pdens, pc$X19_052_hs, method="pearson")
+cor.test(pc$X19_107_pdens, pc$X19_107_hs, method="pearson")
+cor.test(pc$X19_123_pdens, pc$X19_123_hs, method="pearson")
+
+cor.test(pc$X19_149_pdens, pc$X19_045_hs, method="pearson")
+cor.test(pc$X19_149_pdens, pc$X19_050_hs, method="pearson")
+cor.test(pc$X19_149_pdens, pc$X19_052_hs, method="pearson")
+cor.test(pc$X19_149_pdens, pc$X19_107_hs, method="pearson")
+cor.test(pc$X19_149_pdens, pc$X19_123_hs, method="pearson")
+
+
 # 
 # ### old hat below
 # 

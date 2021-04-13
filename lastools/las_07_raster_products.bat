@@ -9,7 +9,7 @@ lasgrid -i TEMP_FILES\11_no_buffer\*.laz ^
             -epsg %EPSG% ^
             -point_density ^
             -ll %GRID_ORIGIN% ^
-            -odir OUTPUT_FILES\RAS\ -obil -ocut 3 -odix _all_point_density_a%RAS_MAX_ANGLE%_r%RAS_RESOLUTION%m
+            -o OUTPUT_FILES\RAS\%DATE%_all_point_density_a%RAS_MAX_ANGLE%_r%RAS_RESOLUTION%m.bil -obil
 
 :: first ground point density
 lasgrid -i TEMP_FILES\11_no_buffer\*.laz ^
@@ -21,7 +21,7 @@ lasgrid -i TEMP_FILES\11_no_buffer\*.laz ^
             -epsg %EPSG% ^
             -point_density ^
             -ll %GRID_ORIGIN% ^
-            -odir OUTPUT_FILES\RAS\ -obil -ocut 3 -odix _first_ground_point_density_a%RAS_MAX_ANGLE%_r%RAS_RESOLUTION%m
+            -o OUTPUT_FILES\RAS\%DATE%_first_ground_point_density_a%RAS_MAX_ANGLE%_r%RAS_RESOLUTION%m.bil -obil
 
 :: last ground point density
 lasgrid -i TEMP_FILES\11_no_buffer\*.laz ^
@@ -33,7 +33,7 @@ lasgrid -i TEMP_FILES\11_no_buffer\*.laz ^
             -epsg %EPSG% ^
             -point_density ^
             -ll %GRID_ORIGIN% ^
-            -odir OUTPUT_FILES\RAS\ -obil -ocut 3 -odix _last_ground_point_density_a%RAS_MAX_ANGLE%_r%RAS_RESOLUTION%m
+            -o OUTPUT_FILES\RAS\%DATE%_last_ground_point_density_a%RAS_MAX_ANGLE%_r%RAS_RESOLUTION%m.bil -obil
 
 :: first veg point density
 lasgrid -i TEMP_FILES\11_no_buffer\*.laz ^
@@ -45,7 +45,7 @@ lasgrid -i TEMP_FILES\11_no_buffer\*.laz ^
             -epsg %EPSG% ^
             -point_density ^
             -ll %GRID_ORIGIN% ^
-            -odir OUTPUT_FILES\RAS\ -obil -ocut 3 -odix _first_veg_point_density_a%RAS_MAX_ANGLE%_r%RAS_RESOLUTION%m
+            -o OUTPUT_FILES\RAS\%DATE%_first_veg_point_density_a%RAS_MAX_ANGLE%_r%RAS_RESOLUTION%m.bil -obil
 
 :: last veg point density
 lasgrid -i TEMP_FILES\11_no_buffer\*.laz ^
@@ -57,4 +57,4 @@ lasgrid -i TEMP_FILES\11_no_buffer\*.laz ^
             -epsg %EPSG% ^
             -point_density ^
             -ll %GRID_ORIGIN% ^
-            -odir OUTPUT_FILES\RAS\ -obil -ocut 3 -odix _last_veg_point_density_a%RAS_MAX_ANGLE%_r%RAS_RESOLUTION%m
+            -o OUTPUT_FILES\RAS\%DATE%_last_veg_point_density_a%RAS_MAX_ANGLE%_r%RAS_RESOLUTION%m.bil -obil

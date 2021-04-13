@@ -78,7 +78,8 @@ import laslib
 import os
 
 
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\opt\\hemi_optimization_pr.15_os10\\'
+# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\opt\\hemi_optimization_pr.15_os10\\'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\poisson\\'
 las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las"
 
 
@@ -97,17 +98,18 @@ hemimeta = laslib.HemiMetaObj()
 las_day = 19_149
 hemimeta.src_las_file = las_in
 hemimeta.src_keep_class = [1, 5]  # range of classes or single class ([1, 5] passes all classes within 1-5)
-hemimeta.poisson_sampling_radius = 0.15  # meters (for no poisson sampling, specify 0)
+hemimeta.poisson_sampling_radius = 0.05  # meters (for no poisson sampling, specify 0)
 
 # output file dir
-hemimeta.file_dir = batch_dir + "outputs\\"
+# hemimeta.file_dir = batch_dir + "outputs\\"
+hemimeta.file_dir = batch_dir
 if not os.path.exists(hemimeta.file_dir):
     os.makedirs(hemimeta.file_dir)
 
 # max distance of points considered in image
 hemimeta.max_distance = 50  # meters
 hemimeta.min_distance = .5  # meters
-hemi_m_above_ground = 0  # meters
+# hemi_m_above_ground = 0  # meters
 
 # image size
 hemimeta.img_size = 10  # in inches
@@ -149,10 +151,15 @@ hemimeta.origin = np.array([lookup.xcoordUTM1,
                             lookup.elevation + lookup.height_m]).swapaxes(0, 1)
 
 # point size
-hemimeta.optimization_scalar = 10
-footprint = 0.15  # in m
-c = 2834.64  # meters to points
-hemimeta.point_size_scalar = footprint**2 * c * hemimeta.optimization_scalar
-hemimeta.file_name = ["las_" + las_day + "_img_" + fn[0:-4] + "_pr_" + str(hemimeta.poisson_sampling_radius) +
-                       "_os_" + str(hemimeta.optimization_scalar) + ".png" for fn in lookup.filename]
-hm = laslib.hemigen(hdf5_path, hemimeta, initial_index=0)
+os_list = [1.38]
+
+for os in os_list:
+    print(os)
+    hemimeta.optimization_scalar = os
+    # hemimeta.optimization_scalar = 20
+    footprint = 0.15  # in m
+    c = 2834.64  # meters to points
+    hemimeta.point_size_scalar = footprint ** 2 * c * hemimeta.optimization_scalar
+    hemimeta.file_name = ["las_" + las_day + "_img_" + fn[0:-4] + "_pr_" + str(hemimeta.poisson_sampling_radius) +
+                          "_os_" + str(hemimeta.optimization_scalar) + ".png" for fn in lookup.filename]
+    hm = laslib.hemigen(hdf5_path, hemimeta, initial_index=0)
