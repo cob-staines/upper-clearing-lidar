@@ -1,4 +1,4 @@
-def merge_data_products(ddict, file_out, merge_data_in=None, left_on=None, right_on=None, mode='nearest'):
+def merge_data_products(ddict, file_out, merge_data_in=None, left_on=None, right_on=None, suffixes=None, mode='nearest'):
     import pandas as pd
     import rastools
     import numpy as np
@@ -21,9 +21,14 @@ def merge_data_products(ddict, file_out, merge_data_in=None, left_on=None, right
 
         for ii in range(len(merge_data_in)):
             # merge with hemisfer outputs
-            print('Merging with hemi_data... ', end='')
+            if suffixes is not None:
+                suffixes_itter = ("", suffixes[ii])
+            else:
+                suffixes_itter = ("_x", "_y")
+
+            print('Merging with ' + suffixes_itter[1] + '... ', end='')
             sup_data = pd.read_csv(merge_data_in[ii])
-            data = data.merge(sup_data, how='left', left_on=left_on[ii], right_on=right_on[ii])
+            data = data.merge(sup_data, how='left', left_on=left_on[ii], right_on=right_on[ii], suffixes=suffixes_itter)
             print('done')
 
         # data = data.drop(columns='id')
@@ -80,17 +85,19 @@ ddict = {
     'swe_fcon_19_052': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_052_r.05m_interp2x_masked.tif',
     'dswe_fnsd_19_045-19_050': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_045-19_050\\masked\\dswe_fnsd_19_045-19_050_r.05m_interp2x_masked.tif',
     'dswe_fnsd_19_050-19_052': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_050-19_052\\masked\\dswe_fnsd_19_050-19_052_r.05m_interp2x_masked.tif',
-    ('er_p0_mean', 'er_p0_sd'): 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_mb_15_dem_.25m_61px_mp15.25\\outputs\\las_19_149_rs_mb_15_r.25_p0.0000_t3.1416.tif',
+    # ('er_p0_mean', 'er_p0_sd'): 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_mb_15_dem_.25m_61px_mp15.25\\outputs\\las_19_149_rs_mb_15_r.25_p0.0000_t3.1416.tif',
     'hemi_id': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\1m_dem_point_ids.tif',
     'lrs_id': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\dem_r.25_point_ids.tif'
 }
 
 merge_data_in = ['C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\mb_15_1m_pr.15_os10\\outputs\\LAI_parsed.dat',
-                'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\outputs\\rshmetalog_footprint_products.csv']
-left_on = ['hemi_id', 'lrs_id']
-right_on = ['id', 'id']
+                 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off\\outputs\\rshmetalog_footprint_products.csv',
+                 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\outputs\\rshmetalog_footprint_products.csv']
+left_on = ['hemi_id', 'lrs_id', 'lrs_id']
+right_on = ['id', 'id', 'id']
+suffixes = ['_hemi', "_snow_off", "_snow_on"]
 file_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\merged_data_products\\merged_uf_r.25m_canopy_19_149_median-snow.csv'
-data = merge_data_products(ddict, file_out, merge_data_in=merge_data_in, left_on=left_on, right_on=right_on, mode='median')
+data = merge_data_products(ddict, file_out, merge_data_in=merge_data_in, left_on=left_on, right_on=right_on, suffixes=suffixes, mode='median')
 
 
 # 10cm products over mb_15

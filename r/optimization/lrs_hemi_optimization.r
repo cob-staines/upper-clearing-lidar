@@ -8,8 +8,8 @@ p_height = 5.7  # inches
 dpi = 100
 
 
-# photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/19_149/clean/sized/LAI_manual_parsed.dat"
-photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/045_052_050/LAI_045_050_052_parsed.dat"
+photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/19_149/clean/sized/LAI_manual_parsed.dat"
+# photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/045_052_050/LAI_045_050_052_parsed.dat"
 photos_lai = read.csv(photos_lai_in, header=TRUE, na.strings = c("NA",""), sep=",")
 photos_lai$original_file = toupper(gsub("_r.JPG", ".JPG", photos_lai$picture))
 photos_meta_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/hemi_lookup_cleaned.csv"
@@ -27,12 +27,11 @@ photos = photos[, c("original_file", "transmission_s_1", "transmission_s_2", "tr
 # rsm$id = as.character(rsm$id)
 # rsm = rsm[, c("id", "rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5", "rsm_std_1", "rsm_std_2", "rsm_std_3", "rsm_std_4", "rsm_std_5")]
 
-# rsm_2_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_19_149/outputs/rshmetalog_products.csv"
-
-rsm_2_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_045_050_052/outputs/rshmetalog_products.csv"
+rsm_2_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_19_149/outputs/rshmetalog_footprint_products.csv"
+# rsm_2_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_045_050_052/outputs/rshmetalog_footprint_products.csv"
 rsm_2 = read.csv(rsm_2_in, header=TRUE, na.strings = c("NA",""), sep=",")
 rsm_2$id = as.character(rsm_2$id)
-rsm_2 = rsm_2[, c("id", "cn_1", "cn_2", "cn_3", "cn_4", "cn_5")]
+rsm_2 = rsm_2[, c("id", "lrs_cn_1", "lrs_cn_2", "lrs_cn_3", "lrs_cn_4", "lrs_cn_5")]
 
 
 df = merge(rsm_2, photos, by.x='id', by.y='original_file', all.x=TRUE)
@@ -53,7 +52,7 @@ df = df %>%
 # ggplot(df, aes(x=-log(transmission), y=rsm_mean, color=ring_number)) +
 #   geom_point()
 
-ggplot(df, aes(x=-log(transmission_s), y=cn, color=ring_number)) +
+ggplot(df, aes(x=-log(transmission_s), y=lrs_cn, color=ring_number)) +
   geom_point()
 
 # rsm_mean_lm_all = lm(df$contactnum ~ 0 + df$rsm_mean)
@@ -62,7 +61,7 @@ ggplot(df, aes(x=-log(transmission_s), y=cn, color=ring_number)) +
 # lm_rsm_mean_tx = lm(-log(df$transmission) ~ 0 + df$rsm_mean)
 # summary(lm_rsm_mean_tx)
 
-lm_rsm_mean_tx = lm(-log(df$transmission_s) ~ 0 + df$cn)
+lm_rsm_mean_tx = lm(-log(df$transmission_s) ~ 0 + df$lrs_cn)
 summary(lm_rsm_mean_tx)
 
 # remove 5th ring due to horizon clipping
@@ -72,18 +71,18 @@ summary(lm_rsm_mean_tx)
 # summary(lm_rsm_mean_tx)
 
 
-fo = paste0("hat(y) == ", sprintf("%.5f",lm_rsm_mean_tx$coefficients['df$cn']), " * x")
+fo = paste0("hat(y) == ", sprintf("%.5f",lm_rsm_mean_tx$coefficients['df$lrs_cn']), " * x")
 r2 = paste0("R^2 == ", sprintf("%.5f",summary(lm_rsm_mean_tx)$r.squared))
 
 
-ggplot(df, aes(x=cn, y=-log(transmission_s), color=ring_number)) +
+ggplot(df, aes(x=lrs_cn, y=-log(transmission_s), color=ring_number)) +
   geom_point() +
-  geom_abline(intercept = 0, slope = lm_rsm_mean_tx$coefficients['df$cn']) +
+  geom_abline(intercept = 0, slope = lm_rsm_mean_tx$coefficients['df$lrs_cn']) +
   annotate("text", x=5, y=4, label=fo, parse=TRUE) +
   annotate("text", x=5, y=3.8, label=r2, parse=TRUE) +
   labs(title="", x='Lidar returns', y='-log(transmission)', color='Ring')
-ggsave(paste0(plot_out_dir, "19_149_returns_to_tx_optimization.png"), width=p_width, height=p_height, dpi=dpi)
-# ggsave(paste0(plot_out_dir, "045_050_052_returns_to_tx_optimization.png"), width=p_width, height=p_height, dpi=dpi)
+# ggsave(paste0(plot_out_dir, "19_149_returns_to_tx_optimization.png"), width=p_width, height=p_height, dpi=dpi)
+ggsave(paste0(plot_out_dir, "045_050_052_returns_to_tx_optimization.png"), width=p_width, height=p_height, dpi=dpi)
 
 # 
 # 

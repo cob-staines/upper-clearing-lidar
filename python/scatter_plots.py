@@ -212,7 +212,17 @@ y_vars = ['dnt', 'dce', 'chm',
           'lrs_cn_1_deg', 'lrs_tx_1_deg',
           'lrs_cn_75_deg', 'lrs_tx_75_deg',
           'lrs_cn_90_deg', 'lrs_tx_90_deg',
-          'lrs_sky_view', 'cc']
+          'lrs_sky_view',
+          'lrs_cn_1_snow_on', 'lrs_tx_1_snow_on',
+          'lrs_cn_2_snow_on', 'lrs_tx_2_snow_on',
+          'lrs_cn_3_snow_on', 'lrs_tx_3_snow_on',
+          'lrs_cn_4_snow_on', 'lrs_tx_4_snow_on',
+          'lrs_cn_5_snow_on', 'lrs_tx_5_snow_on',
+          'lrs_cn_1_deg_snow_on', 'lrs_tx_1_deg_snow_on',
+          'lrs_cn_75_deg_snow_on', 'lrs_tx_75_deg_snow_on',
+          'lrs_cn_90_deg_snow_on', 'lrs_tx_90_deg_snow_on',
+          'lrs_sky_view_snow_on'
+          ]
 
 spr = np.full((len(y_vars), len(x_vars)), np.nan)
 spr_p = np.full((len(y_vars), len(x_vars)), np.nan)
@@ -244,9 +254,11 @@ np.savetxt(stat_file + "degrees_of_freedom.csv", df, delimiter=", ")
 # xc = xc.loc[xc.uf == 1, :]
 # xc.loc[:, 'cn_mean'] = xc.loc[:, 'er_p0_mean'] * 0.19447
 # xc.loc[:, 'transmission_rs'] = np.exp(-xc.loc[:, 'cn_mean'])
-#
-# x_dat = xc.lpmf15
-# y_dat = xc.transmission_rs
-# plotrange = [[np.nanquantile(x_dat, .0005), np.nanquantile(x_dat, .9995)],
-#                      [np.nanquantile(y_dat, .0005), np.nanquantile(y_dat, .9995)]]
-# plt.hist2d(x_dat, y_dat, range=plotrange, bins=(np.array([8, 5.7]) * 20).astype(int), norm=colors.LogNorm(), cmap="Blues")
+
+
+x_dat = df_25.lrs_tx_1_deg
+y_dat = df_25.lrs_tx_1_deg_snow_on
+plotrange = [[np.nanquantile(x_dat, .0005), np.nanquantile(x_dat, .9995)],
+                     [np.nanquantile(y_dat, .0005), np.nanquantile(y_dat, .9995)]]
+plt.hist2d(x_dat, y_dat, range=plotrange, bins=(np.array([8, 5.7]) * 20).astype(int), norm=colors.LogNorm(), cmap="Blues")
+# plt.hist2d(x_dat, y_dat, range=plotrange, bins=(np.array([8, 5.7]) * 20).astype(int), cmap="Blues")

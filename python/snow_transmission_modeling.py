@@ -21,30 +21,40 @@ imsize = hemimeta.img_size_px[0]
 
 # specify which time date
 # date = "045-050"
-# date = "050-052"
+date = "050-052"
 # date = "19_050"
-date = "19_052"
+# date = "19_123"
 
 # load covariant
 count_045 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\RAS\\19_045_ground_point_density_r.25m.bil'
 count_050 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_las_proc\\OUTPUT_FILES\\RAS\\19_050_ground_point_density_r.25m.bil'
 count_052 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\RAS\\19_052_ground_point_density_r.25m.bil'
+count_107 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_107\\19_107_las_proc\\OUTPUT_FILES\\RAS\\19_107_ground_point_density_r.25m.bil'
+count_123 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_123\\19_123_las_proc\\OUTPUT_FILES\\RAS\\19_123_ground_point_density_r.25m.bil'
 count_149 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RAS\\19_149_ground_point_density_r.25m.bil'
 
 if date == "045-050":
     var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_045-19_050\\masked\\dswe_fnsd_19_045-19_050_r.05m_interp2x_masked.tif'
 elif date == "050-052":
     var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_050-19_052\\masked\\dswe_fnsd_19_050-19_052_r.05m_interp2x_masked.tif'
+elif date == "19_045":
+    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_045_r.05m_interp2x_masked.tif'
 elif date == "19_050":
     var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_050_r.05m_interp2x_masked.tif'
 elif date == "19_052":
     var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_052_r.05m_interp2x_masked.tif'
+elif date == "19_107":
+    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_107\\19_107_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_107_r.05m_interp2x_masked.tif'
+elif date == "19_123":
+    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_123\\19_123_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_123_r.05m_interp2x_masked.tif'
 
 
 
 ddict = {'count_045': count_045,
          'count_050': count_050,
          'count_052': count_052,
+         'count_107': count_107,
+         'count_123': count_123,
          'count_149': count_149,
          'covariant': var_in}
 var = rastools.pd_sample_raster_gdal(ddict, include_nans=True, mode="median")
@@ -56,13 +66,19 @@ if date == "045-050":
     var.loc[:, "min_pc"] = np.nanmin((var.count_045, var.count_050, var.count_149), axis=0) * (.25 ** 2)
 elif date == "050-052":
     var.loc[:, "min_pc"] = np.nanmin((var.count_050, var.count_052, var.count_149), axis=0) * (.25 ** 2)
+elif date == "19_045":
+    var.loc[:, "min_pc"] = np.nanmin((var.count_045, var.count_149), axis=0) * (.25 ** 2)
 elif date == "19_050":
     var.loc[:, "min_pc"] = np.nanmin((var.count_050, var.count_149), axis=0) * (.25 ** 2)
 elif date == "19_052":
     var.loc[:, "min_pc"] = np.nanmin((var.count_052, var.count_149), axis=0) * (.25 ** 2)
+elif date == "19_107":
+    var.loc[:, "min_pc"] = np.nanmin((var.count_107, var.count_149), axis=0) * (.25 ** 2)
+elif date == "19_123":
+    var.loc[:, "min_pc"] = np.nanmin((var.count_123, var.count_149), axis=0) * (.25 ** 2)
 
 # filter by min point count
-var = var.loc[var.min_pc >= 0, :]
+var = var.loc[var.min_pc >= 25, :]
 
 
 # merge with image meta
@@ -85,7 +101,7 @@ imrange[phi <= max_phi] = True
 
 # # filter hemimeta to desired images
 # delineate training set (set_param < param_thresh) and test set (set_param >= param thresh)
-param_thresh = 0.25
+param_thresh = 0.5
 set_param = np.random.random(len(hemi_var))
 hemi_var.loc[:, 'training_set'] = set_param < param_thresh
 # build hemiList from training_set only
@@ -173,9 +189,8 @@ def dwst(p0):
     sig = p0[2]  # standard deviation of angular gaussian in radians
     mm = p0[3]
     gaus_intnum = p0[4]  # interaction number
-    nn = p0[5]
-    unif_intnum = p0[6]  # interaction number
-    # bb = p0[5]
+    # nn = p0[5]
+    # unif_intnum = p0[6]  # interaction number
 
     # # old!
     # sig = p0[0]  # standard deviation of angular gaussian in radians
@@ -190,23 +205,24 @@ def dwst(p0):
     # calculate gaussian angle weights
     gaus_weights = np.exp(- 0.5 * (radist / sig) ** 2)  # gaussian
     gaus_weights[np.isnan(phi)] = 0
-    #gaus_weights = gaus_weights / np.sum(gaus_weights)
+    gaus_weights = gaus_weights / np.sum(gaus_weights)
     # calculate weighted mean of contact number for each ground points
     gaus_stack = np.average(imstack_long, weights=gaus_weights.ravel(), axis=1)
 
-    unif_weights = (phi < 75 * np.pi / 180)
-    unif_stack = np.average(imstack_long, weights=unif_weights.ravel(), axis=1)
+    # unif_weights = (phi < 75 * np.pi / 180)
+    # unif_stack = np.average(imstack_long, weights=unif_weights.ravel(), axis=1)
 
     # model snow accumulation with snowfall transmittance over all ground points
     gaus_term = mm * np.exp(-gaus_intnum * gaus_stack)
-    unif_term = nn * np.exp(-unif_intnum * unif_stack)
+    # unif_term = nn * np.exp(-unif_intnum * unif_stack)
 
     # snowacc = mm * np.exp(-intnum * w_stack) + bb
 
     dswe = hemiList.covariant
 
     # calculate sum of square residuals
-    ssres = np.sum((dswe - gaus_term - unif_term) ** 2)
+    # ssres = np.sum((dswe - gaus_term - unif_term) ** 2)
+    ssres = np.sum((dswe - gaus_term) ** 2)
 
     return ssres
 
@@ -232,12 +248,17 @@ print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}   {6:9s}   {7:9s}   {
 if date == "045-050":
     # p0 = np.array([0.11534765, 0.57799291, 0.11109643, 2.4170248, 3.68344911])  # 19_045-19_050, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.094308
     # p0 = np.array([0.11481182, 0.56503876, 0.10936873, 2.44018817, 3.71200706])  # 19_045-19_050, 045-050-052, min_ct >= 10, fnsd, no bb, 25% of data, r2 = 0.119853
-    p0 = np.array([0.12120457, 0.45225687, 0.11644756, 2.46708285, 3.47311711])  # 19_045-19_050, 045-050-052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.130916
+    # p0 = np.array([0.12120457, 0.45225687, 0.11644756, 2.46708285, 3.47311711])  # 19_045-19_050, 045-050-052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.130916
+    p0 = np.array([0.11644756, 2.46708285, 0.12120457, 3.47311711, 0.45225687])  # 19_045-19_050, 045-050-052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.130916  # new format
 
 elif date == "050-052":
     # p0 = np.array([0.14113609, 0.24675274, 0.21223623, 2.46673482, 6.93602817])  # 19_050-19_052, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.085339
     # p0 = np.array([0.14024832, 0.25270547, 0.19313204, 2.49243517, 7.00353594])  # 19_050-19_052, 045-050-052, min_ct >= 10, fnsd, no bb, 25% of data, r2 = 0.108983
-    p0 = np.array([0.14959617, 0.27760338, 0.20224104, 2.58846094, 7.47697446])  # 19_050-19_052, 045-050-052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.170783
+    # p0 = np.array([0.14959617, 0.27760338, 0.20224104, 2.58846094, 7.47697446])  # 19_050-19_052, 045-050-052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.170783
+    # p0 = np.array([0.20224104, 2.58846094, 0.14959617, 7.47697446, 0.27760338])  # 19_050-19_052, 045-050-052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.170783 # new format
+    p0 = np.array([0.20224104, 2.58846094, 0.14959617, 7.47697446, 0.27760338, -7, 0.2])  # 19_050-19_052, 045-050-052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.170783 # new format
+elif date == "19_045":
+    p0 = None
 
 elif date == "19_050":
     # p0 = np.array([ 0.138614188,  0.690715658,  0.0936716022, 2.3379370836, 116.016191])  # 19_050, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.601032
@@ -246,6 +267,10 @@ elif date == "19_050":
 elif date == "19_052":
     # p0 = np.array([0.14113609, 0.24675274, 0.21223623, 2.46673482, 6.93602817])  # 19_052, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = ??
     p0 = np.array([ 0.0920301084,  2.34857672,  0.164146886,  152.314633, 0.309102598, -162.167554,  0.404501947])  # 19_050, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.700743
+elif date == "19_107":
+    p0 = None
+elif date == "19_123":
+    p0 = None
 
 # run optimization
 [popt, fopt, gopt, Bopt, func_calls, grad_calls, warnflg] = \
@@ -270,18 +295,18 @@ matplotlib.use('Qt5Agg')
 # matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-p0 = popt.copy()
+# p0 = popt.copy()
 
 phi_0 = p0[0]  # central phi in radians
 theta_0 = p0[1]  # central theta in radians
 sig = p0[2]  # standard deviation of angular gaussian in radians
 mm = p0[3]
 gaus_intnum = p0[4]  # interaction number
-nn = p0[5]
-unif_intnum = p0[6]
+# nn = p0[5]
+# unif_intnum = p0[6]
 
 # bb = p0[5]
-bb = 0
+# bb = 0
 
 # # old
 # sig = p0[0]  # standard deviation of angular gaussian in radians
@@ -290,23 +315,23 @@ bb = 0
 # theta_0 = p0[3]  # central theta in radians
 # mm = p0[4]
 # # bb = p0[5]
-# bb = 0
+bb = 0
 
 # calculate angle of each pixel from (phi_0, theta_0)
 radist = np.arccos(np.cos(phi_0) * np.cos(phi) + np.sin(phi_0) * np.sin(phi) * np.cos(theta_0 - theta))
 # calculate gaussian angle weights
 gaus_weights = np.exp(- 0.5 * (radist / sig) ** 2)  # gaussian
 gaus_weights[np.isnan(phi)] = 0
-# gaus_weights = gaus_weights / np.sum(gaus_weights)
+gaus_weights = gaus_weights / np.sum(gaus_weights)
 # calculate weighted mean of contact number for each ground points
 gaus_stack = np.average(imstack_long, weights=gaus_weights.ravel(), axis=1)
 
-unif_weights = (phi < 75 * np.pi / 180)
-unif_stack = np.average(imstack_long, weights=unif_weights.ravel(), axis=1)
+# unif_weights = (phi < 75 * np.pi / 180)
+# unif_stack = np.average(imstack_long, weights=unif_weights.ravel(), axis=1)
 
 # model snow accumulation with snowfall transmittance over all ground points
-gaus_term = mm * np.exp(-gaus_intnum * gaus_stack)
-unif_term = nn * np.exp(-unif_intnum * unif_stack)
+transmittance = np.exp(-gaus_intnum * gaus_stack)
+# unif_term = nn * np.exp(-unif_intnum * unif_stack)
 
 
 fig = plt.figure()
@@ -318,9 +343,7 @@ elif date == "050-052":
     ax1.set_title('$\Delta$SWE vs. directionally weighted snowfall transmission $T^{*}_{(x, y)}$\n Upper Forest, 19-21 Feb. 2019, 25cm resolution')
 ax1.set_xlabel("$\Delta$SWE [mm]")
 ax1.set_ylabel("$T^{*}_{(x, y)}$ [-]")
-plt.scatter(hemiList.covariant, gaus_term, s=2, alpha=.25)
-plt.scatter(hemiList.covariant, unif_term, s=2, alpha=.25)
-plt.scatter(hemiList.covariant, gaus_term + unif_term, s=2, alpha=.25)
+plt.scatter(hemiList.covariant, transmittance, s=2, alpha=.25)
 mm_mod = np.array([np.nanmin(transmittance), np.nanmax(transmittance)])
 plt.plot(mm_mod * mm + bb, mm_mod, c='Black', linestyle='dashed', linewidth=1.5)
 plt.ylim(0, 1)
@@ -330,57 +353,57 @@ elif date == "050-052":
     fig.savefig(plot_out_dir + "dSWE vs DWST 050-052.png")
 
 
-####### calculate interaction scalar across hemisphere #######
-plt.scatter(np.log(hemi_var.covariant[hemi_var.training_set.values]), -w_stack, s=2, alpha=.25)
-np.nanmean(-np.log(hemi_var.covariant[hemi_var.training_set.values]) / w_stack)
-
-from scipy.optimize import curve_fit
-
-corcoef_each = np.full((imsize, imsize), np.nan)
-is_each = np.full((imsize, imsize), np.nan)
-gg_each = np.full((imsize, imsize), np.nan)
-
-for ii in range(0, imsize):
-    for jj in range(0, imsize):
-        if imrange[jj, ii]:
-            def expfunc(p1):
-                return -np.corrcoef(hemi_var.covariant[hemi_var.training_set.values], np.exp(-p1 * imstack[jj, ii, :]))[0, 1]
-
-
-            [popt, ffopt, ggopt, BBopt, func_calls, grad_calls, warnflg] = \
-                fmin_bfgs(expfunc,
-                          1,
-                          maxiter=100,
-                          full_output=True,
-                          retall=False)
-
-            is_each[jj, ii] = popt[0]
-            corcoef_each[jj, ii] = -ffopt
-            gg_each[jj, ii] = ggopt
-
-    print(ii)
-
-is_each_qc = is_each.copy()
-is_each_qc[gg_each > .00001] = np.nan
-is_each_qc[is_each_qc < 0] = np.nan
-is_each_qc[is_each_qc > 1000] = np.nan
-
-plt.imshow(is_each_qc)
-plt.imshow(gg_each)
-corcoef_each_qc = corcoef_each.copy()
-corcoef_each_qc[corcoef_each_qc == 1] = np.nan
-plt.imshow(corcoef_each_qc)
-plt.colorbar()
-
-
-# Here you give the initial parameters for p0 which Python then iterates over
-# to find the best fit
-jj = 90
-ii = 90
-
-popt, pcov = curve_fit(expfunc, w_stack, hemi_var.covariant[hemi_var.training_set.values], p0=(20.0), bounds=(0, np.inf))
-
-plt.scatter(hemi_var.covariant[hemi_var.training_set.values], np.exp(-popt[0] * w_stack), s=2, alpha=.25)
+# ####### calculate interaction scalar across hemisphere #######
+# plt.scatter(np.log(hemi_var.covariant[hemi_var.training_set.values]), -w_stack, s=2, alpha=.25)
+# np.nanmean(-np.log(hemi_var.covariant[hemi_var.training_set.values]) / w_stack)
+#
+# from scipy.optimize import curve_fit
+#
+# corcoef_each = np.full((imsize, imsize), np.nan)
+# is_each = np.full((imsize, imsize), np.nan)
+# gg_each = np.full((imsize, imsize), np.nan)
+#
+# for ii in range(0, imsize):
+#     for jj in range(0, imsize):
+#         if imrange[jj, ii]:
+#             def expfunc(p1):
+#                 return -np.corrcoef(hemi_var.covariant[hemi_var.training_set.values], np.exp(-p1 * imstack[jj, ii, :]))[0, 1]
+#
+#
+#             [popt, ffopt, ggopt, BBopt, func_calls, grad_calls, warnflg] = \
+#                 fmin_bfgs(expfunc,
+#                           1,
+#                           maxiter=100,
+#                           full_output=True,
+#                           retall=False)
+#
+#             is_each[jj, ii] = popt[0]
+#             corcoef_each[jj, ii] = -ffopt
+#             gg_each[jj, ii] = ggopt
+#
+#     print(ii)
+#
+# is_each_qc = is_each.copy()
+# is_each_qc[gg_each > .00001] = np.nan
+# is_each_qc[is_each_qc < 0] = np.nan
+# is_each_qc[is_each_qc > 1000] = np.nan
+#
+# plt.imshow(is_each_qc)
+# plt.imshow(gg_each)
+# corcoef_each_qc = corcoef_each.copy()
+# corcoef_each_qc[corcoef_each_qc == 1] = np.nan
+# plt.imshow(corcoef_each_qc)
+# plt.colorbar()
+#
+#
+# # Here you give the initial parameters for p0 which Python then iterates over
+# # to find the best fit
+# jj = 90
+# ii = 90
+#
+# popt, pcov = curve_fit(expfunc, w_stack, hemi_var.covariant[hemi_var.training_set.values], p0=(20.0), bounds=(0, np.inf))
+#
+# plt.scatter(hemi_var.covariant[hemi_var.training_set.values], np.exp(-popt[0] * w_stack), s=2, alpha=.25)
 
 ## plot optimization topography
 
@@ -393,7 +416,7 @@ ii = 0
 px = p0.copy()
 for vv in v_list:
 
-    px[0] = vv
+    px[2] = vv
     r2 = rsq(px)
 
     new_row = {"sig": vv,
@@ -427,7 +450,7 @@ ii = 0
 px = p0.copy()
 for vv in v_list:
 
-    px[1] = vv
+    px[4] = vv
     r2 = rsq(px)
 
     new_row = {"mu": vv,

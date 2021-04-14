@@ -7,12 +7,21 @@ import tifffile as tif
 # matplotlib.use('Qt5Agg')
 # import matplotlib.pyplot as plt
 
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\'
-file_out = batch_dir + "outputs\\rshmetalog_footprint_products.csv"
 
-# cn_coef = 0.195878  # 19_149
-cn_coef = 0.132154  # 045_050_052
+# 045_050_052
+# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\'
+# cn_coef = 0.132154
+
+# 19_149
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off\\'
+cn_coef = 0.198508
+
+# optimization
+# batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_19_149\\"
+# batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_045_050_052\\"
 # cn_coef = 1  # optimization
+
+file_out = batch_dir + "outputs\\rshmetalog_footprint_products.csv"
 
 rshmeta = pd.read_csv(batch_dir + "outputs\\rshmetalog.csv")
 imsize = rshmeta.img_size_px[0]  # assuming all images have same dimensions
@@ -138,28 +147,28 @@ for zz in range(0, z_count):
 
 footprint_df.to_csv(file_out, index=False)
 
-
-# create raster LAI and CC products
-import numpy as np
-import rastools
-import pandas as pd
-
-lai_parsed = pd.read_csv(file_out)
-lai_parsed.loc[:, 'canopy_closure'] = 1 - lai_parsed.openness
-
-point_raster_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\1m_dem_point_ids.tif"
-point_raster = rastools.raster_load(point_raster_in)
-lai_ras = rastools.raster_load(point_raster_in)
-cc_ras = rastools.raster_load(point_raster_in)
-
-lai_ras.data = np.full((lai_ras.rows, lai_ras.cols), lai_ras.no_data)
-cc_ras.data = np.full((cc_ras.rows, cc_ras.cols), cc_ras.no_data)
-for ii in range(0, len(lai_parsed)):
-    lai_ras.data[np.where(point_raster.data == lai_parsed.id[ii])] = lai_parsed.lai_s_cc[ii]
-    cc_ras.data[np.where(point_raster.data == lai_parsed.id[ii])] = lai_parsed.canopy_closure[ii]
-
-lai_out = file_out.replace('LAI_parsed.dat', 'lai_ras.tif')
-rastools.raster_save(lai_ras, lai_out)
-
-cc_out = file_out.replace('LAI_parsed.dat', 'cc_ras.tif')
-rastools.raster_save(cc_ras, cc_out)
+#
+# # create raster LAI and CC products
+# import numpy as np
+# import rastools
+# import pandas as pd
+#
+# lai_parsed = pd.read_csv(file_out)
+# lai_parsed.loc[:, 'canopy_closure'] = 1 - lai_parsed.openness
+#
+# point_raster_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\1m_dem_point_ids.tif"
+# point_raster = rastools.raster_load(point_raster_in)
+# lai_ras = rastools.raster_load(point_raster_in)
+# cc_ras = rastools.raster_load(point_raster_in)
+#
+# lai_ras.data = np.full((lai_ras.rows, lai_ras.cols), lai_ras.no_data)
+# cc_ras.data = np.full((cc_ras.rows, cc_ras.cols), cc_ras.no_data)
+# for ii in range(0, len(lai_parsed)):
+#     lai_ras.data[np.where(point_raster.data == lai_parsed.id[ii])] = lai_parsed.lai_s_cc[ii]
+#     cc_ras.data[np.where(point_raster.data == lai_parsed.id[ii])] = lai_parsed.canopy_closure[ii]
+#
+# lai_out = file_out.replace('LAI_parsed.dat', 'lai_ras.tif')
+# rastools.raster_save(lai_ras, lai_out)
+#
+# cc_out = file_out.replace('LAI_parsed.dat', 'cc_ras.tif')
+# rastools.raster_save(cc_ras, cc_out)

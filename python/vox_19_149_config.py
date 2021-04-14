@@ -28,4 +28,4 @@ z_slices = 4
 vox = lrs.load_vox(vox.vox_hdf5, load_data=False, load_post=True, load_post_data=False)
 
 # las_out = vox.vox_hdf5.replace(".h5", "_resampled.las")
-# lrs.vox_to_las(vox.vox_hdf5, las_out, samps_per_vox=30, sample_threshold=1)
+# lrs.vox_to_las(vox.vox_hdf5, las_out, samps_per_vox=50, sample_threshold=1)

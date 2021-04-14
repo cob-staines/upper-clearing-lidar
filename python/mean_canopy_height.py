@@ -4,9 +4,12 @@ import laspy
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import matplotlib
+matplotlib.use("Qt5Agg")
+import matplotlib.pyplot as plt
 
 lastools_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\code_lib\\lastools\\LAStools\\bin\\"
-
+plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\thesis_graphics\\frequency distributions\\"
 
 def mCH(las_file):
     norm_file = las_file.replace(".las", "_normalized.las")
@@ -66,26 +69,9 @@ def mCH(las_file):
     ras.data[ras.data == ras.no_data] = 0
     rastools.raster_save(ras, mch_file, file_format="EHdr")
 
-las_in = ["C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox_resampled.las",
-          'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged_19_149_r0.25m_vox_resampled.las',
-          r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged.las",
-          r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged_poisson_0.15.las"]
 
-ff = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox_resampled.las"
-for ff in las_in:
-    mCH(ff)
-
-
-las_file = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged_19_149_r0.25m_vox_resampled_noise.las'
-las_file = r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged_noise.las"
-las_file = r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged_poisson_0.15_noise.las"
-las_file = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox_resampled_noise.las"
-shp_file = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\upper_forest_poly_UTM11N.shp'
-
-
-# canopy height distribution (LAS)
 def las_clip(las_file, shp_file):
-
+    # clip to shp file
     epsg = '32611'
     clip_file = las_file.replace(".las", "_clipped.las")
     lasclip_cmd = [lastools_dir + "lasclip.exe",
@@ -98,17 +84,11 @@ def las_clip(las_file, shp_file):
     pcs.wait()  # wait for it to finish
 
 
-
-las_list = [r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged_noise_clipped.las",
-            r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged_poisson_0.15_noise_clipped.las",
-            'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged_19_149_r0.25m_vox_resampled_noise_clipped.las',
-            # "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox_resampled_noise_clipped.las"
-]
-
-
-def comparison_histogram(las_list):
+# canopy height distribution (LAS)
+def comparison_histogram(las_list, bins="auto"):
 
     for ii in range(len(las_list)):
+
         print('Loading LAS file... ', end='')
         # load las_in
         inFile = laspy.file.File(las_list[ii], mode="r")
@@ -133,9 +113,44 @@ def comparison_histogram(las_list):
         else:
             composite = pd.concat([composite, p0])
 
-
-    plot = sns.histplot(composite, x="z", bins="auto", stat="density", hue="file", common_norm=False, element="step")
+    # plot histogram of z
+    plot = sns.histplot(composite, x="z", bins=bins, stat="density", hue="file", common_norm=False, element="step")
     return plot
 
-    # plot histogram of z
 
+las_in = ["C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox_resampled.las",
+          'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged_19_149_r0.25m_vox_resampled.las',
+          r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged.las",
+          r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged_poisson_0.05.las",
+          r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged_poisson_0.15.las"]
+
+ff = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged_19_149_r0.25m_vox_resampled.las'
+
+for ff in las_in:
+    mCH(ff)
+
+shp_file = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\upper_forest_poly_UTM11N.shp'
+for ff in las_in:
+    ff_noise = ff.replace(".las", "_noise.las")
+    las_clip(ff_noise, shp_file)
+
+
+uf_ch_list = [r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged_noise_clipped.las",
+              # r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged_poisson_0.05_noise_clipped.las",
+              # r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar\19_149\19_149_las_proc\OUTPUT_FILES\LAS\19_149_las_proc_classified_merged_poisson_0.15_noise_clipped.las",
+              'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged_19_149_r0.25m_vox_resampled_noise_clipped.las',
+              # "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox_resampled_noise_clipped.las"
+]
+
+fig = plt.figure()
+ax1 = fig.add_subplot(111)
+ax1.set_title('Canopy density with height for snow-free canopy\n Upper Forest plot, 29 May 2019')
+ax1.set_xlabel("Canopy height [m]")
+ax1.set_ylabel("Relative density [-]")
+g = comparison_histogram(uf_ch_list)
+g.legend_.set_title(None)
+legend = g.get_legend()
+handles = legend.legendHandles
+legend.remove()
+g.legend(handles, ["observed point cloud", "resampled point cloud"], loc="upper right")
+fig.savefig(plot_out_dir + "canopy_density_w_height.png")
