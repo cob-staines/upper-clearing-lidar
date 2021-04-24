@@ -87,6 +87,8 @@ def las_clip(las_file, shp_file):
 # canopy height distribution (LAS)
 def comparison_histogram(las_list, bins="auto"):
 
+    mean_z = []
+
     for ii in range(len(las_list)):
 
         print('Loading LAS file... ', end='')
@@ -113,9 +115,11 @@ def comparison_histogram(las_list, bins="auto"):
         else:
             composite = pd.concat([composite, p0])
 
+        mean_z.append(np.mean(p0.z))
+
     # plot histogram of z
     plot = sns.histplot(composite, x="z", bins=bins, stat="density", hue="file", common_norm=False, element="step")
-    return plot
+    return plot, mean_z
 
 
 las_in = ["C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox_resampled.las",
@@ -144,13 +148,15 @@ uf_ch_list = [r"C:\Users\Cob\index\educational\usask\research\masters\data\lidar
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Canopy density with height for snow-free canopy\n Upper Forest plot, 29 May 2019')
-ax1.set_xlabel("Canopy height [m]")
-ax1.set_ylabel("Relative density [-]")
-g = comparison_histogram(uf_ch_list)
+ax1.set_title('Canopy lidar return height frequency for snow-free canopy\n Upper Forest plot, 29 May 2019')
+ax1.set_xlabel("Height above ground [m]")
+ax1.set_ylabel("Relative frequency [-]")
+g, mean_z = comparison_histogram(uf_ch_list)
 g.legend_.set_title(None)
 legend = g.get_legend()
 handles = legend.legendHandles
 legend.remove()
 g.legend(handles, ["observed point cloud", "resampled point cloud"], loc="upper right")
 fig.savefig(plot_out_dir + "canopy_density_w_height.png")
+
+mean_z[0] / mean_z[1]

@@ -7,24 +7,7 @@ import matplotlib.pyplot as plt
 
 plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\thesis_graphics\\semivar analysis\\"
 
-# define sample density functions
-
-def log10_inv(dd):
-    return -np.log10(1 - dd)
-
-
-def log_inv(dd):
-    return -np.log(1 - dd)
-
-max_dist = 25
-
-def linear_ab(x):
-    a = .05
-    b = max_dist
-    return (b - a) * x + a
-
-
-def spatial_stats_on_col(df, colname, file_out=None, iterations=1000, replicates=1, nbins=50):
+def spatial_stats_on_col(df, colname, dist_bounds, file_out=None, iterations=1000, replicates=1, nbins=50):
 
     # drop nan values
     valid = ~np.isnan(df.loc[:, colname].values)
@@ -33,12 +16,27 @@ def spatial_stats_on_col(df, colname, file_out=None, iterations=1000, replicates
     pts = df.loc[valid, ['x_coord', 'y_coord']].values
     vals = df.loc[valid, colname].values
 
+    # define inverse sample density functions
+    # liear a to b
+    def samp_dens_inv(x):
+        a = dist_bounds[0]
+        b = dist_bounds[1]
+        return (b - a) * x + a
+
+    # log
+    # def samp_dens_inv(dd):
+    #     return -np.log(1 - dd)
+
+    # log10
+    # def samp_dens_inv(dd):
+    #     return -np.log10(1 - dd)
+
+
     # sample point pairs
-    df_samps, unif_bounds = geotk.pnt_sample_semivar(pts, vals, linear_ab, iterations, replicates, report_samp_vals=True)
-    # df_samps, unif_bounds = geotk.pnt_sample_semivar(pts, vals, log10_inv, iterations, replicates, report_samp_vals=True)
+    df_samps, unif_bounds = geotk.pnt_sample_semivar(pts, vals, samp_dens_inv, iterations, replicates, report_samp_vals=True)
 
     # compute stats on samples
-    stats = geotk.bin_summarize(df_samps, linear_ab, unif_bounds, nbins)
+    stats = geotk.bin_summarize(df_samps, nbins, dist_inv_func=samp_dens_inv, unif_bounds=unif_bounds)
 
     if file_out is not None:
         # export to csv
@@ -47,56 +45,130 @@ def spatial_stats_on_col(df, colname, file_out=None, iterations=1000, replicates
     return stats, df_samps
 
 # load data 5cm
-data_05_in ='C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\uf_merged_.05m_ahpl_native.csv'
-data_05 = pd.read_csv(data_05_in)
-data_05_uf = data_05[data_05.plots == 1]
+uf_05_in ='C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\merged_data_products\\merged_uf_.05m_snow_nearest_canopy_19_149.csv'
+uf_05 = pd.read_csv(uf_05_in)
 
 #load data 10cm
-data_10_in ='C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.10m_native_canopy_19_149.csv'
-data_10 = pd.read_csv(data_10_in)
-data_10_uf = data_10.loc[data_10.plots == 1, :]
+uf_10_in ='C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\merged_data_products\\merged_uf_r.10m_canopy_19_149_median-snow.csv'
+uf_10 = pd.read_csv(uf_10_in)
 
 # load data 25cm
-data_25_in ='C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\mb_15_merged_.25m_native_canopy_19_149.csv'
-data_25 = pd.read_csv(data_25_in)
-data_25_uf = data_25.loc[data_25.plots == 1, :]
-data_25_uf.loc[:, 'cn_mean'] = data_25_uf.er_p0_mean * 0.19447
+uf_25_in ='C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\merged_data_products\\merged_uf_r.25m_canopy_19_149_median-snow.csv'
+uf_25 = pd.read_csv(uf_25_in)
 
 
 #####
 # sample
+d_bounds = [0.05, 30]
 
-stats_swe_045, samps_045 = spatial_stats_on_col(data_05_uf, 'swe_19_045', iterations=10000, replicates=100, nbins=50)
-stats_swe_045.to_csv(plot_out_dir + "semivar_stats_swe_045_md" + str(max_dist) + ".csv", index=False)
-samps_045.to_csv(plot_out_dir + "semivar_samps_swe_045_md" + str(max_dist) + ".csv", index=False)
+stats_swe_045, samps_045 = spatial_stats_on_col(uf_05, 'swe_fcon_19_045', d_bounds, iterations=10000, replicates=120, nbins=60)
+stats_swe_045.to_csv(plot_out_dir + "semivar_stats_swe_fcon_045_r.05" + str(d_bounds[1]) + ".csv", index=False)
+samps_045.to_csv(plot_out_dir + "semivar_samps_swe_fcon_045_r.05" + str(d_bounds[1]) + ".csv", index=False)
 
-stats_swe_050, samps_050 = spatial_stats_on_col(data_05_uf, 'swe_19_050', iterations=10000, replicates=100, nbins=50)
-stats_swe_050.to_csv(plot_out_dir + "semivar_stats_swe_050_md" + str(max_dist) + ".csv", index=False)
-samps_050.to_csv(plot_out_dir + "semivar_samps_swe_050_md" + str(max_dist) + ".csv", index=False)
+stats_swe_050, samps_050 = spatial_stats_on_col(uf_05, 'swe_fcon_19_050', d_bounds, iterations=10000, replicates=120, nbins=60)
+stats_swe_050.to_csv(plot_out_dir + "semivar_stats_swe_fcon_050_r.05_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_050.to_csv(plot_out_dir + "semivar_samps_swe_fcon_050_r.05_max" + str(d_bounds[1]) + ".csv", index=False)
 
-stats_swe_052, samps_052 = spatial_stats_on_col(data_05_uf, 'swe_19_052', iterations=10000, replicates=100, nbins=50)
-stats_swe_052.to_csv(plot_out_dir + "semivar_stats_swe_052_md" + str(max_dist) + ".csv", index=False)
-samps_052.to_csv(plot_out_dir + "semivar_samps_swe_052_md" + str(max_dist) + ".csv", index=False)
+stats_swe_052, samps_052 = spatial_stats_on_col(uf_05, 'swe_fcon_19_052', d_bounds, iterations=10000, replicates=120, nbins=60)
+stats_swe_052.to_csv(plot_out_dir + "semivar_stats_swe_fcon_052_r.05_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_052.to_csv(plot_out_dir + "semivar_samps_swe_fcon_052_r.05_max" + str(d_bounds[1]) + ".csv", index=False)
 
-stats_dswe_045_050, samps_045_050 = spatial_stats_on_col(data_05_uf, 'dswe_19_045-19_050', iterations=10000, replicates=100, nbins=50)
-stats_dswe_045_050.to_csv(plot_out_dir + "semivar_stats_dswe_045_050_md" + str(max_dist) + ".csv", index=False)
-samps_045_050.to_csv(plot_out_dir + "semivar_samps_dswe_045_050_md" + str(max_dist) + ".csv", index=False)
+stats_dswe_045_050, samps_045_050 = spatial_stats_on_col(uf_05, 'dswe_fnsd_19_045-19_050', d_bounds, iterations=10000, replicates=120, nbins=60)
+stats_dswe_045_050.to_csv(plot_out_dir + "semivar_stats_dswe_fnsd_045_050_r.05_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_045_050.to_csv(plot_out_dir + "semivar_samps_dswe_fnsd_045_050_r.05_max" + str(d_bounds[1]) + ".csv", index=False)
 
-stats_dswe_050_052, samps_050_052 = spatial_stats_on_col(data_05_uf, 'dswe_19_050-19_052', iterations=10000, replicates=100, nbins=50)
-stats_dswe_050_052.to_csv(plot_out_dir + "semivar_stats_dswe_050_052_md" + str(max_dist) + ".csv", index=False)
-samps_050_052.to_csv(plot_out_dir + "semivar_samps_dswe_050_052_md" + str(max_dist) + ".csv", index=False)
+stats_dswe_050_052, samps_050_052 = spatial_stats_on_col(uf_05, 'dswe_fnsd_19_050-19_052', d_bounds, iterations=10000, replicates=120, nbins=60)
+stats_dswe_050_052.to_csv(plot_out_dir + "semivar_stats_dswe_fnsd_050_052_r.05_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_050_052.to_csv(plot_out_dir + "semivar_samps_dswe_fnsd_050_052_r.05_max" + str(d_bounds[1]) + ".csv", index=False)
 
-stats_chm, samps_chm = spatial_stats_on_col(data_10_uf, 'chm', iterations=10000, replicates=100, nbins=50)
-stats_chm.to_csv(plot_out_dir + "semivar_stats_chm_md" + str(max_dist) + ".csv", index=False)
-samps_chm.to_csv(plot_out_dir + "semivar_samps_chm_md" + str(max_dist) + ".csv", index=False)
+stats_mch, samps_mch = spatial_stats_on_col(uf_10, 'mCH_19_149_resampled', d_bounds, iterations=10000, replicates=120, nbins=60)
+stats_mch.to_csv(plot_out_dir + "semivar_stats_mCH_resamp_r.10_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_mch.to_csv(plot_out_dir + "semivar_samps_mCH_resamp_r.10_max" + str(d_bounds[1]) + ".csv", index=False)
 
-stats_lai_rs, samps_lai_rs = spatial_stats_on_col(data_25_uf, 'cn_mean', iterations=10000, replicates=1000, nbins=50)
-stats_lai_rs.to_csv(plot_out_dir + "semivar_stats_lai_rs_md" + str(max_dist) + ".csv", index=False)
-samps_lai_rs.to_csv(plot_out_dir + "semivar_samps_lai_rs_md" + str(max_dist) + ".csv", index=False)
+stats_lrs_cn_1deg, samps_lrs_cn_1deg = spatial_stats_on_col(uf_25, 'lrs_cn_1_deg', d_bounds, iterations=10000, replicates=120, nbins=60)
+stats_lrs_cn_1deg.to_csv(plot_out_dir + "semivar_stats_lrs_cn_1_deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_lrs_cn_1deg.to_csv(plot_out_dir + "semivar_samps_lrs_cn_1_deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
 
-stats_lai_hemi, samps_lai_hemi = spatial_stats_on_col(data_25_uf, 'lai_s_cc', iterations=10000, replicates=1000, nbins=50)
-stats_lai_hemi.to_csv(plot_out_dir + "semivar_stats_lai_hemi_md" + str(max_dist) + ".csv", index=False)
-samps_lai_hemi.to_csv(plot_out_dir + "semivar_samps_lai_hemi_md" + str(max_dist) + ".csv", index=False)
+stats_lrs_cn_15deg, samps_lrs_cn_15deg = spatial_stats_on_col(uf_25, 'lrs_cn_1', d_bounds, iterations=10000, replicates=120, nbins=60)
+stats_lrs_cn_15deg.to_csv(plot_out_dir + "semivar_stats_lrs_cn_1_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_lrs_cn_15deg.to_csv(plot_out_dir + "semivar_samps_lrs_cn_1_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+
+stats_lrs_cn_75deg, samps_lrs_cn_75deg = spatial_stats_on_col(uf_25, 'lrs_cn_75_deg', d_bounds, iterations=10000, replicates=120, nbins=60)
+stats_lrs_cn_75deg.to_csv(plot_out_dir + "semivar_stats_lrs_cn_75_deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_lrs_cn_75deg.to_csv(plot_out_dir + "semivar_samps_lrs_cn_75_deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+
+stats_hemi_lai, samps_hemi_lai = spatial_stats_on_col(uf_25, 'lai_s_cc', d_bounds, iterations=10000, replicates=120, nbins=60)
+stats_hemi_lai.to_csv(plot_out_dir + "semivar_stats_lai_hemi_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_hemi_lai.to_csv(plot_out_dir + "semivar_samps_lai_hemi_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+
+d_bounds = [0.25, 60]
+
+stats_lrs_lai_1deg, samps_lrs_lai_1deg = spatial_stats_on_col(uf_25, 'lrs_lai_1_deg', d_bounds, iterations=20000, replicates=120, nbins=120)
+stats_lrs_lai_1deg.to_csv(plot_out_dir + "semivar_stats_lrs_lai_1_deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_lrs_lai_1deg.to_csv(plot_out_dir + "semivar_samps_lrs_lai_1_deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+
+stats_lrs_lai_15deg, samps_lrs_lai_15deg = spatial_stats_on_col(uf_25, 'lrs_lai_15_deg', d_bounds, iterations=20000, replicates=120, nbins=120)
+stats_lrs_lai_15deg.to_csv(plot_out_dir + "semivar_stats_lrs_lai_15_deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_lrs_lai_15deg.to_csv(plot_out_dir + "semivar_samps_lrs_lai_15_deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+
+stats_lrs_lai_75deg, samps_lrs_lai_75deg = spatial_stats_on_col(uf_25, 'lrs_lai_75_deg', d_bounds, iterations=20000, replicates=120, nbins=120)
+stats_lrs_lai_75deg.to_csv(plot_out_dir + "semivar_stats_lrs_lai_75_deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_lrs_lai_75deg.to_csv(plot_out_dir + "semivar_samps_lrs_lai_75_deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+
+stats_lrs_lai_2000, samps_lrs_lai_2000 = spatial_stats_on_col(uf_25, 'lrs_lai_2000', d_bounds, iterations=20000, replicates=120, nbins=120)
+stats_lrs_lai_2000.to_csv(plot_out_dir + "semivar_stats_lrs_lai_2000_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_lrs_lai_2000.to_csv(plot_out_dir + "semivar_samps_lrs_lai_2000_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+
+stats_lrs_lai_miller_75deg, samps_lrs_lai_miller_75deg = spatial_stats_on_col(uf_25, 'lrs_lai_miller_75_deg', d_bounds, iterations=20000, replicates=120, nbins=120)
+stats_lrs_lai_miller_75deg.to_csv(plot_out_dir + "semivar_stats_lrs_lai_miller_75deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_lrs_lai_miller_75deg.to_csv(plot_out_dir + "semivar_samps_lrs_lai_miller_75deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+
+# reload data
+# # combined plot
+samps_swe_045 = pd.read_csv(plot_out_dir + "semivar_samps_swe_fcon_045_r.05_max" + str(d_bounds[1]) + ".csv")
+samps_swe_050 = pd.read_csv(plot_out_dir + "semivar_samps_swe_fcon_050_r.05_max" + str(d_bounds[1]) + ".csv")
+samps_swe_052 = pd.read_csv(plot_out_dir + "semivar_samps_swe_fcon_052_r.05_max" + str(d_bounds[1]) + ".csv")
+samps_dswe_045_050 = pd.read_csv(plot_out_dir + "semivar_samps_dswe_fnsd_045_050_r.05_max" + str(d_bounds[1]) + ".csv")
+samps_dswe_050_052 = pd.read_csv(plot_out_dir + "semivar_samps_dswe_fnsd_050_052_r.05_max" + str(d_bounds[1]) + ".csv")
+samps_mch = pd.read_csv(plot_out_dir + "semivar_samps_mCH_resamp_r.10_max" + str(d_bounds[1]) + ".csv")
+# samps_lrs_cn_1deg = pd.read_csv(plot_out_dir + "semivar_samps_lrs_cn_1_deg_r.25_max" + str(d_bounds[1]) + ".csv")
+# samps_lrs_cn_15deg = pd.read_csv(plot_out_dir + "semivar_samps_lrs_cn_1_r.25_max" + str(d_bounds[1]) + ".csv")
+# samps_lrs_cn_75deg = pd.read_csv(plot_out_dir + "semivar_samps_lrs_cn_75_deg_r.25_max" + str(d_bounds[1]) + ".csv")
+# samps_hemi_lai = pd.read_csv(plot_out_dir + "semivar_samps_lai_hemi_r.25_max" + str(d_bounds[1]) + ".csv")
+samps_lrs_lai_1deg = pd.read_csv(plot_out_dir + "semivar_samps_lrs_lai_1_deg_r.25_max" + str(d_bounds[1]) + ".csv")
+samps_lrs_lai_15deg = pd.read_csv(plot_out_dir + "semivar_samps_lrs_lai_15_deg_r.25_max" + str(d_bounds[1]) + ".csv")
+samps_lrs_lai_75deg = pd.read_csv(plot_out_dir + "semivar_samps_lrs_lai_75_deg_r.25_max" + str(d_bounds[1]) + ".csv")
+samps_lrs_lai_2000 = pd.read_csv(plot_out_dir + "semivar_samps_lrs_lai_2000_r.25_max" + str(d_bounds[1]) + ".csv")
+
+# stats_swe_045 = pd.read_csv(plot_out_dir + "semivar_stats_swe_fcon_045_r.05_max" + str(max_dist) + ".csv")
+# stats_swe_050 = pd.read_csv(plot_out_dir + "semivar_stats_swe_fcon_050_r.05_max" + str(max_dist) + ".csv")
+# stats_swe_052 = pd.read_csv(plot_out_dir + "semivar_stats_swe_fcon_052_r.05_max" + str(max_dist) + ".csv")
+# stats_dswe_045_050 = pd.read_csv(plot_out_dir + "semivar_stats_dswe_fnsd_045_050_r.05_max" + str(max_dist) + ".csv")
+# stats_dswe_050_052 = pd.read_csv(plot_out_dir + "semivar_stats_dswe_fnsd_050_052_r.05_max" + str(max_dist) + ".csv")
+# stats_mch = pd.read_csv(plot_out_dir + "semivar_stats_mCH_resamp_r.10_max" + str(max_dist) + ".csv")
+# stats_lrs_cn_1deg = pd.read_csv(plot_out_dir + "semivar_stats_lrs_cn_1_deg_r.25_max" + str(max_dist) + ".csv")
+# stats_lrs_cn_15deg = pd.read_csv(plot_out_dir + "semivar_stats_lrs_cn_1_r.25_max" + str(max_dist) + ".csv")
+# stats_lrs_cn_75deg = pd.read_csv(plot_out_dir + "semivar_stats_lrs_cn_75_deg_r.25_max" + str(max_dist) + ".csv")
+# stats_lai_hemi = pd.read_csv(plot_out_dir + "semivar_stats_lai_hemi_md" + str(max_dist) + ".csv")
+
+
+n_bins = 60
+d_bounds = [0, 30]
+
+stats_swe_045 = geotk.bin_summarize(samps_swe_045, n_bins, d_bounds=d_bounds, symmetric=True)
+stats_swe_050 = geotk.bin_summarize(samps_swe_050, n_bins, d_bounds=d_bounds, symmetric=True)
+stats_swe_052 = geotk.bin_summarize(samps_swe_052, n_bins, d_bounds=d_bounds, symmetric=True)
+stats_dswe_045_050 = geotk.bin_summarize(samps_dswe_045_050, n_bins, d_bounds=d_bounds, symmetric=True)
+stats_dswe_050_052 = geotk.bin_summarize(samps_dswe_050_052, n_bins, d_bounds=d_bounds, symmetric=True)
+stats_mch = geotk.bin_summarize(samps_mch, n_bins, d_bounds=d_bounds, symmetric=True)
+# stats_lrs_cn_1deg = geotk.bin_summarize(samps_lrs_cn_1deg, n_bins, d_bounds=d_bounds)
+# stats_lrs_cn_15deg = geotk.bin_summarize(samps_lrs_cn_15deg, n_bins, d_bounds=d_bounds)
+# stats_lrs_cn_75deg = geotk.bin_summarize(samps_lrs_cn_75deg, n_bins, d_bounds=d_bounds)
+# stats_hemi_lai = geotk.bin_summarize(samps_hemi_lai, n_bins, d_bounds=d_bounds)
+stats_lrs_lai_1deg = geotk.bin_summarize(samps_lrs_lai_1deg, n_bins, d_bounds=d_bounds, symmetric=True)
+stats_lrs_lai_15deg = geotk.bin_summarize(samps_lrs_lai_15deg, n_bins, d_bounds=d_bounds, symmetric=True)
+stats_lrs_lai_75deg = geotk.bin_summarize(samps_lrs_lai_75deg, n_bins, d_bounds=d_bounds, symmetric=True)
+stats_lrs_lai_2000 = geotk.bin_summarize(samps_lrs_lai_2000, n_bins, d_bounds=d_bounds, symmetric=True)
 
 # plot
 stats = stats_swe_045
@@ -109,7 +181,7 @@ axes.set_ylim([0, np.nanmax(stats.stdev) * 1.1])
 axes.set_xlim([0, np.nanmax(stats.mean_dist) * 1.025])
 plt.xlabel('Distance [m]')
 plt.ylabel('Standard deviation of SWE [mm]')
-plt.title('Standard deviation of SWE with distance\n 14 Feb. 2019, Upper Forest, 5cm resolution, n=1000000')
+plt.title('Standard deviation of SWE with distance\n 14 Feb. 2019, Upper Forest, 5cm resolution, n=1200000')
 fig.savefig(plot_out_dir + "semivar_swe_045.png")
 
 
@@ -122,7 +194,7 @@ axes.set_ylim([0, np.nanmax(stats.stdev) * 1.1])
 axes.set_xlim([0, np.nanmax(stats.mean_dist) * 1.025])
 plt.xlabel('Distance [m]')
 plt.ylabel('Standard deviation of SWE [mm]')
-plt.title('Standard deviation of SWE with distance\n 19 Feb. 2019, Upper Forest, 5cm resolution, n=1000000')
+plt.title('Standard deviation of SWE with distance\n 19 Feb. 2019, Upper Forest, 5cm resolution, n=1200000')
 fig.savefig(plot_out_dir + "semivar_swe_050.png")
 
 
@@ -136,7 +208,7 @@ axes.set_ylim([0, np.nanmax(stats.stdev) * 1.1])
 axes.set_xlim([0, np.nanmax(stats.mean_dist) * 1.025])
 plt.xlabel('Distance [m]')
 plt.ylabel('Standard deviation of SWE [mm]')
-plt.title('Standard deviation of SWE with distance\n 21 Feb. 2019, Upper Forest, 5cm resolution, n=1000000')
+plt.title('Standard deviation of SWE with distance\n 21 Feb. 2019, Upper Forest, 5cm resolution, n=1200000')
 fig.savefig(plot_out_dir + "semivar_swe_052.png")
 
 
@@ -151,7 +223,7 @@ axes.set_ylim([0, np.nanmax(stats.stdev) * 1.1])
 axes.set_xlim([0, np.nanmax(stats.mean_dist) * 1.025])
 plt.xlabel('Distance [m]')
 plt.ylabel('Standard deviation of $\Delta$SWE [mm]')
-plt.title('Standard deviation of $\Delta$SWE with distance\n 14-19 Feb. 2019, Upper Forest, 5cm resolution, n=1000000')
+plt.title('Standard deviation of $\Delta$SWE with distance\n 14-19 Feb. 2019, Upper Forest, 5cm resolution, n=1200000')
 fig.savefig(plot_out_dir + "semivar_dswe_045_050.png")
 
 
@@ -166,13 +238,13 @@ axes.set_ylim([0, np.nanmax(stats.stdev) * 1.1])
 axes.set_xlim([0, np.nanmax(stats.mean_dist) * 1.025])
 plt.xlabel('Distance [m]')
 plt.ylabel('Standard deviation of $\Delta$SWE [mm]')
-plt.title('Standard deviation of $\Delta$SWE with distance\n 19-21 Feb. 2019, Upper Forest, 5cm resolution, n=1000000')
+plt.title('Standard deviation of $\Delta$SWE with distance\n 19-21 Feb. 2019, Upper Forest, 5cm resolution, n=1200000')
 fig.savefig(plot_out_dir + "semivar_dswe_050_052.png")
 
 
 
 
-stats = stats_chm
+stats = stats_mch
 fig = plt.figure()
 axes = fig.add_axes([0.1, 0.1, 0.8, 0.8])
 # adding axes
@@ -180,14 +252,14 @@ axes.plot(stats.mean_dist, stats.stdev)
 axes.set_ylim([0, np.nanmax(stats.stdev) * 1.1])
 axes.set_xlim([0, np.nanmax(stats.mean_dist) * 1.025])
 plt.xlabel('Distance [m]')
-plt.ylabel('Standard deviation of canopy height [m]')
-plt.title('Standard deviation of canopy height with distance\n Upper Forest, 10m resolution, n=1000000')
-fig.savefig(plot_out_dir + "semivar_chm.png")
+plt.ylabel('Standard deviation of mean canopy height [m]')
+plt.title('Standard deviation of mean canopy height with distance\n Upper Forest, 10cm resolution, n=1200000')
+fig.savefig(plot_out_dir + "semivar_mCH.png")
 
 
 
 
-stats = stats_lai_rs
+stats = stats_lrs_cn_1deg
 fig = plt.figure()
 axes = fig.add_axes([0.1, 0.1, 0.8, 0.8])
 # adding axes
@@ -195,14 +267,38 @@ axes.plot(stats.mean_dist, stats.stdev)
 axes.set_ylim([0, np.nanmax(stats.stdev) * 1.1])
 axes.set_xlim([0, np.nanmax(stats.mean_dist) * 1.025])
 plt.xlabel('Distance [m]')
-plt.ylabel('Standard deviation of Ray Sampled LAI [-]')
-plt.title('Standard deviation of Ray Sampled LAI with distance\n Upper Forest, 5cm resolution, n=10000000')
-fig.savefig(plot_out_dir + "semivar_lai_rs.png")
+plt.ylabel('Standard deviation of ray sampled contact number [-]')
+plt.title('Standard deviation of 1-degree contact number with distance\n Upper Forest, 25cm resolution, n=12000000')
+fig.savefig(plot_out_dir + "semivar_lrs_cn_1deg.png")
 
 
+stats = stats_lrs_cn_15deg
+fig = plt.figure()
+axes = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+# adding axes
+axes.plot(stats.mean_dist, stats.stdev)
+axes.set_ylim([0, np.nanmax(stats.stdev) * 1.1])
+axes.set_xlim([0, np.nanmax(stats.mean_dist) * 1.025])
+plt.xlabel('Distance [m]')
+plt.ylabel('Standard deviation of ray sampled contact number [-]')
+plt.title('Standard deviation of 15-degree contact number with distance\n Upper Forest, 25cm resolution, n=12000000')
+fig.savefig(plot_out_dir + "semivar_lrs_cn_15deg.png")
 
 
-stats = stats_lai_hemi
+stats = stats_lrs_cn_75deg
+fig = plt.figure()
+axes = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+# adding axes
+axes.plot(stats.mean_dist, stats.stdev)
+axes.set_ylim([0, np.nanmax(stats.stdev) * 1.1])
+axes.set_xlim([0, np.nanmax(stats.mean_dist) * 1.025])
+plt.xlabel('Distance [m]')
+plt.ylabel('Standard deviation of ray sampled contact number [-]')
+plt.title('Standard deviation of 75-degree contact number with distance\n Upper Forest, 25cm resolution, n=12000000')
+fig.savefig(plot_out_dir + "semivar_lrs_cn_75deg.png")
+
+
+stats = stats_hemi_lai
 fig = plt.figure()
 axes = fig.add_axes([0.1, 0.1, 0.8, 0.8])
 # adding axes
@@ -211,137 +307,185 @@ axes.set_ylim([0, np.nanmax(stats.stdev) * 1.1])
 axes.set_xlim([0, np.nanmax(stats.mean_dist) * 1.025])
 plt.xlabel('Distance [m]')
 plt.ylabel('Standard deviation of Hemi-photo LAI [-]')
-plt.title('Standard deviation of Hemi-photo LAI with distance\n Upper Forest, 25cm resolution, n=10000000')
-fig.savefig(plot_out_dir + "semivar_lai_hemi.png")
+plt.title('Standard deviation of Hemi-photo LAI with distance\n Upper Forest, 25cm resolution, n=12000000')
+fig.savefig(plot_out_dir + "semivar_hemi_lai.png")
+
+stats = stats_lrs_lai_1deg
+fig = plt.figure()
+axes = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+# adding axes
+axes.plot(stats.mean_dist, stats.stdev)
+axes.set_ylim([0, np.nanmax(stats.stdev) * 1.1])
+axes.set_xlim([0, np.nanmax(stats.mean_dist) * 1.025])
+plt.xlabel('Distance [m]')
+plt.ylabel('Standard deviation of ray sampled contact number [-]')
+plt.title('Standard deviation of 1-degree LAI with distance\n Upper Forest, 25cm resolution, n=12000000')
+fig.savefig(plot_out_dir + "semivar_lrs_lai_1deg.png")
 
 
-# # combined plot
-samps_045 = pd.read_csv(plot_out_dir + "semivar_samps_swe_045_md" + str(max_dist) + ".csv")
-samps_050 = pd.read_csv(plot_out_dir + "semivar_samps_swe_050_md" + str(max_dist) + ".csv")
-samps_052 = pd.read_csv(plot_out_dir + "semivar_samps_swe_052_md" + str(max_dist) + ".csv")
-samps_045_050 = pd.read_csv(plot_out_dir + "semivar_samps_dswe_045_050_md" + str(max_dist) + ".csv")
-samps_050_052 = pd.read_csv(plot_out_dir + "semivar_samps_dswe_050_052_md" + str(max_dist) + ".csv")
-samps_chm = pd.read_csv(plot_out_dir + "semivar_samps_chm_md" + str(max_dist) + ".csv")
-samps_lai_rs = pd.read_csv(plot_out_dir + "semivar_samps_lai_rs_md" + str(max_dist) + ".csv")
-samps_lai_hemi = pd.read_csv(plot_out_dir + "semivar_samps_lai_hemi_md" + str(max_dist) + ".csv")
+stats = stats_lrs_lai_15deg
+fig = plt.figure()
+axes = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+# adding axes
+axes.plot(stats.mean_dist, stats.stdev)
+axes.set_ylim([0, np.nanmax(stats.stdev) * 1.1])
+axes.set_xlim([0, np.nanmax(stats.mean_dist) * 1.025])
+plt.xlabel('Distance [m]')
+plt.ylabel('Standard deviation of ray sampled contact number [-]')
+plt.title('Standard deviation of 15-degree LAI with distance\n Upper Forest, 25cm resolution, n=12000000')
+fig.savefig(plot_out_dir + "semivar_lrs_lai_15deg.png")
 
-# stats_045 = pd.read_csv(plot_out_dir + "semivar_stats_swe_045_md" + str(max_dist) + ".csv")
-# stats_050 = pd.read_csv(plot_out_dir + "semivar_stats_swe_050_md" + str(max_dist) + ".csv")
-# stats_052 = pd.read_csv(plot_out_dir + "semivar_stats_swe_052_md" + str(max_dist) + ".csv")
-# stats_045_050 = pd.read_csv(plot_out_dir + "semivar_stats_dswe_045_050_md" + str(max_dist) + ".csv")
-# stats_050_052 = pd.read_csv(plot_out_dir + "semivar_stats_dswe_050_052_md" + str(max_dist) + ".csv")
-# stats_chm = pd.read_csv(plot_out_dir + "semivar_stats_chm_md" + str(max_dist) + ".csv")
-# stats_lai_rs = pd.read_csv(plot_out_dir + "semivar_stats_lai_rs_md" + str(max_dist) + ".csv")
-# stats_lai_hemi = pd.read_csv(plot_out_dir + "semivar_stats_lai_hemi_md" + str(max_dist) + ".csv")
 
-sd_045 = np.nanstd(data_05_uf.swe_19_045)
-sd_050 = np.nanstd(data_05_uf.swe_19_050)
-sd_052 = np.nanstd(data_05_uf.swe_19_052)
-sd_045_050 = np.nanstd(data_05_uf.loc[:, 'dswe_19_045-19_050'])
-sd_050_052 = np.nanstd(data_05_uf.loc[:, 'dswe_19_050-19_052'])
-sd_chm = np.nanstd(data_10_uf.chm)
-sd_lai_rs = np.nanstd(data_25_uf.cn_mean)
-sd_lai_hemi = np.nanstd(data_25_uf.lai_s_cc)
+stats = stats_lrs_lai_75deg
+fig = plt.figure()
+axes = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+# adding axes
+axes.plot(stats.mean_dist, stats.stdev)
+axes.set_ylim([0, np.nanmax(stats.stdev) * 1.1])
+axes.set_xlim([0, np.nanmax(stats.mean_dist) * 1.025])
+plt.xlabel('Distance [m]')
+plt.ylabel('Standard deviation of ray sampled contact number [-]')
+plt.title('Standard deviation of 75-degree LAI with distance\n Upper Forest, 25cm resolution, n=12000000')
+fig.savefig(plot_out_dir + "semivar_lrs_lai_75deg.png")
 
-# 2.5m
-n_bins = 50
-d_bounds = (0, 2.5)
-stats_045 = geotk.bin_summarize(samps_045, n_bins, d_bounds=d_bounds)
-stats_050 = geotk.bin_summarize(samps_050, n_bins, d_bounds=d_bounds)
-stats_052 = geotk.bin_summarize(samps_052, n_bins, d_bounds=d_bounds)
-stats_045_050 = geotk.bin_summarize(samps_045_050, n_bins, d_bounds=d_bounds)
-stats_050_052 = geotk.bin_summarize(samps_050_052, n_bins, d_bounds=d_bounds)
-stats_chm = geotk.bin_summarize(samps_chm, n_bins, d_bounds=d_bounds)
-stats_lai_rs = geotk.bin_summarize(samps_lai_rs, n_bins, d_bounds=d_bounds)
-stats_lai_hemi = geotk.bin_summarize(samps_lai_hemi, n_bins, d_bounds=d_bounds)
+
+stats = stats_lrs_lai_2000
+fig = plt.figure()
+axes = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+# adding axes
+axes.plot(stats.mean_dist, stats.stdev)
+axes.set_ylim([0, np.nanmax(stats.stdev) * 1.1])
+axes.set_xlim([0, np.nanmax(stats.mean_dist) * 1.025])
+plt.xlabel('Distance [m]')
+plt.ylabel('Standard deviation of LAI-2000 [-]')
+plt.title('Standard deviation of LAI-2000 with distance\n Upper Forest, 25cm resolution, n=12000000')
+fig.savefig(plot_out_dir + "semivar_lrs_lai_2000.png")
+
+
+# plot semivariograms all together
+
+# calculate set variance
+var_swe_045 = np.nanvar(uf_05.swe_fcon_19_045)
+var_swe_050 = np.nanvar(uf_05.swe_fcon_19_050)
+var_swe_052 = np.nanvar(uf_05.swe_fcon_19_052)
+var_dswe_045_050 = np.nanvar(uf_05.loc[:, 'dswe_fnsd_19_045-19_050'])
+var_dswe_050_052 = np.nanvar(uf_05.loc[:, 'dswe_fnsd_19_050-19_052'])
+var_mch = np.nanvar(uf_10.mCH_19_149_resampled)
+# var_lrs_cn_1deg = np.nanvar(uf_25.lrs_cn_1_deg)
+# var_lrs_cn_15deg = np.nanvar(uf_25.lrs_cn_1)
+# var_lrs_cn_75deg = np.nanvar(uf_25.lrs_cn_75_deg)
+# var_hemi_lai = np.nanvar(uf_25.lai_s_cc)
+var_lrs_lai_1deg = np.nanvar(uf_25.lrs_lai_1_deg)
+var_lrs_lai_15deg = np.nanvar(uf_25.lrs_lai_15_deg)
+var_lrs_lai_75deg = np.nanvar(uf_25.lrs_lai_75_deg)
+var_lrs_lai_2000 = np.nanvar(uf_25.lrs_lai_2000)
+
+## norm at 30m
+norm_swe_045 = stats_swe_045.variance.values[-1]
+norm_swe_050 = stats_swe_050.variance.values[-1]
+norm_swe_052 = stats_swe_052.variance.values[-1]
+norm_dswe_045_050 = stats_dswe_045_050.variance.values[-1]
+norm_dswe_050_052 = stats_dswe_050_052.variance.values[-1]
+norm_mch = stats_mch.variance.values[-1]
+# norm_lrs_cn_1deg = stats_lrs_cn_1deg.variance.values[-1]
+# norm_lrs_cn_15deg = stats_lrs_cn_15deg.variance.values[-1]
+# norm_lrs_cn_75deg = stats_lrs_cn_75deg.variance.values[-1]
+# norm_hemi_lai = stats_hemi_lai.variance.values[-1]
+norm_lrs_lai_1deg = stats_lrs_lai_1deg.variance.values[-1]
+norm_lrs_lai_15deg = stats_lrs_lai_15deg.variance.values[-1]
+norm_lrs_lai_75deg = stats_lrs_lai_75deg.variance.values[-1]
+norm_lrs_lai_2000 = stats_lrs_lai_2000.variance.values[-1]
+
+fig = plt.figure()
+axes = fig.add_axes([0.13, 0.1, 0.62, 0.8])
+# adding axes
+plt.xlabel('Distance (d) [m]')
+plt.ylabel('Relative variance $\left( \\frac{var(x_{d})}{var(x_{30})}\\right)$ [-]')
+plt.title('Relative variance of metrics with distance\n Upper Forest, 5-25cm resolution, n=1200000')
+
+axes.plot(stats_swe_045.mean_dist, .5 * stats_swe_045.variance / norm_swe_045, label="SWE 045", linestyle="dashed")
+axes.plot(stats_swe_050.mean_dist, .5 * stats_swe_050.variance / norm_swe_050, label="SWE 050", linestyle="dashed")
+axes.plot(stats_swe_052.mean_dist, .5 * stats_swe_052.variance / norm_swe_052, label="SWE 052", linestyle="dashed")
+
+axes.plot(stats_dswe_045_050.mean_dist, .5 * stats_dswe_045_050.variance / norm_dswe_045_050, label="$\Delta$SWE 045-050", linestyle="dotted")
+axes.plot(stats_dswe_050_052.mean_dist, .5 * stats_dswe_050_052.variance / norm_dswe_050_052, label="$\Delta$SWE 050-052", linestyle="dotted")
+
+axes.plot(stats_mch.mean_dist, .5 * stats_mch.variance / norm_mch, label="mean canopy height")
+# axes.plot(stats_lrs_cn_1deg.mean_dist, .5 * stats_lrs_cn_1deg.variance / var_lrs_cn_1deg, label="$CN_{1}$")
+# axes.plot(stats_lrs_cn_15deg.mean_dist, .5 * stats_lrs_cn_15deg.variance / var_lrs_cn_15deg, label="$CN_{15}$")
+# axes.plot(stats_lrs_cn_75deg.mean_dist, .5 * stats_lrs_cn_75deg.variance / var_lrs_cn_75deg, label="$CN_{75}$")
+# axes.plot(stats_hemi_lai.mean_dist, .5 * stats_hemi_lai.variance / norm_hemi_lai, label="$LAI_{hemi}$")
+axes.plot(stats_lrs_lai_1deg.mean_dist, .5 * stats_lrs_lai_1deg.variance / norm_lrs_lai_1deg, label="$LAI_{1}$")
+axes.plot(stats_lrs_lai_15deg.mean_dist, .5 * stats_lrs_lai_15deg.variance / norm_lrs_lai_15deg, label="$LAI_{15}$")
+axes.plot(stats_lrs_lai_75deg.mean_dist, .5 * stats_lrs_lai_75deg.variance / norm_lrs_lai_75deg, label="$LAI_{75}$")
+axes.plot(stats_lrs_lai_2000.mean_dist, .5 * stats_lrs_lai_2000.variance / norm_lrs_lai_2000, label="$LAI_{2000}$")
+
+axes.legend(loc='center left', bbox_to_anchor=(1.01, .5), ncol=1,
+            borderaxespad=0, frameon=False)
+fig.savefig(plot_out_dir + "semivar_combined_30m.png")
 
 
 fig = plt.figure()
 axes = fig.add_axes([0.13, 0.1, 0.62, 0.8])
 # adding axes
 plt.xlabel('Distance (d) [m]')
-plt.ylabel('Standard semi-variance $\left( \\frac{var(x_{d})}{2 \cdot var(x)}\\right)$ [-]')
-plt.title('Standard semi-variance of metrics with distance\n Upper Forest, 5-25cm resolution, n=100000')
+plt.ylabel('Relative variance $\left( \\frac{var(x_{d})}{var(x_{30})}\\right)$ [-]')
+plt.title('Relative variance of SWE metrics with distance\n Upper Forest, 5cm resolution (n=1200000)')
 
-axes.plot(stats_045.mean_dist, .5 * stats_045.stdev**2 / sd_045**2, label="SWE 045", linestyle="dashed")
-axes.plot(stats_050.mean_dist, .5 * stats_050.stdev**2 / sd_050**2, label="SWE 050", linestyle="dashed")
-axes.plot(stats_052.mean_dist, .5 * stats_052.stdev**2 / sd_052**2, label="SWE 052", linestyle="dashed")
+axes.plot(stats_swe_045.mean_dist, stats_swe_045.variance / norm_swe_045, label="SWE 045", linestyle="dashed")
+axes.plot(stats_swe_050.mean_dist, stats_swe_050.variance / norm_swe_050, label="SWE 050", linestyle="dashed")
+axes.plot(stats_swe_052.mean_dist, stats_swe_052.variance / norm_swe_052, label="SWE 052", linestyle="dashed")
 
-axes.plot(stats_045_050.mean_dist, .5 * stats_045_050.stdev**2 / sd_045_050**2, label="$\Delta$SWE 045-050", linestyle="dotted")
-axes.plot(stats_050_052.mean_dist, .5 * stats_050_052.stdev**2 / sd_050_052**2, label="$\Delta$SWE 050-052", linestyle="dotted")
-
-axes.plot(stats_chm.mean_dist, .5 * stats_chm.stdev**2 / sd_chm**2, label="Canopy height")
-axes.plot(stats_lai_rs.mean_dist, .5 * stats_lai_rs.stdev**2 / sd_lai_rs**2, label="$LAI_{rs}$")
-axes.plot(stats_lai_hemi.mean_dist, .5 * stats_lai_hemi.stdev**2 / sd_lai_hemi**2, label="$LAI_{hemi}$")
-
+axes.plot(stats_dswe_045_050.mean_dist, stats_dswe_045_050.variance / norm_dswe_045_050, label="$\Delta$SWE 045-050", linestyle="dotted")
+axes.plot(stats_dswe_050_052.mean_dist, stats_dswe_050_052.variance / norm_dswe_050_052, label="$\Delta$SWE 050-052", linestyle="dotted")
 axes.legend(loc='center left', bbox_to_anchor=(1.01, .5), ncol=1,
             borderaxespad=0, frameon=False)
-fig.savefig(plot_out_dir + "semivar_combined_2.5m.png")
-
-
-# 25m
-n_bins = 50
-d_bounds = (0, 25)
-stats_045 = geotk.bin_summarize(samps_045, n_bins, d_bounds=d_bounds)
-stats_050 = geotk.bin_summarize(samps_050, n_bins, d_bounds=d_bounds)
-stats_052 = geotk.bin_summarize(samps_052, n_bins, d_bounds=d_bounds)
-stats_045_050 = geotk.bin_summarize(samps_045_050, n_bins, d_bounds=d_bounds)
-stats_050_052 = geotk.bin_summarize(samps_050_052, n_bins, d_bounds=d_bounds)
-stats_chm = geotk.bin_summarize(samps_chm, n_bins, d_bounds=d_bounds)
-stats_lai_rs = geotk.bin_summarize(samps_lai_rs, n_bins, d_bounds=d_bounds)
-stats_lai_hemi = geotk.bin_summarize(samps_lai_hemi, n_bins, d_bounds=d_bounds)
+fig.savefig(plot_out_dir + "semivar_all_swe_dswe_30m.png")
 
 
 fig = plt.figure()
 axes = fig.add_axes([0.13, 0.1, 0.62, 0.8])
 # adding axes
 plt.xlabel('Distance (d) [m]')
-plt.ylabel('Standard semi-variance $\left( \\frac{var(x_{d})}{2 \cdot var(x)}\\right)$ [-]')
-plt.title('Standard semi-variance of metrics with distance\n Upper Forest, 5-25cm resolution, n=1000000')
+plt.ylabel('Relative variance $\left( \\frac{var(x_{d})}{var(x_{30})}\\right)$ [-]')
+plt.title('Relative variance of canopy metrics with distance\n Upper Forest, 25cm resolution (n=12000000)')
 
-axes.plot(stats_045.mean_dist, .5 * stats_045.stdev**2 / sd_045**2, label="SWE 045", linestyle="dashed")
-axes.plot(stats_050.mean_dist, .5 * stats_050.stdev**2 / sd_050**2, label="SWE 050", linestyle="dashed")
-axes.plot(stats_052.mean_dist, .5 * stats_052.stdev**2 / sd_052**2, label="SWE 052", linestyle="dashed")
+# axes.plot(stats_mch.mean_dist, .5 * stats_mch.variance / var_mch, label="mean canopy height")
+# axes.plot(stats_lrs_cn_1deg.mean_dist, .5 * stats_lrs_cn_1deg.variance / var_lrs_cn_1deg, label="$CN_{1}$")
+# axes.plot(stats_lrs_cn_15deg.mean_dist, .5 * stats_lrs_cn_15deg.variance / var_lrs_cn_15deg, label="$CN_{15}$")
+# axes.plot(stats_lrs_cn_75deg.mean_dist, .5 * stats_lrs_cn_75deg.variance / var_lrs_cn_75deg, label="$CN_{75}$")
+axes.plot(stats_lrs_lai_1deg.mean_dist, stats_lrs_lai_1deg.variance / norm_lrs_lai_1deg, label="$LAI_{1}$")
+axes.plot(stats_lrs_lai_15deg.mean_dist, stats_lrs_lai_15deg.variance / norm_lrs_lai_15deg, label="$LAI_{15}$")
+axes.plot(stats_lrs_lai_75deg.mean_dist, stats_lrs_lai_75deg.variance / norm_lrs_lai_75deg, label="$LAI_{75}$")
+axes.plot(stats_lrs_lai_2000.mean_dist, stats_lrs_lai_2000.variance / norm_lrs_lai_2000, label="$LAI_{2000}$")
+# axes.plot(stats_lrs_lai_miller_75deg.mean_dist, .5 * stats_lrs_lai_miller_75deg.variance / var_lrs_lai_miller_75deg, label="$Miller LAI_{75}$")
+axes.legend(loc='center left', bbox_to_anchor=(1.01, .5), ncol=1,  borderaxespad=0, frameon=False)
+fig.savefig(plot_out_dir + "semivar_all_canopy_30m.png")
 
-axes.plot(stats_045_050.mean_dist, .5 * stats_045_050.stdev**2 / sd_045_050**2, label="$\Delta$SWE 045-050", linestyle="dotted")
-axes.plot(stats_050_052.mean_dist, .5 * stats_050_052.stdev**2 / sd_050_052**2, label="$\Delta$SWE 050-052", linestyle="dotted")
+# calculate subpixel fractional variance
 
-axes.plot(stats_chm.mean_dist, .5 * stats_chm.stdev**2 / sd_chm**2, label="Canopy height")
-axes.plot(stats_lai_rs.mean_dist, .5 * stats_lai_rs.stdev**2 / sd_lai_rs**2, label="$LAI_{rs}$")
-axes.plot(stats_lai_hemi.mean_dist, .5 * stats_lai_hemi.stdev**2 / sd_lai_hemi**2, label="$LAI_{hemi}$")
+# 5cm
+n_bins = 600
+res = 0.05
+d_bounds = [0, res * (n_bins)]
+spv_swe_045 = geotk.bin_summarize(samps_swe_045, n_bins, d_bounds=d_bounds)
+spv_swe_050 = geotk.bin_summarize(samps_swe_050, n_bins, d_bounds=d_bounds)
+spv_swe_052 = geotk.bin_summarize(samps_swe_052, n_bins, d_bounds=d_bounds)
+spv_dswe_045_050 = geotk.bin_summarize(samps_dswe_045_050, n_bins, d_bounds=d_bounds)
+spv_dswe_050_052 = geotk.bin_summarize(samps_dswe_050_052, n_bins, d_bounds=d_bounds)
 
-axes.legend(loc='center left', bbox_to_anchor=(1.01, .5), ncol=1,
-            borderaxespad=0, frameon=False)
-fig.savefig(plot_out_dir + "semivar_combined_25m.png")
+# 10cm
+nbins = 300
+res = 0.1
+d_bounds = [0, res * (n_bins)]
+spv_mch = geotk.bin_summarize(samps_mch, n_bins, d_bounds=d_bounds)
 
+# 25cm
+nbins = 120
+res = 0.25
+d_bounds = [0, res * (n_bins)]
+spv_lrs_lai_1deg = geotk.bin_summarize(samps_lrs_lai_1deg, n_bins, d_bounds=d_bounds)
+spv_lrs_lai_15deg = geotk.bin_summarize(samps_lrs_lai_15deg, n_bins, d_bounds=d_bounds)
+spv_lrs_lai_75deg = geotk.bin_summarize(samps_lrs_lai_75deg, n_bins, d_bounds=d_bounds)
+spv_lrs_lai_2000 = geotk.bin_summarize(samps_lrs_lai_2000, n_bins, d_bounds=d_bounds)
 
-fig = plt.figure()
-axes = fig.add_axes([0.13, 0.1, 0.62, 0.8])
-# adding axes
-plt.xlabel('Distance (d) [m]')
-plt.ylabel('Standard semi-variance $\left( \\frac{var(x_{d})}{2 \cdot var(x)}\\right)$ [-]')
-plt.title('Standard semi-variance of SWE metrics with distance\n Upper Forest, 5cm resolution (n=1000000)')
-
-axes.plot(stats_045.mean_dist, .5 * stats_045.stdev**2 / sd_045**2, label="SWE 045", linestyle="dashed")
-axes.plot(stats_050.mean_dist, .5 * stats_050.stdev**2 / sd_050**2, label="SWE 050", linestyle="dashed")
-axes.plot(stats_052.mean_dist, .5 * stats_052.stdev**2 / sd_052**2, label="SWE 052", linestyle="dashed")
-
-axes.plot(stats_045_050.mean_dist, .5 * stats_045_050.stdev**2 / sd_045_050**2, label="$\Delta$SWE 045-050", linestyle="dotted")
-axes.plot(stats_050_052.mean_dist, .5 * stats_050_052.stdev**2 / sd_050_052**2, label="$\Delta$SWE 050-052", linestyle="dotted")
-axes.legend(loc='center left', bbox_to_anchor=(1.01, .5), ncol=1,
-            borderaxespad=0, frameon=False)
-fig.savefig(plot_out_dir + "semivar_all_swe_dswe_25m.png")
-
-fig = plt.figure()
-axes = fig.add_axes([0.13, 0.1, 0.62, 0.8])
-# adding axes
-plt.xlabel('Distance (d) [m]')
-plt.ylabel('Standard semi-variance $\left( \\frac{var(x_{d})}{2 \cdot var(x)}\\right)$ [-]')
-plt.title('Standard semi-variance of canopy metrics with distance\n Upper Forest, 10cm CHM and 25cm LAI resolutions (n=10000000)')
-
-axes.plot(stats_chm.mean_dist, .5 * stats_chm.stdev**2 / sd_chm**2, label="Canopy height")
-axes.plot(stats_lai_rs.mean_dist, .5 * stats_lai_rs.stdev**2 / sd_lai_rs**2, label="$LAI_{1}$")
-axes.plot(stats_lai_hemi.mean_dist, .5 * stats_lai_hemi.stdev**2 / sd_lai_hemi**2, label="$LAI_{75}$")
-axes.legend(loc='center left', bbox_to_anchor=(1.01, .5), ncol=1,
-            borderaxespad=0, frameon=False)
-fig.savefig(plot_out_dir + "semivar_all_canopy_25m.png")

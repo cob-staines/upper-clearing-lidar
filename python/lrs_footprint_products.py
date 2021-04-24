@@ -2,19 +2,22 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import tifffile as tif
+import rastools
 
 # import matplotlib
 # matplotlib.use('Qt5Agg')
 # import matplotlib.pyplot as plt
 
 
-# 045_050_052
-# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\'
-# cn_coef = 0.132154
-
 # 19_149
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off\\'
-cn_coef = 0.198508
+# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off\\'
+# # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_5m\\'
+# cn_coef = 0.198508
+
+
+# # 045_050_052
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\'
+cn_coef = 0.132154
 
 # optimization
 # batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_19_149\\"
@@ -115,9 +118,12 @@ for zz in range(0, z_count):
             weights = np.sin(ang_rad)  # solid angle weights
         elif weight_by == "angle":
             weights = np.full(np.sum(valid_bins), 1)  # equal angle weights
-        elif weight_by == "sky_view":
+        elif weight_by == "cos":
             ang_rad = (bins[valid_bins] + (angle_step / 2)) * np.pi / 180
             weights = np.sin(ang_rad) * np.cos(ang_rad)  # solid angle weights
+        elif weight_by == "sin":
+            ang_rad = (bins[valid_bins] + (angle_step / 2)) * np.pi / 180
+            weights = np.sin(ang_rad) * np.sin(ang_rad)  # solid angle weights
 
         output = np.average(var[:, valid_bins], weights=weights, axis=1)
 
@@ -143,32 +149,55 @@ for zz in range(0, z_count):
     footprint_df.loc[z_low:z_high-1, "lrs_tx_75_deg"] = angle_range_stat(0, 75, tx_bin_means)
     footprint_df.loc[z_low:z_high-1, "lrs_tx_90_deg"] = angle_range_stat(0, 90, tx_bin_means)
 
-    footprint_df.loc[z_low:z_high - 1, "lrs_sky_view"] = angle_range_stat(0, 90, tx_bin_means, weight_by="sky_view")
+    # lai vertical projection
+    cos_proj = np.cos(bins * np.pi / 180)
+
+    footprint_df.loc[z_low:z_high - 1, "lrs_lai_1_deg"] = angle_range_stat(0, 1, 2 * cn_bin_means * cos_proj)
+    footprint_df.loc[z_low:z_high - 1, "lrs_lai_15_deg"] = angle_range_stat(0, 15, 2 * cn_bin_means * cos_proj)
+    footprint_df.loc[z_low:z_high - 1, "lrs_lai_75_deg"] = angle_range_stat(0, 75, 2 * cn_bin_means * cos_proj)
+    footprint_df.loc[z_low:z_high - 1, "lrs_lai_90_deg"] = angle_range_stat(0, 90, 2 * cn_bin_means * cos_proj)
+
+    footprint_df.loc[z_low:z_high - 1, "lrs_lai_2000"] = 2 * (0.034 * footprint_df.lrs_cn_1 +
+                                                              0.104 * footprint_df.lrs_cn_2 +
+                                                              0.160 * footprint_df.lrs_cn_3 +
+                                                              0.218 * footprint_df.lrs_cn_4 +
+                                                              0.484 * footprint_df.lrs_cn_5)
+
+    footprint_df.loc[z_low:z_high - 1, "lrs_sky_view"] = angle_range_stat(0, 90, tx_bin_means, weight_by="cos")
+    footprint_df.loc[z_low:z_high - 1, "lrs_cc"] = angle_range_stat(0, 90, tx_bin_means, weight_by="solid_angle")
 
 footprint_df.to_csv(file_out, index=False)
 
 #
-# # create raster LAI and CC products
-# import numpy as np
-# import rastools
-# import pandas as pd
+# # create raster products
+# df = pd.read_csv(file_out)
+# point_ids_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\dem_r.25_point_ids.tif"
+# colnames = [
+#     "lrs_cn_1",
+#     "lrs_cn_2",
+#     "lrs_cn_3",
+#     "lrs_cn_4",
+#     "lrs_cn_5",
+#     "lrs_lai_2000"]
 #
-# lai_parsed = pd.read_csv(file_out)
-# lai_parsed.loc[:, 'canopy_closure'] = 1 - lai_parsed.openness
+# for cc in colnames:
+#     ras_out = batch_dir + cc + ".tif"
+#     rastools.pd_to_raster(df, cc, point_ids_in, ras_out)
 #
-# point_raster_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\1m_dem_point_ids.tif"
-# point_raster = rastools.raster_load(point_raster_in)
-# lai_ras = rastools.raster_load(point_raster_in)
-# cc_ras = rastools.raster_load(point_raster_in)
 #
-# lai_ras.data = np.full((lai_ras.rows, lai_ras.cols), lai_ras.no_data)
-# cc_ras.data = np.full((cc_ras.rows, cc_ras.cols), cc_ras.no_data)
-# for ii in range(0, len(lai_parsed)):
-#     lai_ras.data[np.where(point_raster.data == lai_parsed.id[ii])] = lai_parsed.lai_s_cc[ii]
-#     cc_ras.data[np.where(point_raster.data == lai_parsed.id[ii])] = lai_parsed.canopy_closure[ii]
 #
-# lai_out = file_out.replace('LAI_parsed.dat', 'lai_ras.tif')
-# rastools.raster_save(lai_ras, lai_out)
+# # create raster products
+# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\mb_15_1m_pr.15_os10\\outputs\\LAI_parsed.dat"
+# df = pd.read_csv(file_in)
+# point_ids_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\1m_dem_point_ids.tif"
+# colnames = [
+#     "contactnum_1",
+#     "contactnum_2",
+#     "contactnum_3",
+#     "contactnum_4",
+#     "contactnum_5",
+#     "lai_no_cor"]
 #
-# cc_out = file_out.replace('LAI_parsed.dat', 'cc_ras.tif')
-# rastools.raster_save(cc_ras, cc_out)
+# for cc in colnames:
+#     ras_out = file_in.replace("LAI_parsed.dat", "") + cc + ".tif"
+#     rastools.pd_to_raster(df, cc, point_ids_in, ras_out)

@@ -71,6 +71,23 @@ SET GROUND_POINTS_FILE=C:\Users\Cob\index\educational\usask\research\masters\dat
 :: call %DIR_BAT%\las_09_snow_depth_normalization.bat
 
 :: _____HS DSM [10]_____
+SET INTERP_LEN=0
+SET DSM_RESOLUTION=.05
+SET DSM_MAX_TIN_EDGE=1000
+:: call %DIR_BAT%\las_10_snow_dsm.bat
+
+SET DSM_RESOLUTION=.10
+SET DSM_MAX_TIN_EDGE=1000
+:: call %DIR_BAT%\las_10_snow_dsm.bat
+
+SET DSM_RESOLUTION=.25
+SET DSM_MAX_TIN_EDGE=1000
+:: call %DIR_BAT%\las_10_snow_dsm.bat
+
+SET DSM_RESOLUTION=1.00
+SET DSM_MAX_TIN_EDGE=1000
+:: call %DIR_BAT%\las_10_snow_dsm.bat
+
 SET INTERP_LEN=1
 SET DSM_RESOLUTION=.05
 SET DSM_MAX_TIN_EDGE=.05
@@ -133,7 +150,3 @@ SET RAS_RESOLUTION=.10
 :: call %DIR_BAT%\las_07_raster_ground_point_density.bat
 SET RAS_RESOLUTION=.25
 :: call %DIR_BAT%\las_07_raster_ground_point_density.bat
-
-SET RAS_RESOLUTION=.10
-SET RAS_MAX_ANGLE=15
-call %DIR_BAT%\las_07_raster_products.bat

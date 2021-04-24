@@ -6,14 +6,12 @@ matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import seaborn as sns
-from scipy.stats import spearmanr, pearsonr, f_oneway
+from scipy.stats import spearmanr, pearsonr
 
 plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\thesis_graphics\\scatter plots\\"
 
 df_10_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\merged_data_products\\merged_uf_r.10m_canopy_19_149_median-snow.csv'
 df_10 = pd.read_csv(df_10_in)
-# df_10.loc[:, 'chm_1'] = df_10.loc[:, 'chm']
-# df_10.loc[df_10.chm < 1, 'chm_1'] = np.nan
 
 df_25_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\merged_data_products\\merged_uf_r.25m_canopy_19_149_median-snow.csv'
 df_25 = pd.read_csv(df_25_in)
@@ -189,45 +187,36 @@ for xx in x_vars:
     for yy in y_vars:
         plot_func(df_all, xx, yy)
 
-# calculate correlation and spearmans rank
-stat_file = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\analysis\\scatter_stats\\'
+
+
+
+# spearmans heatmap
 
 x_vars = ['swe_fcon_19_045', 'swe_fcon_19_050', 'swe_fcon_19_052', 'dswe_fnsd_19_045-19_050', 'dswe_fnsd_19_050-19_052']
-# y_vars = ['chm', 'dnt', 'dce', 'cc', 'mCH_19_149', 'mCH_19_149_resampled', 'mCH_045_050_052_resampled', 'lai_hemi', 'contactnum_1', 'lai_rs', 'transmission', 'transmission_1', 'transmission_rs', 'lpmf15', 'lpml15', 'lpmc15']
+x_labs = ['SWE\n045', 'SWE\n050', 'SWE\n052', '$\Delta$SWE\nStorm 1', '$\Delta$SWE\nStorm 2']
+
 y_vars = ['dnt', 'dce', 'chm',
-          'lpmf15', 'lpml15', 'lpmc15',
-          'mCH_19_149', 'mCH_19_149_resampled', 'mCH_045_050_052_resampled',
-          'transmission_s_1', 'contactnum_1',
-          'transmission_s_2', 'contactnum_2',
-          'transmission_s_3', 'contactnum_3',
-          'transmission_s_4', 'contactnum_4',
-          'transmission_s_5', 'contactnum_5',
-          'transmission_gaps', 'openness',
-          'lai_s_cc', 'laa_s_cc',
-          'lrs_cn_1', 'lrs_tx_1',
-          'lrs_cn_2', 'lrs_tx_2',
-          'lrs_cn_3', 'lrs_tx_3',
-          'lrs_cn_4', 'lrs_tx_4',
-          'lrs_cn_5', 'lrs_tx_5',
-          'lrs_cn_1_deg', 'lrs_tx_1_deg',
-          'lrs_cn_75_deg', 'lrs_tx_75_deg',
-          'lrs_cn_90_deg', 'lrs_tx_90_deg',
-          'lrs_sky_view',
-          'lrs_cn_1_snow_on', 'lrs_tx_1_snow_on',
-          'lrs_cn_2_snow_on', 'lrs_tx_2_snow_on',
-          'lrs_cn_3_snow_on', 'lrs_tx_3_snow_on',
-          'lrs_cn_4_snow_on', 'lrs_tx_4_snow_on',
-          'lrs_cn_5_snow_on', 'lrs_tx_5_snow_on',
-          'lrs_cn_1_deg_snow_on', 'lrs_tx_1_deg_snow_on',
-          'lrs_cn_75_deg_snow_on', 'lrs_tx_75_deg_snow_on',
-          'lrs_cn_90_deg_snow_on', 'lrs_tx_90_deg_snow_on',
-          'lrs_sky_view_snow_on'
+          'mCH_19_149_resampled', 'mCH_045_050_052_resampled', 'mCH_19_149',
+          'fcov', 'lpml15',
+          'lrs_cn_1', 'lrs_cn_1_snow_on', 'contactnum_1',
+          'lrs_cn_5', 'lrs_cn_5_snow_on', 'contactnum_5',
+          'lrs_lai_75_deg', 'lrs_lai_75_deg_snow_on',
+          'lrs_lai_2000', 'lrs_lai_2000_snow_on', 'lai_no_cor',
+          'lrs_cc', 'lrs_cc_snow_on', 'cc'
+          ]
+y_labs = ['$DNT$', '$DCE$', '$CHM$',
+          '$mCH$', '$mCH^{*}$', '$mCH^{\dagger}$',
+          '$fCov$', '$LPM$-$L$',
+          '$Cn_{15}$', '$Cn_{15}^{*}$', '$Cn_{15}^{\dagger}$',
+          '$Cn_{60-75}$', '$Cn_{60-75}^{*}$', '$Cn_{60-75}^{\dagger}$',
+          '$LAI_{75}$', '$LAI_{75}^{*}$',
+          '$LAI_{2000}$', '$LAI_{2000}^{*}$', '$LAI_{2000}^{\dagger}$',
+          '$CC$', '$CC^{*}$', '$CC^{\dagger}$'
           ]
 
+# export stats
 spr = np.full((len(y_vars), len(x_vars)), np.nan)
 spr_p = np.full((len(y_vars), len(x_vars)), np.nan)
-# cor = np.full((len(y_vars), len(x_vars)), np.nan)
-# cor_p = np.full((len(y_vars), len(x_vars)), np.nan)
 df = np.full((len(y_vars), len(x_vars)), np.nan)
 for ii in range(len(x_vars)):
     xx = x_vars[ii]
@@ -238,11 +227,35 @@ for ii in range(len(x_vars)):
 
         df[jj, ii] = np.sum(valid) - 2
         spr[jj, ii], spr_p[jj, ii] = spearmanr(df_all.loc[valid, xx], df_all.loc[valid, yy])
-        # cor[jj, ii], cor_p[jj, ii] = pearsonr(df_all.loc[valid, xx], df_all.loc[valid, yy])
 
+stat_file = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\covariate_stats\\'
 np.savetxt(stat_file + "spearmans_r.csv", spr, delimiter=", ")
 np.savetxt(stat_file + "spearmans_r_p-values.csv", spr_p, delimiter=", ")
 np.savetxt(stat_file + "degrees_of_freedom.csv", df, delimiter=", ")
+
+pp = spr_p.astype(str)
+
+spr_str = spr.astype(str)
+imax, jmax = spr.shape
+for ii in range(0, imax):
+    for jj in range(0, jmax):
+        if spr_p[ii, jj] < 0.001:
+            # spr_str[ii, jj] = "{0:3.3f}\n(<.001)".format(spr[ii, jj])
+            spr_str[ii, jj] = "{0:3.3f}".format(spr[ii, jj])
+        elif spr_p[ii, jj] >= 0.05:
+            spr_str[ii, jj] = "{0:3.3f}**\n({1:3.3f})".format(spr[ii, jj], spr_p[ii, jj])
+        else:
+            spr_str[ii, jj] = "{0:3.3f}\n({1:3.3f})".format(spr[ii, jj], spr_p[ii, jj])
+
+# plot heatmap
+correlation_mat = df_all.loc[:, x_vars + y_vars].corr(method="spearman")
+correlation_mat_sub = correlation_mat.loc[y_vars, x_vars]
+fig, ax = plt.subplots(figsize=(6, 8), constrained_layout=True)
+sns.heatmap(correlation_mat_sub, annot=spr_str, fmt='', vmin=-1, vmax=1, cmap="RdBu", yticklabels=y_labs, xticklabels=x_labs)
+fig.savefig(plot_out_dir + "spearman_heatmap.png")
+
+
+
 
 # # cross scatters
 # import rastools
@@ -256,9 +269,143 @@ np.savetxt(stat_file + "degrees_of_freedom.csv", df, delimiter=", ")
 # xc.loc[:, 'transmission_rs'] = np.exp(-xc.loc[:, 'cn_mean'])
 
 
-x_dat = df_25.lrs_tx_1_deg
-y_dat = df_25.lrs_tx_1_deg_snow_on
+x_dat = df_25.lai_s_cc
+y_dat = df_25.lrs_cn_75_deg
+
+x_dat = df_25.swe_fcon_19_050
+y_dat = df_25.lrs_tx_1
+
+x_dat = df_25.transmission_s_1
+y_dat = df_25.lrs_tx_1
+
+x_dat = df_25.lai_no_cor
+y_dat = df_25.lrs_lai_2000
+
 plotrange = [[np.nanquantile(x_dat, .0005), np.nanquantile(x_dat, .9995)],
                      [np.nanquantile(y_dat, .0005), np.nanquantile(y_dat, .9995)]]
-plt.hist2d(x_dat, y_dat, range=plotrange, bins=(np.array([8, 5.7]) * 20).astype(int), norm=colors.LogNorm(), cmap="Blues")
-# plt.hist2d(x_dat, y_dat, range=plotrange, bins=(np.array([8, 5.7]) * 20).astype(int), cmap="Blues")
+plotrange = [[0, np.nanquantile(x_dat, .9995)],
+                     [0, np.nanquantile(y_dat, .9995)]]
+# plotrange = [[0, np.nanquantile(x_dat, .9995)],
+#                      [0, 4]]
+# plt.hist2d(x_dat, y_dat, range=plotrange, bins=(np.array([8, 5.7]) * 20).astype(int), norm=colors.LogNorm(), cmap="Blues")
+plt.hist2d(x_dat, y_dat, range=plotrange, bins=(np.array([8, 5.7]) * 20).astype(int), cmap="Blues")
+fig, ax = plt.subplots(nrows=2, ncols=2)
+
+
+
+def plot_together(df, x_dat, y_dat, titles, suptitle="", plotrange=None):
+    n_plots = len(y_dat)
+    fig, ax = plt.subplots(nrows=1, ncols=n_plots, sharey=True, sharex=True, figsize=(3 * n_plots, 3.8), constrained_layout=True)
+
+    if plotrange is None:
+        plotrange = [[0, np.nanquantile(df.loc[:, x_dat], .9995)],
+                     [0, np.nanquantile(df.loc[:, y_dat], .9995)]]
+    squarerange = [[np.min(plotrange), np.max(plotrange)],
+                   [np.min(plotrange), np.max(plotrange)]]
+    xx = [np.min(plotrange), np.max(plotrange)]
+    for ii in range(0, n_plots):
+        # 1-1 line
+        ax[ii].plot(xx, xx, color="black", linewidth=0.5)
+
+        ax[ii].hist2d(df.loc[:, x_dat[ii]], df.loc[:, y_dat[ii]], range=squarerange, bins=(np.array([8, 5.7]) * 20).astype(int), cmap="Blues")
+        ax[ii].title.set_text(titles[ii])
+        if ii == 0:
+            ax[ii].set_ylabel("Ray sampling contact number [-]")
+        if ii == 2:
+            ax[ii].set_xlabel("Point reprojection contact number [-]")
+
+    fig.add_subplot(111, frameon=False)
+    if suptitle is not "":
+        plt.suptitle(suptitle)
+    plt.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    # plt.xlabel("Lidar point reprojection")
+    # plt.ylabel("Lidar ray sampling")
+
+    return fig, ax
+
+x_dat = ["contactnum_1",
+         "contactnum_2",
+         "contactnum_3",
+         "contactnum_4",
+         "contactnum_5"]
+
+y_dat = ["lrs_cn_1",
+         "lrs_cn_2",
+         "lrs_cn_3",
+         "lrs_cn_4",
+         "lrs_cn_5"]
+
+titles = ["0-15$^{\circ}$",
+          "15-30$^{\circ}$",
+          "30-45$^{\circ}$",
+          "45-60$^{\circ}$",
+          "60-75$^{\circ}$"]
+
+
+fig, ax = plot_together(df_25, x_dat, y_dat, titles, suptitle="Comparison of contact number between methods across angle bands for Upper Forest")
+fig.savefig(plot_out_dir + "cn_comparison.png")
+
+x_dat = ["transmission_s_1",
+         "transmission_s_2",
+         "transmission_s_3",
+         "transmission_s_4",
+         "transmission_s_5"]
+
+y_dat = ["lrs_tx_1",
+         "lrs_tx_2",
+         "lrs_tx_3",
+         "lrs_tx_4",
+         "lrs_tx_5"]
+
+titles = ["0-15$^{\circ}$",
+          "15-30$^{\circ}$",
+          "30-45$^{\circ}$",
+          "45-60$^{\circ}$",
+          "60-75$^{\circ}$"]
+
+
+fig, ax = plot_together(df_25, x_dat, y_dat, titles, suptitle="Comparison of transmittance between methods across angle bands for Upper Forest")
+fig.savefig(plot_out_dir + "tx_comparison.png")
+
+fig, ax = plt.subplots(nrows=1, ncols=1, sharey=True, sharex=True, figsize=(8, 8), constrained_layout=True)
+x_dat = ["lai_no_cor"]
+y_dat = ["lrs_lai_75_deg"]
+titles = ["LAI comparison between methods across angle bands for Upper Forest"]
+df = df_25
+ii = 0
+x = [0, 100]
+y = [0, 100]
+plt.plot(x, y, color="black", linewidth=0.5)
+offset = 0
+plotrange = [[np.nanquantile(df.loc[:, x_dat], .0005) - offset, np.nanquantile(df.loc[:, x_dat], .995) + offset],
+                 [np.nanquantile(df.loc[:, y_dat], .0005) - offset, np.nanquantile(df.loc[:, y_dat], .995) + offset]]
+squarerange = [[np.min(plotrange), np.max(plotrange)],
+               [np.min(plotrange), np.max(plotrange)]]
+ax.hist2d(df.loc[:, x_dat[ii]], df.loc[:, y_dat[ii]], range=squarerange,
+          bins=(np.array([8, 8]) * 20).astype(int), cmap="Blues", norm=colors.LogNorm())
+ax.title.set_text(titles[ii])
+ax.set_ylabel("Ray sampling LAI [-]")
+ax.set_xlabel("Point reprojection LAI [-]")
+fig.savefig(plot_out_dir + "lai_comparison.png")
+
+# x_dat = ["lai_no_cor",
+#          "lai_no_cor",
+#          "lai_no_cor"]
+#
+# y_dat = ["lrs_lai_15_deg",
+#          "lrs_lai_75_deg",
+#          "lrs_lai_1_deg"]
+#
+# titles = ["LAI 15$^{\circ}$",
+#           "LAI 75$^{\circ}$",
+#           "LAI 1$^{\circ}$"]
+#
+# fig, ax = plot_together(df_25, x_dat, y_dat, titles, suptitle="LAI comparison between methods across angle bands for Upper Forest", plotrange = [[0, 5], [0, 5]])
+# fig.savefig(plot_out_dir + "lai_comparison.png")
+
+xx = "lrs_lai_75_deg"
+# yy = "lrs_lai_15_deg"
+yy = "lrs_lai_1_deg"
+valid = ~np.isnan(df_25[xx]) & ~np.isnan(df_25[yy])
+spearmanr(df_25.loc[valid, xx], df_25.loc[valid, yy])
+pearsonr(df_25.loc[valid, xx], df_25.loc[valid, yy])

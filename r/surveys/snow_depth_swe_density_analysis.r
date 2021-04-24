@@ -238,91 +238,92 @@ survey_m = rbind(survey_m, data.frame(snow_depth_cm = hs_test, doy = "19_123"))
 
 # now plot it out
 # forest linear
-survey_c = survey
-survey_c$swe_flin = NA
-survey_c$swe_flin[survey_c$doy == "19_045"] = swelindensfunc(lm_flin_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
-survey_c$swe_flin[survey_c$doy == "19_050"] = swelindensfunc(lm_flin_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
-survey_c$swe_flin[survey_c$doy == "19_052"] = swelindensfunc(lm_flin_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
-survey_c$swe_flin[survey_c$doy == "19_107"] = swelindensfunc(lm_flin_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
-survey_c$swe_flin[survey_c$doy == "19_123"] = swelindensfunc(lm_flin_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
+# survey_c = survey
+# survey_c$swe_flin = NA
+# survey_c$swe_flin[survey_c$doy == "19_045"] = swelindensfunc(lm_flin_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
+# survey_c$swe_flin[survey_c$doy == "19_050"] = swelindensfunc(lm_flin_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
+# survey_c$swe_flin[survey_c$doy == "19_052"] = swelindensfunc(lm_flin_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
+# survey_c$swe_flin[survey_c$doy == "19_107"] = swelindensfunc(lm_flin_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
+# survey_c$swe_flin[survey_c$doy == "19_123"] = swelindensfunc(lm_flin_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
 
 survey_c$swe_fc = NA
-survey_c$swe_fc[survey_c$doy == "19_045"] = swecdensfunc(lm_fc_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
-survey_c$swe_fc[survey_c$doy == "19_050"] = swecdensfunc(lm_fc_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
-survey_c$swe_fc[survey_c$doy == "19_052"] = swecdensfunc(lm_fc_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
-survey_c$swe_fc[survey_c$doy == "19_107"] = swecdensfunc(lm_fc_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
-survey_c$swe_fc[survey_c$doy == "19_123"] = swecdensfunc(lm_fc_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
+survey_c$swe_fc[survey_c$doy == "19_045" & survey_c$cover == "forest"] = swecdensfunc(lm_fc_045, survey_c$snow_depth_cm[survey_c$doy == "19_045" & survey_c$cover == "forest"])
+survey_c$swe_fc[survey_c$doy == "19_050" & survey_c$cover == "forest"] = swecdensfunc(lm_fc_050, survey_c$snow_depth_cm[survey_c$doy == "19_050" & survey_c$cover == "forest"])
+survey_c$swe_fc[survey_c$doy == "19_052" & survey_c$cover == "forest"] = swecdensfunc(lm_fc_052, survey_c$snow_depth_cm[survey_c$doy == "19_052" & survey_c$cover == "forest"])
+survey_c$swe_fc[survey_c$doy == "19_107" & survey_c$cover == "forest"] = swecdensfunc(lm_fc_107, survey_c$snow_depth_cm[survey_c$doy == "19_107" & survey_c$cover == "forest"])
+survey_c$swe_fc[survey_c$doy == "19_123" & survey_c$cover == "forest"] = swecdensfunc(lm_fc_123, survey_c$snow_depth_cm[survey_c$doy == "19_123" & survey_c$cover == "forest"])
 
 survey_c$swe_clin = NA
-survey_c$swe_clin[survey_c$doy == "19_045"] = swelindensfunc(lm_clin_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
-survey_c$swe_clin[survey_c$doy == "19_050"] = swelindensfunc(lm_clin_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
-survey_c$swe_clin[survey_c$doy == "19_052"] = swelindensfunc(lm_clin_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
-survey_c$swe_clin[survey_c$doy == "19_107"] = swelindensfunc(lm_clin_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
-survey_c$swe_clin[survey_c$doy == "19_123"] = swelindensfunc(lm_clin_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
+survey_c$swe_clin[survey_c$doy == "19_045" & survey_c$cover == "clearing"] = swelindensfunc(lm_clin_045, survey_c$snow_depth_cm[survey_c$doy == "19_045" & survey_c$cover == "clearing"])
+survey_c$swe_clin[survey_c$doy == "19_050" & survey_c$cover == "clearing"] = swelindensfunc(lm_clin_050, survey_c$snow_depth_cm[survey_c$doy == "19_050" & survey_c$cover == "clearing"])
+survey_c$swe_clin[survey_c$doy == "19_052" & survey_c$cover == "clearing"] = swelindensfunc(lm_clin_052, survey_c$snow_depth_cm[survey_c$doy == "19_052" & survey_c$cover == "clearing"])
+survey_c$swe_clin[survey_c$doy == "19_107" & survey_c$cover == "clearing"] = swelindensfunc(lm_clin_107, survey_c$snow_depth_cm[survey_c$doy == "19_107" & survey_c$cover == "clearing"])
+survey_c$swe_clin[survey_c$doy == "19_123" & survey_c$cover == "clearing"] = swelindensfunc(lm_clin_123, survey_c$snow_depth_cm[survey_c$doy == "19_123" & survey_c$cover == "clearing"])
+# 
+# survey_c$swe_cc = NA
+# survey_c$swe_cc[survey_c$doy == "19_045"] = swecdensfunc(lm_cc_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
+# survey_c$swe_cc[survey_c$doy == "19_050"] = swecdensfunc(lm_cc_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
+# survey_c$swe_cc[survey_c$doy == "19_052"] = swecdensfunc(lm_cc_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
+# survey_c$swe_cc[survey_c$doy == "19_107"] = swecdensfunc(lm_cc_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
+# survey_c$swe_cc[survey_c$doy == "19_123"] = swecdensfunc(lm_cc_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
+# 
+# survey_c$swe_alin = NA
+# survey_c$swe_alin[survey_c$doy == "19_045"] = swelindensfunc(lm_alin_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
+# survey_c$swe_alin[survey_c$doy == "19_050"] = swelindensfunc(lm_alin_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
+# survey_c$swe_alin[survey_c$doy == "19_052"] = swelindensfunc(lm_alin_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
+# survey_c$swe_alin[survey_c$doy == "19_107"] = swelindensfunc(lm_alin_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
+# survey_c$swe_alin[survey_c$doy == "19_123"] = swelindensfunc(lm_alin_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
+# 
+# survey_m$swe_alin = NA
+# survey_m$swe_alin[survey_m$doy == "19_045"] = swelindensfunc(lm_alin_045, survey_m$snow_depth_cm[survey_m$doy == "19_045"])
+# survey_m$swe_alin[survey_m$doy == "19_050"] = swelindensfunc(lm_alin_050, survey_m$snow_depth_cm[survey_m$doy == "19_050"])
+# survey_m$swe_alin[survey_m$doy == "19_052"] = swelindensfunc(lm_alin_052, survey_m$snow_depth_cm[survey_m$doy == "19_052"])
+# survey_m$swe_alin[survey_m$doy == "19_107"] = swelindensfunc(lm_alin_107, survey_m$snow_depth_cm[survey_m$doy == "19_107"])
+# survey_m$swe_alin[survey_m$doy == "19_123"] = swelindensfunc(lm_alin_123, survey_m$snow_depth_cm[survey_m$doy == "19_123"])
+# 
+# survey_c$swe_ac = NA
+# survey_c$swe_ac[survey_c$doy == "19_045"] = swecdensfunc(lm_ac_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
+# survey_c$swe_ac[survey_c$doy == "19_050"] = swecdensfunc(lm_ac_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
+# survey_c$swe_ac[survey_c$doy == "19_052"] = swecdensfunc(lm_ac_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
+# survey_c$swe_ac[survey_c$doy == "19_107"] = swecdensfunc(lm_ac_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
+# survey_c$swe_ac[survey_c$doy == "19_123"] = swecdensfunc(lm_ac_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
+# 
+# survey_m$swe_ac = NA
+# survey_m$swe_ac[survey_m$doy == "19_045"] = swecdensfunc(lm_ac_045, survey_m$snow_depth_cm[survey_m$doy == "19_045"])
+# survey_m$swe_ac[survey_m$doy == "19_050"] = swecdensfunc(lm_ac_050, survey_m$snow_depth_cm[survey_m$doy == "19_050"])
+# survey_m$swe_ac[survey_m$doy == "19_052"] = swecdensfunc(lm_ac_052, survey_m$snow_depth_cm[survey_m$doy == "19_052"])
+# survey_m$swe_ac[survey_m$doy == "19_107"] = swecdensfunc(lm_ac_107, survey_m$snow_depth_cm[survey_m$doy == "19_107"])
+# survey_m$swe_ac[survey_m$doy == "19_123"] = swecdensfunc(lm_ac_123, survey_m$snow_depth_cm[survey_m$doy == "19_123"])
+# 
+# survey_c$swe_ax = NA
+# survey_c$swe_ax[survey_c$doy == "19_045"] = sweexpdensfunc(nls_a_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
+# survey_c$swe_ax[survey_c$doy == "19_050"] = sweexpdensfunc(nls_a_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
+# survey_c$swe_ax[survey_c$doy == "19_052"] = sweexpdensfunc(nls_a_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
+# survey_c$swe_ax[survey_c$doy == "19_107"] = sweexpdensfunc(nls_a_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
+# survey_c$swe_ax[survey_c$doy == "19_123"] = sweexpdensfunc(nls_a_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
+# 
+# survey_m$swe_ax = NA
+# survey_m$swe_ax[survey_m$doy == "19_045"] = sweexpdensfunc(nls_a_045, survey_m$snow_depth_cm[survey_m$doy == "19_045"])
+# survey_m$swe_ax[survey_m$doy == "19_050"] = sweexpdensfunc(nls_a_050, survey_m$snow_depth_cm[survey_m$doy == "19_050"])
+# survey_m$swe_ax[survey_m$doy == "19_052"] = sweexpdensfunc(nls_a_052, survey_m$snow_depth_cm[survey_m$doy == "19_052"])
+# survey_m$swe_ax[survey_m$doy == "19_107"] = sweexpdensfunc(nls_a_107, survey_m$snow_depth_cm[survey_m$doy == "19_107"])
+# survey_m$swe_ax[survey_m$doy == "19_123"] = sweexpdensfunc(nls_a_123, survey_m$snow_depth_cm[survey_m$doy == "19_123"])
+# 
+# survey_m$swe_ahpl = NA
+# survey_m$swe_ahpl[survey_m$doy == "19_045"] = swehplinfunc(lm_ahpl_045, survey_m$snow_depth_cm[survey_m$doy == "19_045"], offset=89.26)
+# survey_m$swe_ahpl[survey_m$doy == "19_050"] = swehplinfunc(lm_ahpl_050, survey_m$snow_depth_cm[survey_m$doy == "19_050"], offset=85.39)
+# survey_m$swe_ahpl[survey_m$doy == "19_052"] = swehplinfunc(lm_ahpl_052, survey_m$snow_depth_cm[survey_m$doy == "19_052"], offset=72.05)
 
-survey_c$swe_cc = NA
-survey_c$swe_cc[survey_c$doy == "19_045"] = swecdensfunc(lm_cc_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
-survey_c$swe_cc[survey_c$doy == "19_050"] = swecdensfunc(lm_cc_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
-survey_c$swe_cc[survey_c$doy == "19_052"] = swecdensfunc(lm_cc_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
-survey_c$swe_cc[survey_c$doy == "19_107"] = swecdensfunc(lm_cc_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
-survey_c$swe_cc[survey_c$doy == "19_123"] = swecdensfunc(lm_cc_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
-
-survey_c$swe_alin = NA
-survey_c$swe_alin[survey_c$doy == "19_045"] = swelindensfunc(lm_alin_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
-survey_c$swe_alin[survey_c$doy == "19_050"] = swelindensfunc(lm_alin_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
-survey_c$swe_alin[survey_c$doy == "19_052"] = swelindensfunc(lm_alin_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
-survey_c$swe_alin[survey_c$doy == "19_107"] = swelindensfunc(lm_alin_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
-survey_c$swe_alin[survey_c$doy == "19_123"] = swelindensfunc(lm_alin_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
-
-survey_m$swe_alin = NA
-survey_m$swe_alin[survey_m$doy == "19_045"] = swelindensfunc(lm_alin_045, survey_m$snow_depth_cm[survey_m$doy == "19_045"])
-survey_m$swe_alin[survey_m$doy == "19_050"] = swelindensfunc(lm_alin_050, survey_m$snow_depth_cm[survey_m$doy == "19_050"])
-survey_m$swe_alin[survey_m$doy == "19_052"] = swelindensfunc(lm_alin_052, survey_m$snow_depth_cm[survey_m$doy == "19_052"])
-survey_m$swe_alin[survey_m$doy == "19_107"] = swelindensfunc(lm_alin_107, survey_m$snow_depth_cm[survey_m$doy == "19_107"])
-survey_m$swe_alin[survey_m$doy == "19_123"] = swelindensfunc(lm_alin_123, survey_m$snow_depth_cm[survey_m$doy == "19_123"])
-
-survey_c$swe_ac = NA
-survey_c$swe_ac[survey_c$doy == "19_045"] = swecdensfunc(lm_ac_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
-survey_c$swe_ac[survey_c$doy == "19_050"] = swecdensfunc(lm_ac_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
-survey_c$swe_ac[survey_c$doy == "19_052"] = swecdensfunc(lm_ac_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
-survey_c$swe_ac[survey_c$doy == "19_107"] = swecdensfunc(lm_ac_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
-survey_c$swe_ac[survey_c$doy == "19_123"] = swecdensfunc(lm_ac_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
-
-survey_m$swe_ac = NA
-survey_m$swe_ac[survey_m$doy == "19_045"] = swecdensfunc(lm_ac_045, survey_m$snow_depth_cm[survey_m$doy == "19_045"])
-survey_m$swe_ac[survey_m$doy == "19_050"] = swecdensfunc(lm_ac_050, survey_m$snow_depth_cm[survey_m$doy == "19_050"])
-survey_m$swe_ac[survey_m$doy == "19_052"] = swecdensfunc(lm_ac_052, survey_m$snow_depth_cm[survey_m$doy == "19_052"])
-survey_m$swe_ac[survey_m$doy == "19_107"] = swecdensfunc(lm_ac_107, survey_m$snow_depth_cm[survey_m$doy == "19_107"])
-survey_m$swe_ac[survey_m$doy == "19_123"] = swecdensfunc(lm_ac_123, survey_m$snow_depth_cm[survey_m$doy == "19_123"])
-
-survey_c$swe_ax = NA
-survey_c$swe_ax[survey_c$doy == "19_045"] = sweexpdensfunc(nls_a_045, survey_c$snow_depth_cm[survey_c$doy == "19_045"])
-survey_c$swe_ax[survey_c$doy == "19_050"] = sweexpdensfunc(nls_a_050, survey_c$snow_depth_cm[survey_c$doy == "19_050"])
-survey_c$swe_ax[survey_c$doy == "19_052"] = sweexpdensfunc(nls_a_052, survey_c$snow_depth_cm[survey_c$doy == "19_052"])
-survey_c$swe_ax[survey_c$doy == "19_107"] = sweexpdensfunc(nls_a_107, survey_c$snow_depth_cm[survey_c$doy == "19_107"])
-survey_c$swe_ax[survey_c$doy == "19_123"] = sweexpdensfunc(nls_a_123, survey_c$snow_depth_cm[survey_c$doy == "19_123"])
-
-survey_m$swe_ax = NA
-survey_m$swe_ax[survey_m$doy == "19_045"] = sweexpdensfunc(nls_a_045, survey_m$snow_depth_cm[survey_m$doy == "19_045"])
-survey_m$swe_ax[survey_m$doy == "19_050"] = sweexpdensfunc(nls_a_050, survey_m$snow_depth_cm[survey_m$doy == "19_050"])
-survey_m$swe_ax[survey_m$doy == "19_052"] = sweexpdensfunc(nls_a_052, survey_m$snow_depth_cm[survey_m$doy == "19_052"])
-survey_m$swe_ax[survey_m$doy == "19_107"] = sweexpdensfunc(nls_a_107, survey_m$snow_depth_cm[survey_m$doy == "19_107"])
-survey_m$swe_ax[survey_m$doy == "19_123"] = sweexpdensfunc(nls_a_123, survey_m$snow_depth_cm[survey_m$doy == "19_123"])
-
-survey_m$swe_ahpl = NA
-survey_m$swe_ahpl[survey_m$doy == "19_045"] = swehplinfunc(lm_ahpl_045, survey_m$snow_depth_cm[survey_m$doy == "19_045"], offset=89.26)
-survey_m$swe_ahpl[survey_m$doy == "19_050"] = swehplinfunc(lm_ahpl_050, survey_m$snow_depth_cm[survey_m$doy == "19_050"], offset=85.39)
-survey_m$swe_ahpl[survey_m$doy == "19_052"] = swehplinfunc(lm_ahpl_052, survey_m$snow_depth_cm[survey_m$doy == "19_052"], offset=72.05)
-
-survey_c
-ggplot(survey_c, aes(x=snow_depth_cm, y=swe_mm)) +
+survey_c %>% filter(doy %in% c("19_045", "19_050", "19_052")) %>%
+ggplot(., aes(x=snow_depth_cm, y=swe_mm)) +
   facet_grid(. ~ doy) +
   geom_point(aes(shape=cover)) +
   scale_shape_manual(values=c(1, 16)) +
-  geom_line(aes(x = snow_depth_cm, y=swe_flin, color="f_linear")) +
-  geom_line(aes(x = snow_depth_cm, y=swe_fc, color="f_const")) +
-  geom_line(aes(x = snow_depth_cm, y=swe_clin, color="c_linear")) +
-  geom_line(aes(x = snow_depth_cm, y=swe_cc, color="c_const")) +
+  # geom_line(aes(x = snow_depth_cm, y=swe_flin, color="f_linear")) +
+  geom_line(aes(x = snow_depth_cm, y=swe_fc, color="forest")) +
+  geom_line(aes(x = snow_depth_cm, y=swe_clin, color="clearing")) +
+  scale_color_discrete(name = "Model") +
+  # geom_line(aes(x = snow_depth_cm, y=swe_cc, color="c_const")) +
   # geom_line(data=survey_m, aes(x = snow_depth_cm, y=swe_alin, color="a_linear")) +
   # geom_line(data=survey_m, aes(x = snow_depth_cm, y=swe_ac, color="a_const")) +
   # geom_line(data=survey_m, aes(x = snow_depth_cm, y=swe_ax, color="a_exp")) +
@@ -333,14 +334,16 @@ ggplot(survey_c, aes(x=snow_depth_cm, y=swe_mm)) +
 ggsave(paste0(plot_out_dir, "daily_depth_swe_assumptions.png"), width=p_width, height=p_height, dpi=dpi)
 
 
-ggplot(survey_c, aes(x=snow_depth_cm, y=100 * swe_mm/snow_depth_cm)) +
+survey_c %>% filter(doy %in% c("19_045", "19_050", "19_052")) %>%
+ggplot(., aes(x=snow_depth_cm, y=100 * swe_mm/snow_depth_cm)) +
   facet_grid(. ~ doy) +
   geom_point(aes(shape=cover)) +
   scale_shape_manual(values=c(1, 16)) +
-  geom_line(aes(x = snow_depth_cm, y=100 * swe_flin / snow_depth_cm, color="f_linear")) +
-  geom_line(aes(x = snow_depth_cm, y=100 * swe_fc / snow_depth_cm, color="f_const")) +
-  geom_line(aes(x = snow_depth_cm, y=100 * swe_clin / snow_depth_cm, color="c_linear")) +
-  geom_line(aes(x = snow_depth_cm, y=100 * swe_cc / snow_depth_cm, color="c_const")) +
+  # geom_line(aes(x = snow_depth_cm, y=100 * swe_flin / snow_depth_cm, color="f_linear")) +
+  geom_line(aes(x = snow_depth_cm, y=100 * swe_fc / snow_depth_cm, color="forest")) +
+  geom_line(aes(x = snow_depth_cm, y=100 * swe_clin / snow_depth_cm, color="clearing")) +
+  scale_color_discrete(name = "Model") +
+  # geom_line(aes(x = snow_depth_cm, y=100 * swe_cc / snow_depth_cm, color="c_const")) +
   # geom_line(data=survey_m, aes(x = snow_depth_cm, y=100 * swe_alin / snow_depth_cm, color="a_linear")) +
   # geom_line(data=survey_m, aes(x = snow_depth_cm, y=100 * swe_ac / snow_depth_cm, color="a_const")) +
   # geom_line(data=survey_m, aes(x = snow_depth_cm, y=100 * swe_ax / snow_depth_cm, color="a_exp")) +

@@ -51,7 +51,7 @@ survey$vegetation[survey$vegetation == "edge"] = "forest"
 survey$vegetation[survey$vegetation == "newtrees"] = "clearing"
 
 # filter to first 3 days only
-# survey = filter(survey, doy %in% c(45, 50, 52))
+survey = filter(survey, doy %in% c(45, 50, 52))
 
 
 # merge along uid
@@ -86,9 +86,10 @@ all_merge = merge(survey, hs_swe_pd, all.y = TRUE, by=c('uid', 'doy')) %>%
 # hs-hs and swe-swe plots
 hs_merge %>%
   filter(interp_len == 2) %>%
-  ggplot(., aes(x=snow_depth_cm /100, y=lidar_hs, color=vegetation)) +
+  ggplot(., aes(x=snow_depth_cm /100, y=lidar_hs, shape=vegetation)) +
     facet_grid(doy ~ lidar_res) +
     geom_point() +
+    scale_shape_manual(values=c(1, 16)) +
     geom_abline(intercept = 0, slope = 1, size=1) +
     labs(title="Lidar snow depth (HS) validation", x="manual HS (m)", y="lidar HS (m)")
 ggsave(paste0(plot_out_dir, "hs_validation_intnum2.png"), width=p_width, height=p_height, dpi=dpi)
@@ -101,9 +102,10 @@ ggsave(paste0(plot_out_dir, "hs_validation_intnum2.png"), width=p_width, height=
 
 hs_merge %>%
   filter(interp_len == 2) %>%
-  ggplot(., aes(x=snow_depth_cm /100, y=lidar_hs*100/snow_depth_cm, color=vegetation)) +
+  ggplot(., aes(x=snow_depth_cm /100, y=lidar_hs*100/snow_depth_cm, shape=vegetation)) +
     facet_grid(doy ~ lidar_res) +
     geom_point() +
+    scale_shape_manual(values=c(1, 16)) +
     ylim(0, 2) +
     geom_hline(yintercept=1, linetype='dashed') +
     labs(title="Lidar snow depth (HS) fractional validation", x="manual HS (m)", y="Lidar HS / manual HS (-)")
@@ -111,26 +113,29 @@ ggsave(paste0(plot_out_dir, "hs_fractional_validation_intnum2.png"), width=p_wid
 
 swe_merge %>%
   filter(interp_len == 2) %>%
-  ggplot(., aes(x=swe_mm, y=lidar_swe, color=vegetation)) +
+  ggplot(., aes(x=swe_mm, y=lidar_swe, shape=vegetation)) +
     facet_grid(doy ~ lidar_res) +
     geom_point() +
+    scale_shape_manual(values=c(1, 16)) +
     geom_abline(intercept = 0, slope = 1, size=1) +
     labs(title="Lidar SWE validation", x="manual SWE (mm)", y="lidar SWE (mm)", color="Density model")
 ggsave(paste0(plot_out_dir, "swe_validation_intnum2.png"), width=p_width, height=p_height, dpi=dpi)
 
 swe_merge %>%
   filter(interp_len == 2) %>%
-  ggplot(., aes(x=swe_mm, y=lidar_swe / swe_mm, color=vegetation)) +
+  ggplot(., aes(x=swe_mm, y=lidar_swe / swe_mm, shape=vegetation)) +
   facet_grid(doy ~ lidar_res) +
   geom_point() +
+  scale_shape_manual(values=c(1, 16)) +
   geom_hline(yintercept=1, linetype='dashed') +
   labs(title="Lidar SWE fractional validation", x="manual SWE (mm)", y="lidar SWE (mm)", color="Density model") +
   ylim(0, 2)
 ggsave(paste0(plot_out_dir, "swe_fractional_validation_intnum2.png"), width=p_width, height=p_height, dpi=dpi)
 
-ggplot(all_merge, aes(x=density, y=lidar_snow_density, color=density_assumption)) +
+ggplot(all_merge, aes(x=density, y=lidar_snow_density, shape=density_assumption)) +
   facet_grid(doy ~ lidar_res) +
   geom_point() +
+  scale_shape_manual(values=c(1, 16)) +
   geom_abline(intercept = 0, slope = 1, size=1) +
   labs(title="Snow density validation", x="manual snow density (kg/m^3)", y="lidar snow density (kg/m^3)")
 
@@ -162,8 +167,8 @@ mae = function(difdata){
 }
 
 hs_veg = hs_merge
-hs_veg$vegetation = "all"
-hs_veg = rbind(hs_veg, hs_merge)
+# hs_veg$vegetation = "all"
+# hs_veg = rbind(hs_veg, hs_merge)
 
 hs_group_veg <- hs_veg %>%
   filter(interp_len == 2) %>%
@@ -171,8 +176,8 @@ hs_group_veg <- hs_veg %>%
   summarise(hs_rmse=rmse(hs_dif), hs_mae=mae(hs_dif), hs_mb=mean(hs_dif, na.rm=TRUE), count=sum(!is.na(hs_dif)))
 
 swe_veg = swe_merge
-swe_veg$vegetation = "all"
-swe_veg = rbind(swe_veg, swe_merge)
+# swe_veg$vegetation = "all"
+# swe_veg = rbind(swe_veg, swe_merge)
 
 swe_group_veg <- swe_veg %>%
   filter(interp_len == 2) %>%
@@ -180,50 +185,40 @@ swe_group_veg <- swe_veg %>%
   summarise(swe_rmse=rmse(swe_dif), swe_mae=mae(swe_dif), swe_mb=mean(swe_dif, na.rm=TRUE), count=sum(!is.na(swe_dif)))
 
 # plot errors
-ggplot(hs_group_veg, aes(x=lidar_res, y=hs_mb, color=vegetation)) +
+ggplot(hs_group_veg, aes(x=lidar_res, y=hs_mb, shape=vegetation, linetype=vegetation)) +
   facet_grid(doy ~ .) +
   geom_point() +
+  scale_shape_manual(values=c(1, 16)) +
   geom_line() +
+  scale_linetype_manual(values=c("dashed", "solid")) +
   labs(title="Snow depth (HS) mean bias", x="lidar resolution", y="HS mean bias (m)")
 ggsave(paste0(plot_out_dir, "hs_mb_intnum2.png"), width=4, height=p_height, dpi=dpi)
 
-ggplot(hs_group_veg, aes(x=lidar_res, y=hs_rmse, color=vegetation)) +
+ggplot(hs_group_veg, aes(x=lidar_res, y=hs_rmse, shape=vegetation, linetype=vegetation)) +
   facet_grid(doy ~ .) +
   geom_point() +
+  scale_shape_manual(values=c(1, 16)) +
   geom_line() +
+  scale_linetype_manual(values=c("dashed", "solid")) +
   labs(title="Snow depth (HS) RMSE", x="lidar resolution", y="HS RMSE (m)")
 ggsave(paste0(plot_out_dir, "hs_rmse_intnum2.png"), width=4, height=p_height, dpi=dpi)
 
-swe_group_veg %>%
-  filter(density_assumption == "ahpl") %>%
-  ggplot(., aes(x=lidar_res, y=swe_mb, color=vegetation)) +
+
+ggplot(swe_group_veg, aes(x=lidar_res, y=swe_mb, shape=vegetation, linetype=vegetation)) +
   facet_grid(doy ~ .) +
   geom_point() +
+  scale_shape_manual(values=c(1, 16)) +
   geom_line() +
+  scale_linetype_manual(values=c("dashed", "solid")) +
   labs(title="SWE mean bias", x="lidar resolution", y="SWE mean bias (mm)")
 ggsave(paste0(plot_out_dir, "swe_mb_intnum2.png"), width=4, height=p_height, dpi=dpi)
 
-swe_group_veg %>%
-  filter(density_assumption == "ahpl") %>%
-  ggplot(., aes(x=lidar_res, y=swe_rmse, color=vegetation)) +
+
+ggplot(swe_group_veg, aes(x=lidar_res, y=swe_rmse, shape=vegetation, linetype=vegetation)) +
     facet_grid(doy ~ .) +
     geom_point() +
+    scale_shape_manual(values=c(1, 16)) +
     geom_line() +
+    scale_linetype_manual(values=c("dashed", "solid")) +
     labs(title="SWE RMSE", x="lidar resolution", y="SWE RMSE (mm)")
 ggsave(paste0(plot_out_dir, "swe_rmse_intnum2.png"), width=4, height=p_height, dpi=dpi)
-
-
-ggplot(swe_group_veg, aes(x=lidar_res, y=swe_mb, color=density_assumption)) +
-  facet_grid(doy ~ vegetation) +
-  geom_point() +
-  geom_line() +
-  labs(title="SWE mean bias", x="lidar resolution", y="SWE mean bias (mm)")
-ggsave(paste0(plot_out_dir, "swe_mb_intnum2_density_assumptions.png"), width=p_width, height=p_height, dpi=dpi)
-
-
-ggplot(swe_group_veg, aes(x=lidar_res, y=swe_rmse, color=density_assumption)) +
-  facet_grid(doy ~ vegetation) +
-  geom_point() +
-  geom_line() +
-  labs(title="SWE RMSE", x="lidar resolution", y="SWE RMSE (mm)")
-ggsave(paste0(plot_out_dir, "swe_rmse_intnum2_density_assumptions.png"), width=p_width, height=p_height, dpi=dpi)

@@ -342,6 +342,34 @@ def raster_to_pd(ras, colnames, include_nans=False):
     return pts
 
 
+def pd_to_raster(df, colname, ids_in, ras_out):
+    import numpy as np
+    import pandas as pd
+
+    if isinstance(df, str):
+        df_in = df
+        df = pd.read_csv(df_in)
+    elif not isinstance(df, pd.core.frame.DataFrame):
+        raise Exception('df is not an instance of pd.core.frame.DataFrame or str(filepath), pd_to_raster() aborted.')
+
+    ids = raster_load(ids_in)
+    ras = raster_load(ids_in)  # use as template
+
+    # ras to pd
+    ids_pd = raster_to_pd(ids_in, colnames="id")
+
+    # merge df with ids
+    merged = pd.merge(df, ids_pd, how="left", on="id")
+
+    # wipe ras data
+    ras.data = np.full((ras.rows, ras.cols), ras.no_data)
+    # assign ras data
+    ras.data[(merged.y_index.values, merged.x_index.values)] = merged.loc[:, colname]
+
+    # write to file
+    raster_save(ras, ras_out)
+
+
 def gdal_raster_reproject(src, match, nodatavalue=np.nan, mode="nearest"):
     from osgeo import gdal, gdalconst
     import numpy as np

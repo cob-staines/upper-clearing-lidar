@@ -159,3 +159,5 @@ for rr in resolution:
     ras_out = batch_dir + file_out
     rastools.raster_save(ras, ras_out, data_format='byte')
     rastools.raster_burn(ras_out, site_poly, 1)
+
+# create lookup table for 1m and .25m grid points

@@ -57,7 +57,18 @@ def pnt_sample_semivar(pts_1, vals_1, dist_inv_func, n_samples, n_iters=1, pts_2
     return df, unif_bounds
 
 
-def bin_summarize(df, bin_count, d_bounds=None, dist_inv_func=None, unif_bounds=None):
+def bin_summarize(df, bin_count, dist_inv_func=None, unif_bounds=None, d_bounds=None, symmetric=False):
+    """
+
+    :param df: pandas data frame of samples (output[0] from pnt_sample_semivar)
+    :param bin_count: Number of bins
+    :param d_bounds: manual option for setting range of valid distances between points. Leave as None to use all samples.
+    :param dist_inv_func: function mapping [0, 1) to the range of samples for binning accoring to samplig distribution.
+            If not provided, defailt is to equal quantile binning.
+    :param unif_bounds: uniform sampling bounds (output[1] from pnt_sample_semivar).
+            If not provided, default is to equal quantile binning
+    :return:
+    """
 
     if d_bounds is not None:
         valid = (df.dist >= d_bounds[0]) & (df.dist <= d_bounds[1])
@@ -65,6 +76,10 @@ def bin_summarize(df, bin_count, d_bounds=None, dist_inv_func=None, unif_bounds=
 
     dd = df.dist
     vv = df.dvals
+
+    if symmetric:
+        flip = (np.random.random(len(vv)) > 0.5)
+        vv = vv * (2 * flip - 1)
 
     if (dist_inv_func is None) & (unif_bounds is None):
         # calculate bins by equal quantiles
@@ -116,6 +131,18 @@ def bin_summarize(df, bin_count, d_bounds=None, dist_inv_func=None, unif_bounds=
 
 # data
 def rejection_sample(data, proposal, sample, nbins, nsamps=None, original_df=True):
+    """
+    Rejection samples data from proposal according to distribution of samples.
+    :param data: data frame containing proposal and sample data
+    :param proposal: observed data (with NAs) from which samples will be drawn
+    :param sample: data will be sampled from the proposal set according to the sample distribution
+    :param nbins: number of quantile bins to use in piecewise rejection sampling
+    :param nsamps: number of samples to draw from proposal. If None, will sample according to global acceptance rate
+    :param original_df: Return results with original df (inclusive of any unused columns)?
+    :return d_samp: data frame of samples from proposal
+    :return stats: descriptive statistics including acceptance rates, counts, etc.
+    """
+
     valid_samp = ~np.isnan(data.loc[:, sample])
     valid_prop = ~np.isnan(data.loc[:, proposal])
 
@@ -171,9 +198,9 @@ def rejection_sample(data, proposal, sample, nbins, nsamps=None, original_df=Tru
     if original_df:
         data = data.assign(rej_samp=False)
         data.loc[accept[accept].index, "rej_samp"] = True
-        return data, stats
+        return data, stats, bins
     else:
-        return d_samp, stats
+        return d_samp, stats, bins
 #
 #
 #

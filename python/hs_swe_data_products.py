@@ -17,7 +17,7 @@ snow_on_ass["ahpl"] = ["19_045", "19_050", "19_052"]
 resolution = [".05", ".10", ".25", "1.00"]
 resamp_resolution = [".10", ".25", "1.00"]
 
-interpolation_lengths = ["1", "2", "3"]
+interpolation_lengths = ["0", "1", "2", "3"]
 
 
 swe_dens_ass = {}
@@ -474,21 +474,21 @@ for dd in snow_on:
 
             except AttributeError:
                 print('File does not exist')
-
-# resampled points
-pts_file_in = initial_pts_file
-for dd in snow_on:
-    for intlen in interpolation_lengths:
-        for rr in resamp_resolution:
-            try:
-                hs_resamp_path = path_sub(hs_resamp_dir_template + hs_resamp_file_template, dd=dd, rr=rr, intlen=intlen)
-                colname = str(dd) + '_' + str(rr) + '_' + str(intlen)
-                rastools.csv_sample_raster(hs_resamp_path, pts_file_in, hs_resamp_pts_path_out, "xcoordUTM11",
-                                           "ycoordUTM11", colname, sample_no_data_value='')
-                pts_file_in = hs_resamp_pts_path_out
-
-            except AttributeError:
-                print('File does not exist')
+#
+# # resampled points
+# pts_file_in = initial_pts_file
+# for dd in snow_on:
+#     for intlen in interpolation_lengths:
+#         for rr in resamp_resolution:
+#             try:
+#                 hs_resamp_path = path_sub(hs_resamp_dir_template + hs_resamp_file_template, dd=dd, rr=rr, intlen=intlen)
+#                 colname = str(dd) + '_' + str(rr) + '_' + str(intlen)
+#                 rastools.csv_sample_raster(hs_resamp_path, pts_file_in, hs_resamp_pts_path_out, "xcoordUTM11",
+#                                            "ycoordUTM11", colname, sample_no_data_value='')
+#                 pts_file_in = hs_resamp_pts_path_out
+#
+#             except AttributeError:
+#                 print('File does not exist')
 
 
 
