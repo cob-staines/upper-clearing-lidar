@@ -9,9 +9,9 @@ import os
 # pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\1m_dem_points_mb_15.csv"
 
 
-batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\mb_15_1m_pr.15_os10\\'
+batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\uf_1m_pr0_os.88\\'
 las_in = "C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\19_149_las_proc_classified_merged.las"
-pts_in = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\1m_dem_points_mb_15.csv'
+pts_in = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\hemi_lookups\\dem_r.25_point_ids_1m subset.csv'
 
 # create batch dir if does not exist
 if not os.path.exists(batch_dir):
@@ -28,7 +28,7 @@ hemimeta = laslib.HemiMetaObj()
 las_day = 19_149
 hemimeta.src_las_file = las_in
 hemimeta.src_keep_class = [1, 5]  # range of classes or single class ([1, 5] passes all classes within 1-5)
-hemimeta.poisson_sampling_radius = 0.15  # meters (for no poisson sampling, specify 0)
+hemimeta.poisson_sampling_radius = 0  # meters (for no poisson sampling, specify 0)
 
 # output file dir
 hemimeta.file_dir = batch_dir + "outputs\\"
@@ -70,7 +70,7 @@ hemimeta.origin = np.array([pts.x_utm11n,
 
 
 # point size
-hemimeta.optimization_scalar = 10
+hemimeta.optimization_scalar = .88
 footprint = 0.15  # in m
 c = 2834.64  # meters to points
 hemimeta.point_size_scalar = footprint**2 * c * hemimeta.optimization_scalar

@@ -59,7 +59,7 @@ left_on = ['hemi_id', 'lrs_id', 'lrs_id']
 right_on = ['id', 'id', 'id',]
 suffixes = ['_hemi', "_snow_off", "_snow_on"]
 file_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\merged_data_products\\merged_uf_r1.00m_canopy_19_149.csv'
-data = merge_data_products(ddict, file_out, merge_data_in=merge_data_in, left_on=left_on, right_on=right_on, suffixes=suffixes, mode='median')
+data = merge_data_products(ddict, file_out, merge_data_in=merge_data_in, left_on=left_on, right_on=right_on, suffixes=suffixes, mode='nearest')
 
 # 25cm products over mb_15
 ddict = {
@@ -216,12 +216,33 @@ file_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\
 merge_data_products(ddict, file_out, mode='nearest')
 
 
-# equating 1m and .25m grid points
-hemi_id_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\1m_dem_point_ids.tif'
-lrs_id_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\dem_r.25_point_ids.tif'
-hemi_id = rastools.raster_to_pd(hemi_id_in, "hemi_id", include_nans=False)
-lrs_id = rastools.raster_to_pd(lrs_id_in, "lrs_id", include_nans=False)
 
-hemi_id = hemi_id.loc[:, ["x_coord", "y_coord", "hemi_id"]]
-lrs_id = lrs_id.loc[:, ["x_coord", "y_coord", "lrs_id"]]
-merged = pd.merge(hemi_id, lrs_id, on=["x_coord", "y_coord"], how="left")
+# ### export 1m subset of .25m grid
+#
+# ddict = {
+#     'uf_15': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\uf_plot_r.25m.tif',
+#     'hemi_id': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\1m_dem_point_ids.tif',
+#     'lrs_id': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\dem_r.25_point_ids.tif'
+# }
+#
+# data_25 = rastools.pd_sample_raster_gdal(ddict, include_nans=False, mode='nearest')
+#
+# ddict = {
+#     'uf_15': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\uf_plot_r1.00m.tif',
+#     'hemi_id': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\1m_dem_point_ids.tif',
+#     'lrs_id': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\dem_r.25_point_ids.tif'
+# }
+#
+# data_1 = rastools.pd_sample_raster_gdal(ddict, include_nans=False, mode='nearest')
+# lrs_id = data_1.lrs_id
+#
+# merged = pd.merge(lrs_id, data_25, on="lrs_id", how="left")
+#
+# merged_out = merged.loc[:, ["x_coord", "y_coord", "x_index", "y_index", "lrs_id"]]
+# merged_out.x_index = merged_out.lrs_id.astype(int)
+# merged_out.y_index = merged_out.lrs_id.astype(int)
+# merged_out.lrs_id = merged_out.lrs_id.astype(int)
+#
+# file_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\dem_r.25_point_ids_1m subset.csv"
+# merged_out.to_csv(file_out, index=False)
+
