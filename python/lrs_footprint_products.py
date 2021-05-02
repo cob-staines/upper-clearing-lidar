@@ -15,7 +15,7 @@ import rastools
 # cn_coef = 0.198508
 
 
-# # 045_050_052
+# 045_050_052
 batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\'
 cn_coef = 0.132154
 
@@ -163,8 +163,8 @@ for zz in range(0, z_count):
                                                               0.218 * footprint_df.lrs_cn_4 +
                                                               0.484 * footprint_df.lrs_cn_5)
 
-    footprint_df.loc[z_low:z_high - 1, "lrs_sky_view"] = angle_range_stat(0, 90, tx_bin_means, weight_by="cos")
-    footprint_df.loc[z_low:z_high - 1, "lrs_cc"] = angle_range_stat(0, 90, tx_bin_means, weight_by="solid_angle")
+    footprint_df.loc[z_low:z_high - 1, "lrs_sky_view"] = angle_range_stat(0, 75, tx_bin_means, weight_by="cos")
+    footprint_df.loc[z_low:z_high - 1, "lrs_cc"] = 1 - angle_range_stat(0, 75, tx_bin_means, weight_by="solid_angle")
 
 footprint_df.to_csv(file_out, index=False)
 

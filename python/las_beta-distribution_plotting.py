@@ -5,9 +5,11 @@ if __name__ == "__main__":
     from scipy.stats import beta
     import matplotlib.pyplot as plt
     import seaborn as sns
+    import las_ray_sampling as lrs
 
-    import vox_045_050_052_config as vc
-    vox = vc.vox
+    # import vox_045_050_052_config as vc
+    import vox_19_149_config as vc
+    vox = lrs.load_vox(vc.vox.vox_hdf5, load_data=True, load_post=True, load_post_data=True)
 
     sns.set_palette("deep", desat=.6)
     sns.set_context(rc={"figure.figsize": (8, 4)})
@@ -19,7 +21,7 @@ if __name__ == "__main__":
         # (2, 5),
         # (6, 6)
         (vox.prior_alpha, vox.prior_beta)
-        # (0.00944653, 0.62285121),  # 149 (snow free)
+        # (0.01142227, 0.96354906),  # 149 (snow free)
         # (0.00952118, 0.90645839)   # 045-050-052 (snow on combined)
     ]
     neq = []
@@ -34,8 +36,26 @@ if __name__ == "__main__":
     plt.show()
 
     # check posterior data types
-    type(vox.posterior_alpha[0, 0, 0])
-    type(vox.posterior_beta[0, 0, 0])
+    print(type(vox.posterior_alpha[0, 0, 0]))
+    print(type(vox.posterior_beta[0, 0, 0]))
+
+    # cell count
+    np.prod(vox.ncells)
+
+    # total returns and samples
+    np.sum(vox.return_data)
+    np.sum(vox.sample_data)
+
+    # percentage of unsampled voxels
+    vox.unsamp_count / np.prod(vox.ncells)
+    # percentage of undersampled voxels
+    vox.under_count / np.prod(vox.ncells)
+
+    # calculate prior mu and sig2
+    a = vox.prior_alpha
+    b = vox.prior_beta
+    mu = a / (a + b)
+    sig2 = np.sqrt(a * b / ((a + b) ** 2 * (a + b + 1)))
 
     # kk = path_returns
     # nn = path_samples * vox_sample_length / agg_sample_length
@@ -53,4 +73,7 @@ if __name__ == "__main__":
     # calculate returns for unsampled ray of 50m
     returns_mean * 50 / vox.agg_sample_length
     returns_std * 50 / vox.agg_sample_length
+
+
+
 

@@ -7,79 +7,72 @@ from scipy.optimize import fmin_bfgs
 
 plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\thesis_graphics\\modeling snow accumulation\\"
 
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\outputs\\'
-# batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\mb_15_1m_pr.15_os10\\outputs\\'
+# ray tracing run
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off\\outputs\\'
+scaling_coef = 0.198508  # snow_off
+canopy = "snow_off"
 
-# scaling coefficient converts from expected returns to expected contact number
-# scaling_coef = 0.166104  # all rings
-# scaling_coef = 0.194475  # dropping 5th ring
-scaling_coef = 0.132154  # 045_050_052
+# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\outputs\\'
+# scaling_coef = 0.132154  # snow_on
+# canopy = "snow_on"
+
+
+# if date == "045-050":
+#     var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_045-19_050\\masked\\dswe_fnsd_19_045-19_050_r.05m_interp2x_masked.tif'
+# elif date == "050-052":
+#     var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_050-19_052\\masked\\dswe_fnsd_19_050-19_052_r.05m_interp2x_masked.tif'
+# elif date == "19_045":
+#     var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_045_r.05m_interp2x_masked.tif'
+# elif date == "19_050":
+#     var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_050_r.05m_interp2x_masked.tif'
+# elif date == "19_052":
+#     var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_052_r.05m_interp2x_masked.tif'
+# elif date == "19_107":
+#     var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_107\\19_107_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_107_r.05m_interp2x_masked.tif'
+# elif date == "19_123":
+#     var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_123\\19_123_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_123_r.05m_interp2x_masked.tif'
+
+
+ddict = {'uf': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\uf_plot_r.25m.tif',
+         'count_045': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\RAS\\19_045_ground_point_density_r.25m.bil',
+         'count_050': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_las_proc\\OUTPUT_FILES\\RAS\\19_050_ground_point_density_r.25m.bil',
+         'count_052': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\RAS\\19_052_ground_point_density_r.25m.bil',
+         'count_107': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_107\\19_107_las_proc\\OUTPUT_FILES\\RAS\\19_107_ground_point_density_r.25m.bil',
+         'count_123': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_123\\19_123_las_proc\\OUTPUT_FILES\\RAS\\19_123_ground_point_density_r.25m.bil',
+         'count_149': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RAS\\19_149_ground_point_density_r.25m.bil',
+         'swe_fcon_19_045': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_045_r.05m_interp2x_masked.tif',
+         'swe_fcon_19_050': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_050_r.05m_interp2x_masked.tif',
+         'swe_fcon_19_052': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_052_r.05m_interp2x_masked.tif',
+         'dswe_fnsd_19_045-19_050': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_045-19_050\\masked\\dswe_fnsd_19_045-19_050_r.05m_interp2x_masked.tif',
+         'dswe_fnsd_19_050-19_052': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_050-19_052\\masked\\dswe_fnsd_19_050-19_052_r.05m_interp2x_masked.tif'
+         # 'covariant': var_in
+         }
+var = rastools.pd_sample_raster_gdal(ddict, include_nans=True, mode="median")
+
+
+# var = var.loc[~np.isnan(var.covariant), :]  # drop nans in covariant
+
+# if date == "045-050":
+#     var.loc[:, "min_pc"] = np.nanmin((var.count_045, var.count_050, var.count_149), axis=0) * (.25 ** 2)
+# elif date == "050-052":
+#     var.loc[:, "min_pc"] = np.nanmin((var.count_050, var.count_052, var.count_149), axis=0) * (.25 ** 2)
+# elif date == "19_045":
+#     var.loc[:, "min_pc"] = np.nanmin((var.count_045, var.count_149), axis=0) * (.25 ** 2)
+# elif date == "19_050":
+#     var.loc[:, "min_pc"] = np.nanmin((var.count_050, var.count_149), axis=0) * (.25 ** 2)
+# elif date == "19_052":
+#     var.loc[:, "min_pc"] = np.nanmin((var.count_052, var.count_149), axis=0) * (.25 ** 2)
+# elif date == "19_107":
+#     var.loc[:, "min_pc"] = np.nanmin((var.count_107, var.count_149), axis=0) * (.25 ** 2)
+# elif date == "19_123":
+#     var.loc[:, "min_pc"] = np.nanmin((var.count_123, var.count_149), axis=0) * (.25 ** 2)
+#
+# # filter by min point count
+# var = var.loc[var.min_pc >= 25, :]
 
 # load img meta
 hemimeta = pd.read_csv(batch_dir + 'rshmetalog.csv')
 imsize = hemimeta.img_size_px[0]
-
-# specify which time date
-# date = "045-050"
-date = "050-052"
-# date = "19_050"
-# date = "19_123"
-
-# load covariant
-count_045 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\RAS\\19_045_ground_point_density_r.25m.bil'
-count_050 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_las_proc\\OUTPUT_FILES\\RAS\\19_050_ground_point_density_r.25m.bil'
-count_052 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\RAS\\19_052_ground_point_density_r.25m.bil'
-count_107 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_107\\19_107_las_proc\\OUTPUT_FILES\\RAS\\19_107_ground_point_density_r.25m.bil'
-count_123 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_123\\19_123_las_proc\\OUTPUT_FILES\\RAS\\19_123_ground_point_density_r.25m.bil'
-count_149 = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RAS\\19_149_ground_point_density_r.25m.bil'
-
-if date == "045-050":
-    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_045-19_050\\masked\\dswe_fnsd_19_045-19_050_r.05m_interp2x_masked.tif'
-elif date == "050-052":
-    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_050-19_052\\masked\\dswe_fnsd_19_050-19_052_r.05m_interp2x_masked.tif'
-elif date == "19_045":
-    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_045_r.05m_interp2x_masked.tif'
-elif date == "19_050":
-    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_050_r.05m_interp2x_masked.tif'
-elif date == "19_052":
-    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_052_r.05m_interp2x_masked.tif'
-elif date == "19_107":
-    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_107\\19_107_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_107_r.05m_interp2x_masked.tif'
-elif date == "19_123":
-    var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_123\\19_123_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_123_r.05m_interp2x_masked.tif'
-
-
-
-ddict = {'count_045': count_045,
-         'count_050': count_050,
-         'count_052': count_052,
-         'count_107': count_107,
-         'count_123': count_123,
-         'count_149': count_149,
-         'covariant': var_in}
-var = rastools.pd_sample_raster_gdal(ddict, include_nans=True, mode="median")
-
-
-var = var.loc[~np.isnan(var.covariant), :]  # drop nans in covariant
-
-if date == "045-050":
-    var.loc[:, "min_pc"] = np.nanmin((var.count_045, var.count_050, var.count_149), axis=0) * (.25 ** 2)
-elif date == "050-052":
-    var.loc[:, "min_pc"] = np.nanmin((var.count_050, var.count_052, var.count_149), axis=0) * (.25 ** 2)
-elif date == "19_045":
-    var.loc[:, "min_pc"] = np.nanmin((var.count_045, var.count_149), axis=0) * (.25 ** 2)
-elif date == "19_050":
-    var.loc[:, "min_pc"] = np.nanmin((var.count_050, var.count_149), axis=0) * (.25 ** 2)
-elif date == "19_052":
-    var.loc[:, "min_pc"] = np.nanmin((var.count_052, var.count_149), axis=0) * (.25 ** 2)
-elif date == "19_107":
-    var.loc[:, "min_pc"] = np.nanmin((var.count_107, var.count_149), axis=0) * (.25 ** 2)
-elif date == "19_123":
-    var.loc[:, "min_pc"] = np.nanmin((var.count_123, var.count_149), axis=0) * (.25 ** 2)
-
-# filter by min point count
-var = var.loc[var.min_pc >= 25, :]
-
 
 # merge with image meta
 hemi_var = pd.merge(hemimeta, var, left_on=('x_utm11n', 'y_utm11n'), right_on=('x_coord', 'y_coord'), how='inner')
@@ -101,11 +94,34 @@ imrange[phi <= max_phi] = True
 
 # # filter hemimeta to desired images
 # delineate training set (set_param < param_thresh) and test set (set_param >= param thresh)
-param_thresh = 0.5
+param_thresh = 1
 set_param = np.random.random(len(hemi_var))
 hemi_var.loc[:, 'training_set'] = set_param < param_thresh
 # build hemiList from training_set only
 hemiList = hemi_var.loc[hemi_var.training_set, :].reset_index()
+
+
+
+# specify which time date
+
+# date = "19_045"
+# covariant = hemiList.swe_fcon_19_045
+
+# date = "19_050"
+# covariant = hemiList.swe_fcon_19_050
+
+# date = "19_052"
+# covariant = hemiList.swe_fcon_19_052
+
+# date = "045-050"
+# covariant = hemiList.loc[:, "dswe_fnsd_19_045-19_050"]
+
+date = "050-052"
+covariant = hemiList.loc[:, "dswe_fnsd_19_050-19_052"]
+
+valid = ~np.isnan(covariant)
+
+
 
 # load hemiList images to imstack
 imstack = np.full([imsize, imsize, len(hemiList)], np.nan)
@@ -436,10 +452,7 @@ elif date == "050-052":
 ax1.set_ylabel("$R^2$ for $\Delta$SWE vs. modeled snow accumulation")
 ax1.set_xlabel("Standard deviation of Gausian weight function $\sigma$ [$^{\circ}$]")
 plt.plot(w_data.sig * 180 / np.pi, w_data.r2)
-if date == "045-050":
-    fig.savefig(plot_out_dir + "optimization of gaussian weight function width sigma 045-050.png")
-elif date == "050-052":
-    fig.savefig(plot_out_dir + "optimization of gaussian weight function width sigma 050-052.png")
+fig.savefig(plot_out_dir + "optimization_gaussian_width_sigma_" + date + "_" + canopy + ".png")
 
 #####
 # interaction scalar
@@ -471,24 +484,21 @@ ax1.set_ylabel("$R^2$ for $\Delta$SWE vs. modeled snow accumulation")
 ax1.set_xlabel("snowfall absorbtion coefficient $\mu^*$ [-]")
 plt.plot(w_data.mu, w_data.r2)
 plt.ylim(-1, )
-if date == "045-050":
-    fig.savefig(plot_out_dir + "optimization of snow absorption coefficient mu 045-050.png")
-elif date == "050-052":
-    fig.savefig(plot_out_dir + "optimization of snow absorption coefficient mu 050-052.png")
-
+fig.savefig(plot_out_dir + "optimization_snow_absorption_mu_star_" + date + "_" + canopy + ".png")
 
 
 ################################################
 ## plot hemispherical footprint
 
-intnum = p0[1]
+# intnum = p0[1]
+intnum = 1
 
 # rerun corcoef_e with optimized transmission scalar
 corcoef_e = np.full((imsize, imsize), np.nan)
 for ii in range(0, imsize):
     for jj in range(0, imsize):
         if imrange[jj, ii]:
-            corcoef_e[jj, ii] = np.corrcoef(hemiList.covariant, np.exp(-intnum * imstack[jj, ii, :]))[0, 1]
+            corcoef_e[jj, ii] = np.corrcoef(covariant[valid], np.exp(-intnum * imstack[jj, ii, valid]))[0, 1]
 
     print(ii)
 
@@ -528,10 +538,14 @@ class MidpointNormalize(colors.Normalize):
 
 # colormap parameters
 set = corcoef_e  # this is what we are plotting
-val_min = np.nanmin(set)
+# val_min = np.nanmin(set)
+scale = .25
+val_min = -scale
 val_mid = 0
-val_max = np.nanmax(set)
-abs_max = np.max(np.abs([val_min, val_max]))
+# val_max = np.nanmax(set)
+val_max = scale
+# abs_max = np.max(np.abs([val_min, val_max]))
+abs_max = scale
 cmap = matplotlib.cm.RdBu
 
 # plot with axes
@@ -560,10 +574,7 @@ cbar_ax = fig.add_axes([0.85, 0.20, 0.03, 0.6])
 fig.colorbar(im, cax=cbar_ax)
 cbar_ax.set_ylabel("Pearson's correlation coefficient")
 
-if date == "045-050":
-    fig.savefig(plot_out_dir + "footprint corcoef dswe with snowfall transmission 045-050.png")
-elif date == "050-052":
-    fig.savefig(plot_out_dir + "footprint corcoef dswe with snowfall transmission 050-052.png")
+fig.savefig(plot_out_dir + "footprint_corcoef_" + date + "_" + canopy + "_mu_" + str(intnum) + ".png")
 
 
 # plot with contours
@@ -601,10 +612,8 @@ matplotlib.rcParams["lines.linewidth"] = 1
 CS = ax0.contour(set, np.linspace(-.4, .4, 9), colors="k")
 plt.clabel(CS, inline=1, fontsize=8)
 
-if date == "045-050":
-    fig.savefig(plot_out_dir + "footprint corcoef dswe with snowfall transmission 045-050 contours.png")
-elif date == "050-052":
-    fig.savefig(plot_out_dir + "footprint corcoef dswe with snowfall transmission 050-052 contours.png")
+fig.savefig(plot_out_dir + "footprint_corcoef_" + date + "_" + canopy + "_mu_" + str(intnum) + "_contours.png")
+
 
 #
 # ###
@@ -649,3 +658,22 @@ elif date == "050-052":
 # peace.loc[:, 'sqr_covar_weight_cumsum'] = np.cumsum(peace.sort_values('phi').sqr_covar_weight.values).copy()
 #
 # plt.scatter(peace.phi, peace.sqr_covar_weight_cumsum)
+
+# plot scatter at coords
+
+
+# p0 = popt.copy()
+
+intnum = .5
+ii = 90
+jj = 90
+
+trans = np.exp(-intnum * imstack[jj, ii, :])
+cn = imstack[jj, ii, :]
+ret = imstack[jj, ii, :] / scaling_coef
+
+
+fig = plt.figure()
+fig.subplots_adjust(top=0.90, bottom=0.12, left=0.12)
+ax1 = fig.add_subplot(111)
+plt.scatter(hemiList.covariant, trans, s=2, alpha=.25)

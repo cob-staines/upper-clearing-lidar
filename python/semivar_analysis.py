@@ -432,12 +432,12 @@ plt.xlabel('Distance (d) [m]')
 plt.ylabel('Relative variance $\left( \\frac{var(x_{d})}{var(x_{30})}\\right)$ [-]')
 plt.title('Relative variance of SWE metrics with distance\n Upper Forest, 5cm resolution (n=1200000)')
 
-axes.plot(stats_swe_045.mean_dist, stats_swe_045.variance / norm_swe_045, label="SWE 045", linestyle="dashed")
-axes.plot(stats_swe_050.mean_dist, stats_swe_050.variance / norm_swe_050, label="SWE 050", linestyle="dashed")
-axes.plot(stats_swe_052.mean_dist, stats_swe_052.variance / norm_swe_052, label="SWE 052", linestyle="dashed")
+axes.plot(stats_swe_045.mean_dist, stats_swe_045.variance / norm_swe_045, label="SWE 14 Feb", linestyle="dashed")
+axes.plot(stats_swe_050.mean_dist, stats_swe_050.variance / norm_swe_050, label="SWE 19 Feb", linestyle="dashed")
+axes.plot(stats_swe_052.mean_dist, stats_swe_052.variance / norm_swe_052, label="SWE 21 Feb", linestyle="dashed")
 
-axes.plot(stats_dswe_045_050.mean_dist, stats_dswe_045_050.variance / norm_dswe_045_050, label="$\Delta$SWE 045-050", linestyle="dotted")
-axes.plot(stats_dswe_050_052.mean_dist, stats_dswe_050_052.variance / norm_dswe_050_052, label="$\Delta$SWE 050-052", linestyle="dotted")
+axes.plot(stats_dswe_045_050.mean_dist, stats_dswe_045_050.variance / norm_dswe_045_050, label="$\Delta$SWE Storm 1", linestyle="dotted")
+axes.plot(stats_dswe_050_052.mean_dist, stats_dswe_050_052.variance / norm_dswe_050_052, label="$\Delta$SWE Storm 2", linestyle="dotted")
 axes.legend(loc='center left', bbox_to_anchor=(1.01, .5), ncol=1,
             borderaxespad=0, frameon=False)
 fig.savefig(plot_out_dir + "semivar_all_swe_dswe_30m.png")
@@ -454,38 +454,50 @@ plt.title('Relative variance of canopy metrics with distance\n Upper Forest, 25c
 # axes.plot(stats_lrs_cn_1deg.mean_dist, .5 * stats_lrs_cn_1deg.variance / var_lrs_cn_1deg, label="$CN_{1}$")
 # axes.plot(stats_lrs_cn_15deg.mean_dist, .5 * stats_lrs_cn_15deg.variance / var_lrs_cn_15deg, label="$CN_{15}$")
 # axes.plot(stats_lrs_cn_75deg.mean_dist, .5 * stats_lrs_cn_75deg.variance / var_lrs_cn_75deg, label="$CN_{75}$")
-axes.plot(stats_lrs_lai_1deg.mean_dist, stats_lrs_lai_1deg.variance / norm_lrs_lai_1deg, label="$LAI_{1}$")
-axes.plot(stats_lrs_lai_15deg.mean_dist, stats_lrs_lai_15deg.variance / norm_lrs_lai_15deg, label="$LAI_{15}$")
-axes.plot(stats_lrs_lai_75deg.mean_dist, stats_lrs_lai_75deg.variance / norm_lrs_lai_75deg, label="$LAI_{75}$")
-axes.plot(stats_lrs_lai_2000.mean_dist, stats_lrs_lai_2000.variance / norm_lrs_lai_2000, label="$LAI_{2000}$")
-# axes.plot(stats_lrs_lai_miller_75deg.mean_dist, .5 * stats_lrs_lai_miller_75deg.variance / var_lrs_lai_miller_75deg, label="$Miller LAI_{75}$")
+axes.plot(stats_lrs_lai_1deg.mean_dist, stats_lrs_lai_1deg.variance / norm_lrs_lai_1deg, label=r"$LAI_{1}^{\blacktriangle}$")
+axes.plot(stats_lrs_lai_15deg.mean_dist, stats_lrs_lai_15deg.variance / norm_lrs_lai_15deg, label=r"$LAI_{15}^{\blacktriangle}$")
+axes.plot(stats_lrs_lai_75deg.mean_dist, stats_lrs_lai_75deg.variance / norm_lrs_lai_75deg, label=r"$LAI_{75}^{\blacktriangle}$")
+axes.plot(stats_lrs_lai_2000.mean_dist, stats_lrs_lai_2000.variance / norm_lrs_lai_2000, label=r"$LAI_{2000}^{\blacktriangle}$")
 axes.legend(loc='center left', bbox_to_anchor=(1.01, .5), ncol=1,  borderaxespad=0, frameon=False)
 fig.savefig(plot_out_dir + "semivar_all_canopy_30m.png")
 
 # calculate subpixel fractional variance
 
 # 5cm
-n_bins = 600
 res = 0.05
-d_bounds = [0, res * (n_bins)]
+n_bins = np.rint((30 * 2 / res)).astype(int)
+
+d_bounds = [0, res * (n_bins)/2]
 spv_swe_045 = geotk.bin_summarize(samps_swe_045, n_bins, d_bounds=d_bounds)
+spv_swe_045.variance[0] / spv_swe_045.variance[n_bins-1]
 spv_swe_050 = geotk.bin_summarize(samps_swe_050, n_bins, d_bounds=d_bounds)
+spv_swe_050.variance[0] / spv_swe_050.variance[n_bins-1]
 spv_swe_052 = geotk.bin_summarize(samps_swe_052, n_bins, d_bounds=d_bounds)
+spv_swe_052.variance[0] / spv_swe_052.variance[n_bins-1]
 spv_dswe_045_050 = geotk.bin_summarize(samps_dswe_045_050, n_bins, d_bounds=d_bounds)
+spv_dswe_045_050.variance[0] / spv_dswe_045_050.variance[n_bins-1]
 spv_dswe_050_052 = geotk.bin_summarize(samps_dswe_050_052, n_bins, d_bounds=d_bounds)
+spv_dswe_050_052.variance[0] / spv_dswe_050_052.variance[n_bins-1]
 
 # 10cm
-nbins = 300
 res = 0.1
-d_bounds = [0, res * (n_bins)]
+n_bins = np.rint(30 * 2 / res).astype(int)
+d_bounds = [0, res * (n_bins)/2]
 spv_mch = geotk.bin_summarize(samps_mch, n_bins, d_bounds=d_bounds)
+spv_mch.variance[0] / spv_mch.variance[n_bins-2]
 
 # 25cm
-nbins = 120
 res = 0.25
-d_bounds = [0, res * (n_bins)]
+n_bins = np.rint(30 * 2 / res).astype(int)
+
+d_bounds = [0, res * (n_bins)/2]
 spv_lrs_lai_1deg = geotk.bin_summarize(samps_lrs_lai_1deg, n_bins, d_bounds=d_bounds)
+lala = spv_lrs_lai_1deg
+lala.variance = spv_lrs_lai_1deg.variance / spv_lrs_lai_1deg.variance[n_bins-2]
 spv_lrs_lai_15deg = geotk.bin_summarize(samps_lrs_lai_15deg, n_bins, d_bounds=d_bounds)
+spv_lrs_lai_15deg.variance[0] / spv_lrs_lai_15deg.variance[n_bins-2]
 spv_lrs_lai_75deg = geotk.bin_summarize(samps_lrs_lai_75deg, n_bins, d_bounds=d_bounds)
+spv_lrs_lai_75deg.variance[0] / spv_lrs_lai_75deg.variance[n_bins-2]
 spv_lrs_lai_2000 = geotk.bin_summarize(samps_lrs_lai_2000, n_bins, d_bounds=d_bounds)
+spv_lrs_lai_2000.variance[0] / spv_lrs_lai_2000.variance[n_bins-2]
 
