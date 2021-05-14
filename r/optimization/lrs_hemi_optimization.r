@@ -8,10 +8,10 @@ p_height = 5.7  # inches
 dpi = 100
 
 
-photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/19_149/clean/sized/LAI_manual_parsed.dat"
-# photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/045_052_050/LAI_045_050_052_parsed.dat"
+# photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/19_149/clean/sized/thresholded/LAI_parsed.dat"
+photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/045_052_050/LAI_045_050_052_parsed.dat"
 photos_lai = read.csv(photos_lai_in, header=TRUE, na.strings = c("NA",""), sep=",")
-photos_lai$original_file = toupper(gsub("_r.JPG", ".JPG", photos_lai$picture))
+photos_lai$original_file = toupper(gsub("_r.jpg", ".JPG", photos_lai$picture))
 photos_meta_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/hemi_lookup_cleaned.csv"
 photos_meta = read.csv(photos_meta_in, header=TRUE, na.strings = c("NA",""), sep=",")
 photos_meta$id <- as.numeric(rownames(photos_meta)) - 1
@@ -27,8 +27,8 @@ photos = photos[, c("original_file", "transmission_s_1", "transmission_s_2", "tr
 # rsm$id = as.character(rsm$id)
 # rsm = rsm[, c("id", "rsm_mean_1", "rsm_mean_2", "rsm_mean_3", "rsm_mean_4", "rsm_mean_5", "rsm_std_1", "rsm_std_2", "rsm_std_3", "rsm_std_4", "rsm_std_5")]
 
-rsm_2_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_19_149/outputs/rshmetalog_footprint_products.csv"
-# rsm_2_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_045_050_052/outputs/rshmetalog_footprint_products.csv"
+# rsm_2_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_19_149/outputs/rshmetalog_footprint_products.csv"
+rsm_2_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_045_050_052/outputs/rshmetalog_footprint_products.csv"
 rsm_2 = read.csv(rsm_2_in, header=TRUE, na.strings = c("NA",""), sep=",")
 rsm_2$id = as.character(rsm_2$id)
 rsm_2 = rsm_2[, c("id", "lrs_cn_1", "lrs_cn_2", "lrs_cn_3", "lrs_cn_4", "lrs_cn_5")]
@@ -72,7 +72,7 @@ summary(lm_rsm_mean_tx)
 
 
 fo = paste0("hat(y) == ", sprintf("%.5f",lm_rsm_mean_tx$coefficients['df$lrs_cn']), " * x")
-r2 = paste0("R^2 == ", sprintf("%.5f",summary(lm_rsm_mean_tx)$r.squared))
+r2 = paste0("R^2 == ", sprintf("%.5f",summary(lm_rsm_mean_tx)$adj.r.squared))
 
 
 ggplot(df, aes(x=lrs_cn, y=-log(transmission_s), color=ring_number)) +

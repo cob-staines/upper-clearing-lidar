@@ -98,7 +98,7 @@ hemimeta = laslib.HemiMetaObj()
 las_day = 19_149
 hemimeta.src_las_file = las_in
 hemimeta.src_keep_class = [1, 5]  # range of classes or single class ([1, 5] passes all classes within 1-5)
-hemimeta.poisson_sampling_radius = 0.05  # meters (for no poisson sampling, specify 0)
+hemimeta.poisson_sampling_radius = 0.15  # meters (for no poisson sampling, specify 0)
 
 # output file dir
 # hemimeta.file_dir = batch_dir + "outputs\\"
@@ -151,7 +151,7 @@ hemimeta.origin = np.array([lookup.xcoordUTM1,
                             lookup.elevation + lookup.height_m]).swapaxes(0, 1)
 
 # point size
-os_list = [1.38]
+os_list = [14.5]
 
 for os in os_list:
     print(os)

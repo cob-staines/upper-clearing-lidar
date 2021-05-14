@@ -62,6 +62,15 @@ cv_uc_045 = sd(uc_045$swe)/mean(uc_045$swe)
 cv_uc_050 = sd(uc_050$swe)/mean(uc_050$swe)
 cv_uc_052 = sd(uc_052$swe)/mean(uc_052$swe)
 
+# clearing descriptive stats
+mean(uc_045$swe)
+mean(uc_050$swe)
+mean(uc_052$swe)
+
+sd(uc_045$swe)
+sd(uc_050$swe)
+sd(uc_052$swe)
+
 # dswe parameters
 mean(uf_045_050$dswe)
 sd(uf_045_050$dswe)

@@ -9,9 +9,9 @@ p_width = 8  # inches
 p_height = 5.7  # inches
 dpi = 100
 
-photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/19_149/clean/sized/LAI_manual_parsed.dat"
+photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/19_149/clean/sized/thresholded/LAI_parsed.dat"
 photos_lai = read.csv(photos_lai_in, header=TRUE, na.strings = c("NA",""), sep=",")
-photos_lai$original_file = gsub("_r.JPG", ".JPG", photos_lai$picture)
+photos_lai$original_file = gsub("_r.jpg", ".JPG", photos_lai$picture)
 photos_meta_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/hemi_lookup_cleaned.csv"
 photos_meta = read.csv(photos_meta_in, header=TRUE, na.strings = c("NA",""), sep=",")
 photos_meta$id <- as.numeric(rownames(photos_meta)) - 1
@@ -81,13 +81,17 @@ df_agg$poisson_radius_m = as.factor(df_agg$poisson_radius_m)
 # mean bias tx
 ggplot(df_agg, aes(x=optimization_scalar, y=tx_mean_bias, color=poisson_radius_m)) +
   geom_point() +
-  geom_line()
+  geom_line() +
+  labs(x="point size scalar [-]", y="transmittance mean bias [-]")
+ggsave(paste0(plot_out_dir, "point_size_optimization_mean_bian.png"), width=p_width, height=p_height, dpi=dpi)
 
 # rmse tx
 ggplot(df_agg, aes(x=optimization_scalar, y=tx_rmse, color=poisson_radius_m)) +
   geom_point() +
   geom_line() + 
-  ylim(0, NA)
+  ylim(0, NA) +
+  labs(x="point size scalar [-]", y="transmittance RMSE [-]")
+ggsave(paste0(plot_out_dir, "point_size_optimization_rmse.png"), width=p_width, height=p_height, dpi=dpi)
 
 # mae tx
 ggplot(df_agg, aes(x=optimization_scalar, y=tx_mae, color=poisson_radius_m)) +

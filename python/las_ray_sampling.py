@@ -825,9 +825,9 @@ def single_ray_agg(vox, rays, agg_sample_length, lookup_db="posterior"):
     n_samples = ((dist - offset) / agg_sample_length).astype(int)
     max_steps = np.max(n_samples)
 
-    # preallocate aggregate lists
-    a_path_samps = np.full([len(p0), max_steps], np.nan)
-    b_path_samps = np.full([len(p0), max_steps], np.nan)
+    # preallocate aggregate lists (inherit dtype from data)
+    a_path_samps = np.full([len(p0), max_steps], np.nan, dtype=a_data.dtype)
+    b_path_samps = np.full([len(p0), max_steps], np.nan, dtype=b_data.dtype)
 
     # for each sample step
     for ii in range(0, max_steps):
@@ -1110,7 +1110,7 @@ def agg_ray_chunk(chunksize, vox, rays, agg_method, agg_sample_length, lookup_db
 
         # aggregate
         if agg_method == "single_ray_agg":
-            chunk_rays_out = single_ray_agg(vox_sub, chunk_rays_in, agg_sample_length, lookup_db, prior, commentation)
+            chunk_rays_out = single_ray_agg(vox_sub, chunk_rays_in, agg_sample_length, lookup_db)
         else:
             raise Exception("Unknown agg_method: " + agg_method)
 
@@ -1176,6 +1176,7 @@ def points_to_angle_rays(pts, vox, phi, theta, min_dist=0, max_dist=100):
     p1_bb = interpolate_to_bounding_box(p0, p1, bb=[vox.origin, vox.max], cw_rotation=vox.cw_rotation)
     rays = rays.assign(x0=p0[:, 0], y0=p0[:, 1], z0=p0[:, 2])
     rays = rays.assign(x1=p1_bb[:, 0], y1=p1_bb[:, 1], z1=p1_bb[:, 2])
+    rays = rays.assign(path_length=np.sqrt(np.sum((p1_bb - p0) ** 2, axis=1)))
 
     return rays
 
@@ -1212,6 +1213,7 @@ def ray_stats_to_dem(rays, dem_in, file_out):
 
 
 def hemi_vectors(img_size, max_phi, ref="center"):
+    # identify vectors within hemisphere
 
     # convert img index to phi/theta
     img_origin = (img_size - 1) / 2
@@ -1626,7 +1628,7 @@ def rs_hemigen(rshmeta, vox, tile_count_1d=1, n_cores=1):
 
     return rshm
 
-def rs_gridgen(rsgmeta, vox, chunksize, commentation=False):
+def rs_gridgen(rsgmeta, vox, chunksize=1000000, initial_index=0, commentation=True):
 
     tot_time = time.time()
 
@@ -1680,7 +1682,7 @@ def rs_gridgen(rsgmeta, vox, chunksize, commentation=False):
     # load dem as points
     points_in = dem_to_points(rsgmeta.src_ras_file, rsgmeta.mask_file)
 
-    for ii in range(initial_index, len(rsgm)):
+    for ii in tqdm(range(initial_index, len(rsgm)), desc="angle set", ncols=100):
         print(str(ii + 1) + " of " + str(len(rsgm)) + ': ', end='')
 
         it_time = time.time()

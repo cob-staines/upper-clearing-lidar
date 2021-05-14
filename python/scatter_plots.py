@@ -374,11 +374,19 @@ x_dat = ["contactnum_1",
          "contactnum_4",
          "contactnum_5"]
 
+# y_dat = ["contactnum_1_pois",
+#          "contactnum_2_pois",
+#          "contactnum_3_pois",
+#          "contactnum_4_pois",
+#          "contactnum_5_pois"]
+
 y_dat = ["lrs_cn_1",
          "lrs_cn_2",
          "lrs_cn_3",
          "lrs_cn_4",
          "lrs_cn_5"]
+
+
 
 titles = ["0-15$^{\circ}$",
           "15-30$^{\circ}$",
@@ -386,11 +394,12 @@ titles = ["0-15$^{\circ}$",
           "45-60$^{\circ}$",
           "60-75$^{\circ}$"]
 
-maxmin = [np.nanmin((df.loc[:, x_dat], df.loc[:, y_dat])) - .25,
-              np.nanmax((df.loc[:, x_dat], df.loc[:, y_dat])) + .25]
+maxmin = [np.nanmin((df_25.loc[:, x_dat], df_25.loc[:, y_dat])) - .25,
+              np.nanmax((df_25.loc[:, x_dat], df_25.loc[:, y_dat])) + .25]
 fig, ax = plot_together(df_25, x_dat, y_dat, titles, lims=maxmin,
                         suptitle="Contact number methods comparison over the Upper Forest",
                         y_lab=r"$\chi_{a-b}^{\blacktriangle}$ [-]",
+                        # y_lab=r"$\chi_{a-b}^{\bullet}$ (Poisson radius 0.15m) [-]",
                         x_lab=r"$\chi_{a-b}^{\bullet}$ [-]")
 fig.savefig(plot_out_dir + "cn_comparison.png")
 
@@ -421,8 +430,10 @@ fig.savefig(plot_out_dir + "tx_comparison.png")
 
 fig, ax = plt.subplots(nrows=1, ncols=1, sharey=True, sharex=True, figsize=(8, 6), constrained_layout=True)
 x_dat = ["lai_s_cc"]
-# y_dat = ["lrs_lai_75_deg"]
-y_dat = ["lrs_lai_2000"]
+x_dat = ["lai_s_cc"]
+# y_dat = ["lai_s_cc_pois"]
+y_dat = ["lrs_lai_75_deg"]
+# y_dat = ["lrs_lai_2000"]
 titles = ["LAI methods comparison over Upper Forest"]
 df = df_25
 ii = 0

@@ -104,14 +104,14 @@ ddict = {
     'chm_median': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\CHM\\19_149_spike_free_chm_r.10m.tif'
 }
 
-merge_data_in = ["C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr0_os.88\\outputs\\LAI_parsed.dat",
-                 #"C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr.15_os18\\outputs\\LAI_parsed.dat",
+merge_data_in = ["C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr0_os.65\\outputs\\LAI_parsed.dat",
+                 "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr0.15_os14.5\\outputs\\LAI_parsed.dat",
                  'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off\\outputs\\rshmetalog_footprint_products.csv',
                  #'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_5m\\outputs\\rshmetalog_footprint_products.csv',
                  'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\outputs\\rshmetalog_footprint_products.csv']
-left_on = ['lrs_id', 'lrs_id', 'lrs_id']
-right_on = ['id', 'id', 'id']
-suffixes = ['_hemi', "_snow_off", "_snow_on"]
+left_on = ['lrs_id', 'lrs_id', 'lrs_id', 'lrs_id']
+right_on = ['id', 'id', 'id', 'id']
+suffixes = ['_hemi', '_pois', "_snow_off", "_snow_on"]
 file_out = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\merged_data_products\\merged_uf_r.25m_canopy_19_149_median-snow.csv'
 data = merge_data_products(ddict, file_out, merge_data_in=merge_data_in, left_on=left_on, right_on=right_on, suffixes=suffixes, mode='median')
 
