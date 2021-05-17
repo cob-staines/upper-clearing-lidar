@@ -5,7 +5,8 @@ def main():
     import os
 
     # call voxel config
-    import vox_045_050_052_config as vc
+    # import vox_045_050_052_config as vc
+    import vox_19_149_config as vc
     vox = vc.vox
 
 
@@ -13,8 +14,8 @@ def main():
     # pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\dem_r.25_points_uf.csv"
 
 
-    batch_dir = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\'
-    pts_in = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\sources\\mb_65_r.25m\\dem_r.25_points_uf.csv'
+    batch_dir = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\'
+    pts_in = 'C:\\Users\\jas600\\workzone\\data\\hemi_grid_points\\mb_65_r.25m_snow_off_offset.25\\dem_r.25_points_uf.csv'
 
     # load points
     pts = pd.read_csv(pts_in)
@@ -34,7 +35,7 @@ def main():
     rshmeta.max_phi_rad = np.pi/2
     hemi_m_above_ground = 0  # meters
     rshmeta.max_distance = 50  # meters
-    rshmeta.min_distance = vox.step[0] * np.sqrt(3)  # meters
+    rshmeta.min_distance = 0  # vox.step[0] * np.sqrt(3)  # meters
 
     # create batch dir (with error handling)
     # if batch file dir exists
