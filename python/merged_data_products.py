@@ -240,4 +240,4 @@ merge_data_products(ddict, file_out, mode='nearest')
 # file_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\dem_r.25_point_ids_1m subset.csv"
 # merged.to_csv(file_out, index=False)
 
-lala = pd.read_csv('C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off\\outputs\\rshmetalog_footprint_products.csv')
+# lala = pd.read_csv('C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off\\outputs\\rshmetalog_footprint_products.csv')

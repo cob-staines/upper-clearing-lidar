@@ -3,6 +3,7 @@ library('tidyr')
 library('ggplot2')
 library('grid')
 library('gridExtra')
+library('latex2exp')
 
 plot_out_dir = "C:/Users/Cob/index/educational/usask/research/masters/graphics/thesis_graphics/frequency distributions/swe_distribution_fitting/"
 p_width = 8  # inches
@@ -111,33 +112,6 @@ k_045 = qq_func(uf_045)
 k_050 = qq_func(uf_050)
 k_052 = qq_func(uf_052)
 
-
-
-# 045
-ggplot(k_045, aes(x=k_vals, y=swe)) +
-  geom_point(size=.75) +
-  labs(x='K', y='SWE (mm)', title=paste0('SWE - lognormal Q-Q plot for 14 Feb. 2019 (n=', as.character(nrow(k_045)), ')\nUpper Forest, 5cm resolution, bias corrected with LPM-Last')) + 
-  theme_minimal() +
-  geom_smooth(method='lm', se=FALSE, alpha=.15, color='turquoise4', linetype='dashed') 
-ggsave(paste0(plot_out_dir, "swe_19_045_fcon_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
-
-# 050
-ggplot(k_050, aes(x=k_vals, y=swe)) +
-  geom_point(size=.75) +
-  labs(x='K', y='SWE (mm)', title=paste0('SWE - lognormal Q-Q plot for 19 Feb. 2019 (n=', as.character(nrow(k_050)), ')\nUpper Forest, 5cm resolution, bias corrected with LPM-Last')) +
-  theme_minimal() +
-  geom_smooth(method='lm', se=FALSE, alpha=.15, color='turquoise4', linetype='dashed') 
-ggsave(paste0(plot_out_dir, "swe_19_050_fcon_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
-
-# 052
-ggplot(k_052, aes(x=k_vals, y=swe)) +
-  geom_point(size=.75) +
-  labs(x='K', y='SWE (mm)', title=paste0('SWE - lognormal Q-Q plot for 21 Feb. 2019 (n=', as.character(nrow(k_052)), ')\nUpper Forest, 5cm resolution, bias corrected with LPM-Last')) +
-  theme_minimal() +
-  geom_smooth(method='lm', se=FALSE, alpha=.15, color='turquoise4', linetype='dashed') 
-ggsave(paste0(plot_out_dir, "swe_19_052_fcon_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
-
-
 # linear fitting
 lm_045 = lm(swe ~ k_vals, data=k_045)
 lm_050 = lm(swe ~ k_vals, data=k_050)
@@ -146,6 +120,46 @@ lm_052 = lm(swe ~ k_vals, data=k_052)
 summary(lm_045)
 summary(lm_050)
 summary(lm_052)
+
+# 045
+fo = TeX(paste0("\\hat{y} = ", sprintf("%.2f",lm_045$coefficients[2]), "x+", sprintf("%.2f",lm_045$coefficients[1])), output="character")
+r2 = TeX(paste0("R^2 = ", sprintf("%.4f",summary(lm_045)$adj.r.squared)), output="character")
+
+ggplot(k_045, aes(x=k_vals, y=swe)) +
+  geom_point(size=.75) +
+  labs(x='K', y='SWE (mm)', title=paste0('SWE - lognormal Q-Q plot for 14 Feb. 2019 (n=', as.character(nrow(k_045)), ')\nUpper Forest, 5cm resolution, bias corrected with LPM-Last')) + 
+  theme_minimal() +
+  geom_smooth(method='lm', se=FALSE, alpha=.15, color='turquoise4', linetype='dashed') +
+  annotate("text", x=2, y=195, label=fo, parse=TRUE) +
+  annotate("text", x=2, y=185, label=r2, parse=TRUE)
+ggsave(paste0(plot_out_dir, "swe_19_045_fcon_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
+
+# 050
+fo = TeX(paste0("\\hat{y} = ", sprintf("%.2f",lm_050$coefficients[2]), "x+", sprintf("%.2f",lm_050$coefficients[1])), output="character")
+r2 = TeX(paste0("R^2 = ", sprintf("%.4f",summary(lm_050)$adj.r.squared)), output="character")
+
+ggplot(k_050, aes(x=k_vals, y=swe)) +
+  geom_point(size=.75) +
+  labs(x='K', y='SWE (mm)', title=paste0('SWE - lognormal Q-Q plot for 19 Feb. 2019 (n=', as.character(nrow(k_050)), ')\nUpper Forest, 5cm resolution, bias corrected with LPM-Last')) +
+  theme_minimal() +
+  geom_smooth(method='lm', se=FALSE, alpha=.15, color='turquoise4', linetype='dashed')  +
+  annotate("text", x=2, y=195, label=fo, parse=TRUE) +
+  annotate("text", x=2, y=185, label=r2, parse=TRUE)
+ggsave(paste0(plot_out_dir, "swe_19_050_fcon_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
+
+# 052
+fo = TeX(paste0("\\hat{y} = ", sprintf("%.2f",lm_052$coefficients[2]), "x+", sprintf("%.2f",lm_052$coefficients[1])), output="character")
+r2 = TeX(paste0("R^2 = ", sprintf("%.4f",summary(lm_052)$adj.r.squared)), output="character")
+
+ggplot(k_052, aes(x=k_vals, y=swe)) +
+  geom_point(size=.75) +
+  labs(x='K', y='SWE (mm)', title=paste0('SWE - lognormal Q-Q plot for 21 Feb. 2019 (n=', as.character(nrow(k_052)), ')\nUpper Forest, 5cm resolution, bias corrected with LPM-Last')) +
+  theme_minimal() +
+  geom_smooth(method='lm', se=FALSE, alpha=.15, color='turquoise4', linetype='dashed') +
+  annotate("text", x=2, y=195, label=fo, parse=TRUE) +
+  annotate("text", x=2, y=185, label=r2, parse=TRUE)
+ggsave(paste0(plot_out_dir, "swe_19_052_fcon_lognormal_qq_lpml15.png"), width=p_width, height=p_height, dpi=dpi)
+
 
 
 lognorm_model = function(k_data, lm){

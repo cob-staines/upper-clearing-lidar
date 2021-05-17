@@ -3,14 +3,18 @@ import numpy as np
 import rastools
 import os
 
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\hemi_grid_points\\mb_65_r.25m_snow_on_offset0\\'
+
 # build point list from DEM
-dem_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\DEM\\interpolated\\19_149_dem_interpolated_r.25m.tif'
+dem_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\DEM\\interpolated\\19_052_dem_interpolated_r.25m.tif'  # snow-on
+# dem_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\DEM\\interpolated\\19_149_dem_interpolated_r.25m.tif'  # snow-off
+
+vertical_offset = 0
+
 mb_65_poly = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\mb_65_poly.shp'
 mb_15_poly = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\mb_15_poly.shp'
 uf_poly = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\upper_forest_poly_UTM11N.shp'
 uc_poly = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\upper_clearing_poly_UTM11N.shp'
-
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\'
 
 # for plot mappings
 resolution = ['.05', '.10', '.25', '1.00']
@@ -25,6 +29,8 @@ if not os.path.exists(batch_dir):
     os.makedirs(batch_dir)
 
 pts = rastools.raster_to_pd(dem_in, 'z_m', include_nans=True)
+pts.z_m = pts.z_m + vertical_offset  # shift z_m by vertical offset
+
 
 # add point id
 pts = pts.reset_index()
