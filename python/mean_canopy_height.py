@@ -119,7 +119,7 @@ def comparison_histogram(las_list, bins="auto"):
 
     # plot histogram of z
     plot = sns.histplot(composite, x="z", bins=bins, stat="density", hue="file", common_norm=False, element="step")
-    return plot, mean_z
+    return plot, mean_z, composite
 
 
 las_in = ["C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\sources\\045_050_052_combined_WGS84_utm11N_r0.25_vox_resampled.las",
@@ -151,7 +151,7 @@ ax1 = fig.add_subplot(111)
 ax1.set_title('Canopy lidar return height frequency for snow-free canopy\n Upper Forest plot, 29 May 2019')
 ax1.set_xlabel("Height above ground [m]")
 ax1.set_ylabel("Relative frequency [-]")
-g, mean_z = comparison_histogram(uf_ch_list)
+g, mean_z, df = comparison_histogram(uf_ch_list)
 g.legend_.set_title(None)
 legend = g.get_legend()
 handles = legend.legendHandles
@@ -159,4 +159,17 @@ legend.remove()
 g.legend(handles, ["observed point cloud", "resampled point cloud"], loc="upper right")
 fig.savefig(plot_out_dir + "canopy_density_w_height.png")
 
-mean_z[0] / mean_z[1]
+
+
+a = df.z[df.file == 0]
+b = df.z[df.file == 1]
+
+np.mean(a) / np.mean(b)
+
+np.var(a) / np.var(b)
+
+from scipy import stats
+tStat, pValue = stats.levene(a, b, center='median') #run independent sample T-Test
+print("Levene: P-Value:{0} T-Statistic:{1}".format(pValue, tStat)) #print the P-Value and the T-Statistic
+tStat, pValue = stats.ttest_ind(a, b, equal_var=False) #run independent sample T-Test
+print("T-test: P-Value:{0} T-Statistic:{1}".format(pValue, tStat)) #print the P-Value and the T-Statistic

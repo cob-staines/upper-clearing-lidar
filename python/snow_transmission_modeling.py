@@ -4,17 +4,26 @@ import pandas as pd
 import tifffile as tif
 from tqdm import tqdm
 from scipy.optimize import fmin_bfgs
+import scipy.odr as odr
+import matplotlib
+matplotlib.use('Qt5Agg')
+# matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+
 
 plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\thesis_graphics\\modeling snow accumulation\\"
 
-# ray tracing run
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off\\outputs\\'
-scaling_coef = 0.191206  # snow_off
-canopy = "snow_off"
+# # ray tracing run
+# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off\\outputs\\'
+# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\outputs\\'
+# scaling_coef = 0.1841582  # snow_off
+# canopy = "snow_off"
 
-# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\outputs\\'
-# scaling_coef = 0.132154  # snow_on
-# canopy = "snow_on"
+# # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\outputs\\'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\outputs\\'
+scaling_coef = 0.1692154  # snow_on
+canopy = "snow_on"
 
 
 # if date == "045-050":
@@ -33,16 +42,16 @@ canopy = "snow_off"
 #     var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_123\\19_123_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_123_r.05m_interp2x_masked.tif'
 
 
-ddict = {'uf': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\uf_plot_r.25m.tif',
+ddict = {'uf': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\hemi_grid_points\\mb_65_r.25m_snow_off_offset0\\uf_plot_r.25m.tif',
          'count_045': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\RAS\\19_045_ground_point_density_r.25m.bil',
          'count_050': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_las_proc\\OUTPUT_FILES\\RAS\\19_050_ground_point_density_r.25m.bil',
          'count_052': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\RAS\\19_052_ground_point_density_r.25m.bil',
-         'count_107': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_107\\19_107_las_proc\\OUTPUT_FILES\\RAS\\19_107_ground_point_density_r.25m.bil',
-         'count_123': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_123\\19_123_las_proc\\OUTPUT_FILES\\RAS\\19_123_ground_point_density_r.25m.bil',
+         # 'count_107': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_107\\19_107_las_proc\\OUTPUT_FILES\\RAS\\19_107_ground_point_density_r.25m.bil',
+         # 'count_123': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_123\\19_123_las_proc\\OUTPUT_FILES\\RAS\\19_123_ground_point_density_r.25m.bil',
          'count_149': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RAS\\19_149_ground_point_density_r.25m.bil',
-         'swe_fcon_19_045': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_045_r.05m_interp2x_masked.tif',
-         'swe_fcon_19_050': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_050_r.05m_interp2x_masked.tif',
-         'swe_fcon_19_052': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_052_r.05m_interp2x_masked.tif',
+         # 'swe_fcon_19_045': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_045_r.05m_interp2x_masked.tif',
+         # 'swe_fcon_19_050': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_050_r.05m_interp2x_masked.tif',
+         # 'swe_fcon_19_052': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_052_r.05m_interp2x_masked.tif',
          'dswe_fnsd_19_045-19_050': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_045-19_050\\masked\\dswe_fnsd_19_045-19_050_r.05m_interp2x_masked.tif',
          'dswe_fnsd_19_050-19_052': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_050-19_052\\masked\\dswe_fnsd_19_050-19_052_r.05m_interp2x_masked.tif'
          # 'covariant': var_in
@@ -94,7 +103,7 @@ imrange[phi <= max_phi] = True
 
 # # filter hemimeta to desired images
 # delineate training set (set_param < param_thresh) and test set (set_param >= param thresh)
-param_thresh = 1
+param_thresh = 0.5
 set_param = np.random.random(len(hemi_var))
 hemi_var.loc[:, 'training_set'] = set_param < param_thresh
 # build hemiList from training_set only
@@ -115,18 +124,27 @@ hemiList = hemi_var.loc[hemi_var.training_set, :].reset_index()
 
 # date = "045-050"
 # covariant = hemiList.loc[:, "dswe_fnsd_19_045-19_050"]
+# # covariant_error = 1/np.sqrt(hemiList.loc[:, "count_045"]) + 1/np.sqrt(hemiList.loc[:, "count_050"]) + 2/np.sqrt(hemiList.loc[:, "count_149"])/4
+# covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_045"], hemiList.loc[:, "count_050"], hemiList.loc[:, "count_149"]], axis=0) / 16)
+# covariant_error = covariant_error * 0.1 * 85.1
 
 date = "050-052"
 covariant = hemiList.loc[:, "dswe_fnsd_19_050-19_052"]
+# covariant_error = (1/np.sqrt(hemiList.loc[:, "count_050"]/16) + 1/np.sqrt(hemiList.loc[:, "count_052"]/16) + 2/np.sqrt(hemiList.loc[:, "count_149"]/16))/4
+covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_050"], hemiList.loc[:, "count_052"], hemiList.loc[:, "count_149"]], axis=0) / 16)
+covariant_error = covariant_error * 0.1 * 72.2
 
-valid = ~np.isnan(covariant)
+valid = ~np.isnan(covariant) & ~np.isnan(covariant_error)
 
 
 
 # load hemiList images to imstack
 imstack = np.full([imsize, imsize, len(hemiList)], np.nan)
+erstack = np.full([imsize, imsize, len(hemiList)], np.nan)
 for ii in tqdm(range(0, len(hemiList)), desc="loading images", ncols=100, leave=True):
-    imstack[:, :, ii] = tif.imread(batch_dir + hemiList.file_name[ii])[:, :, 0] * scaling_coef
+    img = tif.imread(batch_dir + hemiList.file_name[ii]) * scaling_coef
+    imstack[:, :, ii] = img[:, :, 0]
+    erstack[:, :, ii] = img[:, :, 1]
     # print(str(ii + 1) + ' of ' + str(len(hemiList)))
 #
 # # preview of correlation coefficient
@@ -237,6 +255,8 @@ imrange_long = imrange.reshape(imrange.size)
 #     sstot = np.sum((dswe - np.mean(dswe)) ** 2)
 #     return 1 - ssres / sstot
 
+imstack_long_valid = imstack_long[valid, :]
+
 def dwst(p0):
     # unpack parameters
     phi_0 = p0[0]  # central phi in radians
@@ -262,7 +282,7 @@ def dwst(p0):
     gaus_weights[np.isnan(phi)] = 0
     gaus_weights = gaus_weights / np.sum(gaus_weights)
     # calculate weighted mean of contact number for each ground points
-    gaus_stack = np.average(imstack_long[valid, :], weights=gaus_weights.ravel(), axis=1)
+    gaus_stack = np.average(imstack_long_valid, weights=gaus_weights.ravel(), axis=1)
 
     # unif_weights = (phi < 75 * np.pi / 180)
     # unif_stack = np.average(imstack_long, weights=unif_weights.ravel(), axis=1)
@@ -306,7 +326,7 @@ if date == "045-050":
     # p0 = np.array([0.11481182, 0.56503876, 0.10936873, 2.44018817, 3.71200706])  # 19_045-19_050, 045-050-052, min_ct >= 10, fnsd, no bb, 25% of data, r2 = 0.119853
     # p0 = np.array([0.12120457, 0.45225687, 0.11644756, 2.46708285, 3.47311711])  # 19_045-19_050, 045-050-052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.130916
     # p0 = np.array([0.11644756, 2.46708285, 0.12120457, 3.47311711, 0.45225687])  # 19_045-19_050, 045-050-052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.130916  # new format --
-    p0 = np.array([0.09925432, 2.34518966, 0.11528261, 3.55663364, 0.56504193])  # 19_045-19_050, snow_on, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.088604
+    p0 = np.array([0.13138135, 2.46542192, 0.1194041, 3.35773715, 0.52777705])  # 19_045-19_050, snow_on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.107854
 
 elif date == "050-052":
     # p0 = np.array([0.14113609, 0.24675274, 0.21223623, 2.46673482, 6.93602817])  # 19_050-19_052, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.085339
@@ -316,7 +336,7 @@ elif date == "050-052":
     # p0 = np.array([ 0.19831661, 2.46775433, 0.14027416, 6.90337943, 0.25090424, 0, 0])  # 19_050-19_052, snow-on, fnsd, 25% of data, r2 = 0.089205 # no uniform term
     # p0 = np.array([ 0.19831661,  2.46775433, 0, 0, 0, 1.70155981, -0.36045782])  # 19_050-19_052, snow-on, fnsd, 25% of data, r2 = 0.074600 # no gaussian term
     # p0 = np.array([ 0.19831661,  2.46775433, 0.14027416, 6.90337943, 0.25090424, 1.70155981, -0.36045782])  # 19_050-19_052, snow-on, fnsd, 25% of data, r2 = 0.074600 # no uniform term
-    p0 = np.array([0.22023961, 2.44058107, 0.13507428, 6.89217942, 0.2422125 ]) # 19_050-19_052, snow-on, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.088153
+    p0 = np.array([0.24854724, 2.39575035, 0.17155165, 6.97084751, 0.26603563]) # 19_050-19_052, snow-on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.111375
 
 # elif date == "19_045":
 #     p0 = None
@@ -336,8 +356,8 @@ elif date == "050-052":
 
 u_out = (180 / np.pi, 180 / np.pi, 180 / np.pi, 1, 1)
 
-
-
+p0 * u_out
+rsq(p0)
 #
 # sig_out = xopt[0] * 180 / np.pi
 # intnum_out = 1/xopt[1]
@@ -348,10 +368,6 @@ u_out = (180 / np.pi, 180 / np.pi, 180 / np.pi, 1, 1)
 
 
 ####### Visualization
-import matplotlib
-matplotlib.use('Qt5Agg')
-# matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 
 # p0 = popt.copy()
 
@@ -541,6 +557,8 @@ fig.savefig(plot_out_dir + "optimization_snow_absorption_mu_star_" + date + "_" 
 
 
 ################################################
+## plot transmittance over hemisphere
+
 ## plot hemispherical footprint
 
 # intnum = p0[4]
@@ -562,7 +580,6 @@ import matplotlib.colors as colors
 class MidpointNormalize(colors.Normalize):
     """
     Normalise the colorbar so that diverging bars work there way either side from a prescribed midpoint value)
-
     e.g. im=ax1.imshow(array, norm=MidpointNormalize(midpoint=0.,vmin=-100, vmax=100))
     """
     def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
@@ -677,6 +694,135 @@ plt.clabel(CS, inline=1, fontsize=8)
 
 fig.savefig(plot_out_dir + "footprint_corcoef_" + date + "_" + canopy + "_mu_" + str(intnum) + "_contours.png")
 
+## do it again, just plot transmittance (no dswe shenanigans)!
+
+# intnum = p0[4]
+intnum = 1
+
+# rerun corcoef_e with optimized transmission scalar
+hemi_mean_tx = np.full((imsize, imsize), np.nan)
+hemi_sd_tx = np.full((imsize, imsize), np.nan)
+corcoef_e = np.full((imsize, imsize), np.nan)
+for ii in range(0, imsize):
+    for jj in range(0, imsize):
+        if imrange[jj, ii]:
+            tx = np.exp(-intnum * imstack[jj, ii, valid])
+            hemi_mean_tx[jj, ii] = np.mean(tx)
+            hemi_sd_tx[jj, ii] = np.std(tx)
+            # corcoef_e[jj, ii] = np.corrcoef(covariant[valid], tx)[0, 1]
+
+    print(ii)
+
+def add_polar_axes(r_label_color="black"):
+    # create polar axes and labels
+    ax = fig.add_subplot(111, polar=True, label="polar")
+    ax.set_facecolor("None")
+    ax.set_rmax(90)
+    ax.set_rgrids(np.linspace(0, 90, 7), labels=['', '15$^\circ$', '30$^\circ$', '45$^\circ$', '60$^\circ$', '75$^\circ$', '90$^\circ$'], angle=315)
+    [t.set_color(r_label_color) for t in ax.yaxis.get_ticklabels()]
+    ax.set_theta_zero_location("N")
+    ax.set_theta_direction(-1)
+    ax.set_thetagrids(np.linspace(0, 360, 4, endpoint=False), labels=['N\n  0$^\circ$', 'W\n  270$^\circ$', 'S\n  180$^\circ$', 'E\n  90$^\circ$'])
+
+
+## plot mean tx
+fig = plt.figure(figsize=(7, 7))
+#create axes in the background to show cartesian image
+ax0 = fig.add_subplot(111)
+im = ax0.imshow(hemi_mean_tx, cmap='Greys_r', clim=(0, 1))
+ax0.axis("off")
+
+add_polar_axes(r_label_color="white")
+
+# add colorbar
+fig.subplots_adjust(top=0.95, left=0.1, right=0.75, bottom=0.05)
+cbar_ax = fig.add_axes([0.85, 0.20, 0.03, 0.6])
+fig.colorbar(im, cax=cbar_ax)
+
+## plot sd tx
+fig = plt.figure(figsize=(7, 7))
+#create axes in the background to show cartesian image
+ax0 = fig.add_subplot(111)
+im = ax0.imshow(hemi_sd_tx, cmap='Greys_r')
+ax0.axis("off")
+
+add_polar_axes()
+
+# add colorbar
+fig.subplots_adjust(top=0.95, left=0.1, right=0.75, bottom=0.05)
+cbar_ax = fig.add_axes([0.85, 0.20, 0.03, 0.6])
+fig.colorbar(im, cax=cbar_ax)
+
+# summarize by angle band
+phi_step = 1  # in degrees
+phi_bin = np.floor(phi * 180 / (np.pi * phi_step)) * phi_step  # similar to ceil, except for int values
+bins = np.unique(phi_bin)
+bins = bins[~np.isnan(bins)]
+bin_count = len(bins)
+
+theta_step = 90
+theta_bin = (theta * 180 / np.pi + 45)
+theta_bin[theta_bin >= 360] -= 360
+theta_bin = np.floor(theta_bin / theta_step) * theta_step
+t_bins = np.unique(theta_bin)  # N, E, S, W
+t_bins = t_bins[~np.isnan(t_bins)]
+t_bin_count = len(t_bins)
+
+
+# tx_bin_mean = np.full(bin_count, np.nan)
+# tx_bin_sd = np.full(bin_count, np.nan)
+# for ii in range(0, bin_count):
+#     bb = bins[ii]
+#     mask = (phi_bin == bb)
+#     tx_bin_mean[ii] = np.mean(hemi_mean_tx[mask])
+#     tx_bin_sd[ii] = np.mean(hemi_sd_tx[mask])
+#     # tx_std_bin_means[:, ii] = np.mean(tx_std_stack_long[:, mask], axis=1)
+#
+# plt.plot(bins, tx_bin_mean)
+# lower_bound = tx_bin_mean - tx_bin_sd
+# upper_bound = tx_bin_mean + tx_bin_sd
+# plt.fill_between(bins, lower_bound, upper_bound, alpha=0.5)
+# # plt.plot(bins, tx_bin_sd)
+
+# by direction
+tx_bin_mean = np.full([bin_count, t_bin_count], np.nan)
+tx_bin_sd = np.full([bin_count, t_bin_count], np.nan)
+for jj in range(0, t_bin_count):
+    tt = t_bins[jj]
+    for ii in range(0, bin_count):
+        bb = bins[ii]
+        mask = (phi_bin == bb) & (theta_bin == tt)
+        tx_bin_mean[ii, jj] = np.mean(hemi_mean_tx[mask])
+        tx_bin_sd[ii, jj] = np.mean(hemi_sd_tx[mask])
+        # tx_std_bin_means[:, ii] = np.mean(tx_std_stack_long[:, mask], axis=1)
+
+
+fig = plt.figure()
+fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
+ax1 = fig.add_subplot(111)
+plt.plot(bins, tx_bin_mean[:, 0], label="North")
+plt.plot(bins, tx_bin_mean[:, 1], label="East")
+plt.plot(bins, tx_bin_mean[:, 2], label="South")
+plt.plot(bins, tx_bin_mean[:, 3], label="West")
+plt.legend(loc="upper right")
+
+lower_bound = tx_bin_mean - tx_bin_sd
+upper_bound = tx_bin_mean + tx_bin_sd
+
+plt.fill_between(bins, lower_bound[:, 0], upper_bound[:, 0], alpha=0.25)
+plt.fill_between(bins, lower_bound[:, 1], upper_bound[:, 1], alpha=0.25)
+plt.fill_between(bins, lower_bound[:, 2], upper_bound[:, 2], alpha=0.25)
+plt.fill_between(bins, lower_bound[:, 3], upper_bound[:, 3], alpha=0.25)
+
+plt.xlim(0, 90)
+plt.ylim(0, 1)
+ax1.set_ylabel("Light transmittance [-]")
+ax1.set_xlabel("Angle from zenith [$^{\circ}$]")
+
+# plt.plot(bins, tx_bin_sd[:, 0])
+# plt.plot(bins, tx_bin_sd[:, 1])
+# plt.plot(bins, tx_bin_sd[:, 2])
+# plt.plot(bins, tx_bin_sd[:, 3])
 
 #
 # ###
@@ -727,16 +873,297 @@ fig.savefig(plot_out_dir + "footprint_corcoef_" + date + "_" + canopy + "_mu_" +
 
 # p0 = popt.copy()
 
-intnum = .5
+intnum = 1
+ii = 85
+jj = 97
+
+ii = 80
+jj = 13
+
 ii = 90
 jj = 90
 
-trans = np.exp(-intnum * imstack[jj, ii, :])
-cn = imstack[jj, ii, :]
-ret = imstack[jj, ii, :] / scaling_coef
+# trans = np.exp(-intnum * imstack[jj, ii, :])
+# cn = imstack[jj, ii, :]
 
 
 fig = plt.figure()
 fig.subplots_adjust(top=0.90, bottom=0.12, left=0.12)
 ax1 = fig.add_subplot(111)
-plt.scatter(hemiList.covariant, trans, s=2, alpha=.25)
+plt.scatter(cn, covariant, s=2, alpha=.05)
+plt.scatter(cn[jj, ii, valid], func(cn, ma[jj, ii], mb[jj, ii], mc[jj, ii]), s=2, alpha=.25)
+plt.scatter(cn, func(cn, ma[jj, ii], mb[jj, ii], mc[jj, ii]), s=2, alpha=.25)
+plt.scatter(cn, func(cn, ma[jj, ii], -0.5, mc[jj, ii]), s=2, alpha=.25)
+plt.scatter(cn, func(cn, ma[jj, ii], mb[jj, ii], 10), s=2, alpha=.25)
+plt.scatter(cn, func(cn, 1, mb[jj, ii], mc[jj, ii]), s=2, alpha=.25)
+
+## new curve fitting yikes!!!
+
+from scipy.optimize import curve_fit
+
+def func(x, a, b, c):
+    return a * np.exp(-b * x) + c
+## ma -- y intercept is ma + mc
+## mb -- absorption coeficient, or how rapidly values converge to mc with increasing contact number
+## mc -- asymptopic SWE at infinite contact number
+
+
+coord_list = []
+popt_list = []
+pcov_list = []
+
+p_start = (1, 0.5, 0)
+p_bounds = ((-np.inf, 0, -np.inf), (np.inf, 10, np.inf))
+
+for ii in range(0, imsize):
+    for jj in range(0, imsize):
+        if imrange[jj, ii]:
+            if phi[jj, ii] * 180 / np.pi <= 75:
+                coord_list.append((jj, ii))
+                try:
+                    popt, pcov = curve_fit(func, imstack[jj, ii, valid], covariant[valid], p0=p_start, bounds=p_bounds)
+                except RuntimeError:
+                    popt = np.nan
+                    pcov = np.nan
+
+                popt_list.append(popt)
+                pcov_list.append(pcov)
+
+                print((jj, ii))
+
+
+# rerun corcoef_e with optimized transmission scalar
+ma = np.full((imsize, imsize), np.nan)
+mb = np.full((imsize, imsize), np.nan)
+mc = np.full((imsize, imsize), np.nan)
+for kk in range(0, len(coord_list)):
+    jj, ii = coord_list[kk]
+    if popt_list[kk] is not np.nan:
+        ma[jj, ii], mb[jj, ii], mc[jj, ii] = popt_list[kk]
+    print(kk)
+
+fig = plt.figure(figsize=(7, 7))
+#create axes in the background to show cartesian image
+ax0 = fig.add_subplot(111)
+im = ax0.imshow(ma, cmap='RdBu', clim=(-1, 1))
+ax0.axis("off")
+
+fig = plt.figure(figsize=(7, 7))
+#create axes in the background to show cartesian image
+ax0 = fig.add_subplot(111)
+im = ax0.imshow(mb, cmap='Greys_r', clim=(0, 10))
+ax0.axis("off")
+
+fig = plt.figure(figsize=(7, 7))
+#create axes in the background to show cartesian image
+ax0 = fig.add_subplot(111)
+im = ax0.imshow(mc, cmap='Greys', clim=(4, 5))
+ax0.axis("off")
+
+# orthogonal distance regression
+
+
+# nonlinear function to optimize
+# def f(p, x):
+#     return p[0] * np.exp(-p[1] * x) + p[2]
+
+# lets restructure data to drop unused data
+
+max_phi = 90
+
+valid_angles = (phi * 180 / np.pi) <= max_phi
+phi_valid = phi[valid_angles]
+theta_valid = theta[valid_angles]
+angles_valid = pd.DataFrame({"phi": phi_valid,
+                             "theta": theta_valid})
+angles_valid = pd.merge(angles_valid, angle_lookup, on=("phi", "theta"), how="left")
+
+imstack_valid = imstack[valid_angles][:, valid]
+erstack_valid = erstack[valid_angles][:, valid]
+covariant_valid = covariant[valid]
+covariant_error_valid = covariant_error[valid]
+
+n_angle, n_xvar = np.shape(imstack_valid)
+
+def w_opt(w0):
+
+    # model to fix on per-angle basis
+    def f_exp(p, x):
+        return p[0] * np.exp(-w0[0] * x) + p[1]
+
+    # null hypothesis function
+    def f_h0(p, x):
+        return p[0] + x * 0
+
+    # define odr model
+    nlm = odr.Model(f_exp)
+    h0m = odr.Model(f_h0)
+
+    # preallocate
+    coord_list = []
+    beta_list = []
+    sd_beta_list = []
+    res_var_list = []
+    h0_res_var_list = []
+    sum_square_list = []
+    sum_square_eps_list = []
+    stopreason_list = []
+
+    for kk in range(n_angle):
+        nlm_data = odr.RealData(imstack_valid[kk, :], covariant_valid, sx=np.sqrt(erstack_valid[kk, :]), sy=covariant_error_valid)  # errors as standard deviation
+        # nlm_data = odr.Data(imstack_valid[kk, :], covariant_valid, wd=1. / (erstack_valid[kk, :]), we=1. / (covariant_error_valid ** 2))  # errors as weights
+        nlm_odr = odr.ODR(nlm_data, nlm, beta0=[0., 4.])
+        nlm_odr.set_job(fit_type=0)
+        nlm_output = nlm_odr.run()
+
+        h0_odr = odr.ODR(nlm_data, h0m, beta0=[4.])
+        h0_odr.set_job(fit_type=0)
+        h0_output = h0_odr.run()
+
+        beta_list.append(nlm_output.beta)
+        sd_beta_list.append(nlm_output.sd_beta)
+        res_var_list.append(nlm_output.res_var)
+        h0_res_var_list.append(h0_output.res_var)
+        sum_square_list.append(nlm_output.sum_square)
+        sum_square_eps_list.append(nlm_output.sum_square_eps)
+        stopreason_list.append(nlm_output.stopreason)
+        print(kk)
+
+
+    # unpack outputs
+    beta = np.full((imsize, imsize, 2), np.nan)
+    beta_sd = np.full((imsize, imsize, 2), np.nan)
+    convergence = np.full((imsize, imsize), False)
+    res_var = np.full((imsize, imsize), np.nan)
+    sum_square = np.full((imsize, imsize), np.nan)
+    sum_square_eps = np.full((imsize, imsize), np.nan)
+    r2 = np.full((imsize, imsize), np.nan)
+
+    for kk in range(n_angle):
+        jj = angles_valid.y_index[kk]
+        ii = angles_valid.x_index[kk]
+        beta[jj, ii, :] = beta_list[kk]
+        beta_sd[jj, ii, :] = sd_beta_list[kk]
+        convergence[jj, ii] = (stopreason_list[kk] == ['Sum of squares convergence'])
+        res_var[jj, ii] = res_var_list[kk]
+        sum_square[jj, ii] = sum_square_list[kk]
+        sum_square_eps[jj, ii] = sum_square_eps_list[kk]
+        r2[jj, ii] = 1 - res_var_list[kk] / h0_res_var_list[kk]
+        # print(kk)
+
+    # # aic = sum(valid) * np.log(res_var) + 2 * 2
+    # aic = sum(valid) * np.log(np.array(res_var_list)) + 2
+    # # aic = sum(valid) * np.log(np.array(sum_square_list) / sum(valid)) + 2
+    #
+    # delta = aic - np.nanmin(aic)
+    # weights = np.exp(-delta / 2)
+    # weights = weights / np.nansum(weights)
+
+    res_var_sum = np.sum(res_var_list)
+    global res_var_sum_global
+    res_var_sum_global = res_var_sum
+
+    return res_var_sum
+
+Nfeval = 1
+def callbackF(xi):
+    global Nfeval
+    print('{0:4d}   {1: 3.6f}   {2: 3.6f}'.format(Nfeval, xi[0], res_var_sum_global))
+    Nfeval += 1
+
+print('{0:4s}   {1:9s}   {2:9s}'.format('Iter', 'w0', 'rvs'))
+
+# w0 = np.array([0.5])
+# w0 = np.array([0.35988068])  # storm 2, 25% of data, phi <= 75, Bopt = np.array([[0.00092937]]), fopt = 117817.82946957053
+w0 = np.array([0.370131])  # storm 2, 25% of data, phi <= 75, Bopt = np.array([[0.00092937]]), resvar = 23678.128482
+
+
+[popt, fopt, gopt, Bopt, func_calls, grad_calls, warnflg] = \
+    fmin_bfgs(w_opt, w0, callback=callbackF, maxiter=50, full_output=True, retall=False)
+
+
+# now modeling dswe
+bb = np.nanmean(beta[:, :, 1])
+mm = np.nanmean(np.exp(-w0[0] * imstack[:, :, valid]) * beta[:, :, 0][:, :, np.newaxis], axis=(0, 1))
+dswe = bb + mm
+
+plt.scatter(dswe, covariant[valid], alpha=.25)
+
+pt = (np.min(covariant[valid]), np.max(covariant[valid]))
+plt.plot(pt, pt)
+
+def weighted_avg_and_sstot(values, weights):
+    average = np.average(values, weights=weights)
+    # Fast and numerically precise:
+    sstot = values.size * np.average((values-average)**2, weights=weights)
+    return (average, sstot)
+
+values = covariant_valid
+weights = covariant_error_valid
+inv_weights = 1 / covariant_error_valid ** 2
+inv_weights = inv_weights / np.sum(inv_weights)
+av, sstot = weighted_avg_and_sstot(covariant_valid, inv_weights)
+np.mean(covariant_valid)
+np.var(covariant_valid) * np.sum(valid)
+
+# fig = plt.figure(figsize=(7, 7))
+# #create axes in the background to show cartesian image
+# ax0 = fig.add_subplot(111)
+# im = ax0.imshow(convergence, cmap='Greys')
+# ax0.axis("off")
+#
+# np.nansum(beta[:, :, 0])
+#
+fig = plt.figure(figsize=(7, 7))
+#create axes in the background to show cartesian image
+ax0 = fig.add_subplot(111)
+poof = np.nan
+im = ax0.imshow(beta[:, :, 0], cmap='RdBu', clim=(-4, 4))
+ax0.axis("off")
+
+fig = plt.figure(figsize=(7, 7))
+#create axes in the background to show cartesian image
+ax0 = fig.add_subplot(111)
+poof = np.nan
+im = ax0.imshow(beta[:, :, 1], cmap='Greys')
+ax0.axis("off")
+#
+fig = plt.figure(figsize=(7, 7))
+#create axes in the background to show cartesian image
+ax0 = fig.add_subplot(111)
+poof = np.nan
+im = ax0.imshow(beta[:, :, 0] + beta[:, :, 1], cmap='Greys', clim=(0, 10))
+ax0.axis("off")
+#
+fig = plt.figure(figsize=(7, 7))
+#create axes in the background to show cartesian image
+ax0 = fig.add_subplot(111)
+poof = np.nan
+im = ax0.imshow(r2, cmap='Greys')
+ax0.axis("off")
+
+
+# nlm_output.pprint()
+
+jj = 62
+ii = 159
+
+jj = 159
+ii = 62
+
+ii = 87
+jj = 94
+
+x = imstack[jj, ii, valid]
+y = covariant[valid]
+fig = plt.figure()
+fig.subplots_adjust(top=0.90, bottom=0.12, left=0.12)
+ax1 = fig.add_subplot(111)
+plt.scatter(x, y, s=2, alpha=.05)
+# plt.errorbar(x, y, xerr=erstack[jj, ii, valid], yerr=covariant_error[valid]**2, fmt='o', alpha=0.25)
+# plt.errorbar(x, y, yerr=covariant_error[valid]**2, fmt='o', alpha=0.05)
+plt.scatter(x, f_exp(beta[jj, ii, :], x), s=2, alpha=.25, c='g')
+# plt.scatter(np.exp(-nlm_output.beta[1]*x), y, s=2, alpha=.05)
+# plt.scatter(np.exp(-nlm_output.beta[1]*x), f(nlm_output.beta, x), s=2, alpha=.25)
+
+plt.scatter(covariant_valid, covariant_error_valid,  alpha=.05)

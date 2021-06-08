@@ -136,7 +136,7 @@ def las_xyz_to_hdf5(las_in, hdf5_out, drop_class=None, keep_class=None):
         hf.create_dataset('las_data', p0.shape, data=p0.values, compression='gzip')
 
 
-def hemigen(hdf5_path, hemimeta, initial_index=0):
+def hemigen(hdf5_path, hemimeta, initial_index=0, final_index=None):
     """
     Generates synthetic hemispherical image from xyz point cloud in hdf5 format.
     :param hdf5_path: file path to hdf5 file containing point cloud
@@ -211,7 +211,10 @@ def hemigen(hdf5_path, hemimeta, initial_index=0):
             log.write(",".join(hm.columns) + '\n')
         log.close()
 
-    for ii in range(initial_index, hemimeta.origin.shape[0]):
+    if final_index is None:
+        final_index = hemimeta.origin.shape[0]
+
+    for ii in range(initial_index, final_index):
         start = time.time()
         print("Generating " + hemimeta.file_name[ii] + " ...")
 

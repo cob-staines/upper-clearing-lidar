@@ -1,6 +1,7 @@
 import geotk as gt
 import matplotlib
-matplotlib.use("Agg")
+# matplotlib.use("Agg")
+matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
@@ -26,8 +27,9 @@ data_uc = pd.read_csv(data_uc_in)
 # data_10_uc = data_10.loc[data_10.plots == 2, :]
 
 
-def resampling_histoplot(data, proposal, sample, nbins, plotbins='auto', extra_col=None, extra_lab=None):
-    d_samp, stats, rs_bins = gt.rejection_sample(data, proposal, sample, nbins, original_df=False)
+def resampling_histoplot(data, proposal, sample, nbins, plotbins='auto', extra_col=None, extra_lab=None, d_samp=None):
+    if d_samp is None:
+        d_samp, stats, rs_bins = gt.rejection_sample(data, proposal, sample, nbins, original_df=False)
 
     if plotbins == "rs":
         plotbins = rs_bins
@@ -66,7 +68,33 @@ def proposal_comparison_histplot(data, proposal, sample, bins="auto"):
 # uf
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Ground sample bias in LPM-L distribution for 21 Feb. 2019\n Upper Forest, 5cm resolution')
+ax1.set_title('Ground sample bias in LPM-L distribution for 14 Feb. 2019\n Forest plot, 5cm resolution')
+ax1.set_xlabel("LPM-L [-]")
+ax1.set_ylabel("Relative frequency [-]")
+g = proposal_comparison_histplot(data_uf, 'swe_fcon_19_045', 'lpml15', bins=30)
+g.legend_.set_title(None)
+legend = g.get_legend()
+handles = legend.legendHandles
+legend.remove()
+g.legend(handles, ["limited interpolation", "all pixels"], loc="upper center")
+fig.savefig(plot_out_dir + "sample_bias_lpml15_with_swe_19_045_uf.png")
+
+fig = plt.figure()
+ax1 = fig.add_subplot(111)
+ax1.set_title('Ground sample bias in LPM-L distribution for 19 Feb. 2019\n Forest plot, 5cm resolution')
+ax1.set_xlabel("LPM-L [-]")
+ax1.set_ylabel("Relative frequency [-]")
+g = proposal_comparison_histplot(data_uf, 'swe_fcon_19_050', 'lpml15', bins=30)
+g.legend_.set_title(None)
+legend = g.get_legend()
+handles = legend.legendHandles
+legend.remove()
+g.legend(handles, ["limited interpolation", "all pixels"], loc="upper center")
+fig.savefig(plot_out_dir + "sample_bias_lpml15_with_swe_19_050_uf.png")
+
+fig = plt.figure()
+ax1 = fig.add_subplot(111)
+ax1.set_title('Ground sample bias in LPM-L distribution for 21 Feb. 2019\n Forest plot, 5cm resolution')
 ax1.set_xlabel("LPM-L [-]")
 ax1.set_ylabel("Relative frequency [-]")
 g = proposal_comparison_histplot(data_uf, 'swe_fcon_19_052', 'lpml15', bins=30)
@@ -74,13 +102,39 @@ g.legend_.set_title(None)
 legend = g.get_legend()
 handles = legend.legendHandles
 legend.remove()
-g.legend(handles, ["observed pixels", "all pixels"], loc="upper center")
+g.legend(handles, ["limited interpolation", "all pixels"], loc="upper center")
 fig.savefig(plot_out_dir + "sample_bias_lpml15_with_swe_19_052_uf.png")
 
 # uc
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Ground sample bias in LPM-L distribution for 21 Feb. 2019\n Upper Clearing, 5cm resolution')
+ax1.set_title('Ground sample bias in LPM-L distribution for 14 Feb. 2019\n Clearing plot, 5cm resolution')
+ax1.set_xlabel("LPM-L [-]")
+ax1.set_ylabel("Relative frequency [-]")
+g = proposal_comparison_histplot(data_uc, 'swe_clin_19_045', 'lpml15', bins=30)
+g.legend_.set_title(None)
+legend = g.get_legend()
+handles = legend.legendHandles
+legend.remove()
+g.legend(handles, ["limited interpolation", "all pixels"], loc="upper center")
+fig.savefig(plot_out_dir + "sample_bias_lpml15_with_swe_19_045_uc.png")
+
+fig = plt.figure()
+ax1 = fig.add_subplot(111)
+ax1.set_title('Ground sample bias in LPM-L distribution for 19 Feb. 2019\n Clearing plot, 5cm resolution')
+ax1.set_xlabel("LPM-L [-]")
+ax1.set_ylabel("Relative frequency [-]")
+g = proposal_comparison_histplot(data_uc, 'swe_clin_19_050', 'lpml15', bins=30)
+g.legend_.set_title(None)
+legend = g.get_legend()
+handles = legend.legendHandles
+legend.remove()
+g.legend(handles, ["limited interpolation", "all pixels"], loc="upper center")
+fig.savefig(plot_out_dir + "sample_bias_lpml15_with_swe_19_050_uc.png")
+
+fig = plt.figure()
+ax1 = fig.add_subplot(111)
+ax1.set_title('Ground sample bias in LPM-L distribution for 21 Feb. 2019\n Clearing plot, 5cm resolution')
 ax1.set_xlabel("LPM-L [-]")
 ax1.set_ylabel("Relative frequency [-]")
 g = proposal_comparison_histplot(data_uc, 'swe_clin_19_052', 'lpml15', bins=30)
@@ -88,7 +142,7 @@ g.legend_.set_title(None)
 legend = g.get_legend()
 handles = legend.legendHandles
 legend.remove()
-g.legend(handles, ["observed pixels", "all pixels"], loc="upper center")
+g.legend(handles, ["limited interpolation", "all pixels"], loc="upper center")
 fig.savefig(plot_out_dir + "sample_bias_lpml15_with_swe_19_052_uc.png")
 
 
@@ -96,17 +150,18 @@ fig.savefig(plot_out_dir + "sample_bias_lpml15_with_swe_19_052_uc.png")
 ### uf ###
 
 #### rejection sample hs
+
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of snow depth (HS) for 14 Feb. 2019\n Upper Forest, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distribution of snow depth (HS) for 14 Feb. 2019\n Forest plot, 5cm resolution')
 ax1.set_xlabel("HS [m]")
 ax1.set_ylabel("Relative frequency [-]")
-g, hs_045_uf = resampling_histoplot(data_uf, '19_045_hs', 'lpml15', 50, extra_col="19_045_hs_0", extra_lab="interpolated", plotbins=125)
+g, hs_045_uf = resampling_histoplot(data_uf, '19_045_hs', 'lpml15', 50, extra_col="19_045_hs_0", extra_lab="interpolated", plotbins=200)
 g.legend_.set_title(None)
 legend = g.get_legend()
 handles = legend.legendHandles
 legend.remove()
-g.legend([handles[0], handles[2], handles[1]], ["observed only", "interpolated", "rejection sampled"], loc="upper right")
+g.legend([handles[0], handles[2], handles[1]], ["limited interpolation", "full interpolation", "rejection sampling"], loc="upper right")
 fig.savefig(plot_out_dir + "freq_dist_resampled_hs_045_uf_lpml15.png")
 
 np.nanmean(data_uf.loc[:, "19_045_hs"]) / np.nanmean(hs_045_uf.loc[:, "19_045_hs"])
@@ -114,15 +169,15 @@ np.nanmean(data_uf.loc[:, "19_045_hs_0"]) / np.nanmean(hs_045_uf.loc[:, "19_045_
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of snow depth (HS) for 19 Feb. 2019\n Upper Forest, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distribution of snow depth (HS) for 19 Feb. 2019\n Forest plot, 5cm resolution')
 ax1.set_xlabel("HS [m]")
 ax1.set_ylabel("Relative frequency [-]")
-g, hs_050_uf = resampling_histoplot(data_uf, '19_050_hs', 'lpml15', 50, extra_col="19_050_hs_0", extra_lab="interpolated", plotbins=125)
+g, hs_050_uf = resampling_histoplot(data_uf, '19_050_hs', 'lpml15', 50, extra_col="19_050_hs_0", extra_lab="interpolated", plotbins=195)
 g.legend_.set_title(None)
 legend = g.get_legend()
 handles = legend.legendHandles
 legend.remove()
-g.legend([handles[0], handles[2], handles[1]], ["observed only", "interpolated", "rejection sampled"], loc="upper right")
+g.legend([handles[0], handles[2], handles[1]], ["limited interpolation", "full interpolation", "rejection sampling"], loc="upper right")
 fig.savefig(plot_out_dir + "freq_dist_resampled_hs_050_uf_lpml15.png")
 
 np.nanmean(data_uf.loc[:, "19_050_hs"]) / np.nanmean(hs_050_uf.loc[:, "19_050_hs"])
@@ -130,15 +185,15 @@ np.nanmean(data_uf.loc[:, "19_050_hs_0"]) / np.nanmean(hs_050_uf.loc[:, "19_050_
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of snow depth (HS) for 21 Feb. 2019\n Upper Forest, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distribution of snow depth (HS) for 21 Feb. 2019\n Forest plot, 5cm resolution')
 ax1.set_xlabel("HS [m]")
 ax1.set_ylabel("Relative frequency [-]")
-g, hs_052_uf = resampling_histoplot(data_uf, '19_052_hs', 'lpml15', 50, extra_col="19_052_hs_0", extra_lab="interpolated", plotbins=125)
+g, hs_052_uf = resampling_histoplot(data_uf, '19_052_hs', 'lpml15', 50, extra_col="19_052_hs_0", extra_lab="interpolated", plotbins=200)
 g.legend_.set_title(None)
 legend = g.get_legend()
 handles = legend.legendHandles
 legend.remove()
-g.legend([handles[0], handles[2], handles[1]], ["observed only", "interpolated", "rejection sampled"], loc="upper right")
+g.legend([handles[0], handles[2], handles[1]], ["limited interpolation", "full interpolation", "rejection sampling"], loc="upper right")
 fig.savefig(plot_out_dir + "freq_dist_resampled_hs_052_uf_lpml15.png")
 
 np.nanmean(data_uf.loc[:, "19_052_hs"]) / np.nanmean(hs_052_uf.loc[:, "19_052_hs"])
@@ -153,10 +208,10 @@ all_hs_uf = pd.concat([hs_045_uf.loc[:, ["hs", "date"]], hs_050_uf.loc[:, ["hs",
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distributions of snow depth (HS) for all days\n Upper Forest, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distributions of snow depth (HS) for all days\n Forest plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("HS [m]")
 ax1.set_ylabel("Relative frequency [-]")
-plot = sns.histplot(all_hs_uf, x="hs", hue="date", stat="density", common_norm=False, element="step")
+plot = sns.histplot(all_hs_uf, x="hs", hue="date", stat="density", common_norm=False, element="step", bins=196)
 fig.savefig(plot_out_dir + "freq_dist_resampled_all_hs_uf_lpml15.png")
 
 # export rejection sampled points
@@ -167,12 +222,78 @@ e_hs_052_uf = hs_052_uf.loc[:, ["x_coord", "y_coord", "19_052_hs"]]
 e_hs_045_uf.to_csv(rej_samp_out_file + 'resampled_hs_19_045_uf_r.10m_interp2x_by_lpml15.csv', index=False)
 e_hs_050_uf.to_csv(rej_samp_out_file + 'resampled_hs_19_050_uf_r.10m_interp2x_by_lpml15.csv', index=False)
 e_hs_052_uf.to_csv(rej_samp_out_file + 'resampled_hs_19_052_uf_r.10m_interp2x_by_lpml15.csv', index=False)
+#
+# # # # Reload samples
+# hs_045_uf = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_045_uf_r.10m_interp2x_by_lpml15.csv')
+# hs_050_uf = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_050_uf_r.10m_interp2x_by_lpml15.csv')
+# hs_052_uf = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_052_uf_r.10m_interp2x_by_lpml15.csv')
+# # stats
+#
+# # acceptance rates
+# hs_045_uf.__len__() / data_uf.loc[:, "19_045_hs"].__len__()
+# hs_050_uf.__len__() / data_uf.loc[:, "19_050_hs"].__len__()
+# hs_052_uf.__len__() / data_uf.loc[:, "19_052_hs"].__len__()
+#
+# mean
+np.nanmean(data_uf.loc[:, "19_045_hs"]) / np.nanmean(hs_045_uf.loc[:, "19_045_hs"])
+np.nanmean(data_uf.loc[:, "19_045_hs_0"]) / np.nanmean(hs_045_uf.loc[:, "19_045_hs"])
 
+np.nanmean(data_uf.loc[:, "19_050_hs"]) / np.nanmean(hs_050_uf.loc[:, "19_050_hs"])
+np.nanmean(data_uf.loc[:, "19_050_hs_0"]) / np.nanmean(hs_050_uf.loc[:, "19_050_hs"])
+
+np.nanmean(data_uf.loc[:, "19_052_hs"]) / np.nanmean(hs_052_uf.loc[:, "19_052_hs"])
+np.nanmean(data_uf.loc[:, "19_052_hs_0"]) / np.nanmean(hs_052_uf.loc[:, "19_052_hs"])
+
+# var
+np.nanvar(data_uf.loc[:, "19_045_hs"]) / np.nanvar(hs_045_uf.loc[:, "19_045_hs"])
+np.nanvar(data_uf.loc[:, "19_045_hs_0"]) / np.nanvar(hs_045_uf.loc[:, "19_045_hs"])
+
+np.nanvar(data_uf.loc[:, "19_050_hs"]) / np.nanvar(hs_050_uf.loc[:, "19_050_hs"])
+np.nanvar(data_uf.loc[:, "19_050_hs_0"]) / np.nanvar(hs_050_uf.loc[:, "19_050_hs"])
+
+np.nanvar(data_uf.loc[:, "19_052_hs"]) / np.nanvar(hs_052_uf.loc[:, "19_052_hs"])
+np.nanvar(data_uf.loc[:, "19_052_hs_0"]) / np.nanvar(hs_052_uf.loc[:, "19_052_hs"])
+
+# std
+np.nanstd(data_uf.loc[:, "19_045_hs"]) / np.nanstd(hs_045_uf.loc[:, "19_045_hs"])
+np.nanstd(data_uf.loc[:, "19_045_hs_0"]) / np.nanstd(hs_045_uf.loc[:, "19_045_hs"])
+
+np.nanstd(data_uf.loc[:, "19_050_hs"]) / np.nanstd(hs_050_uf.loc[:, "19_050_hs"])
+np.nanstd(data_uf.loc[:, "19_050_hs_0"]) / np.nanstd(hs_050_uf.loc[:, "19_050_hs"])
+
+np.nanstd(data_uf.loc[:, "19_052_hs"]) / np.nanstd(hs_052_uf.loc[:, "19_052_hs"])
+np.nanstd(data_uf.loc[:, "19_052_hs_0"]) / np.nanstd(hs_052_uf.loc[:, "19_052_hs"])
+
+
+#
+# from scipy import stats
+# # a = hs_045_uf.loc[:, "19_045_hs"]
+# # a = hs_050_uf.loc[:, "19_050_hs"]
+# a = hs_052_uf.loc[:, "19_052_hs"]
+# a = a[~np.isnan(a)]
+# # a = a[a > 0]
+# # a = np.log(a)
+# # b = data_uf.loc[:, "19_045_hs_0"]
+# # b = data_uf.loc[:, "19_050_hs_0"]
+# # b = data_uf.loc[:, "19_052_hs_0"]
+# # b = data_uf.loc[:, "19_045_hs"]
+# # b = data_uf.loc[:, "19_050_hs"]
+# b = data_uf.loc[:, "19_052_hs"]
+# # b = b[b > 0]
+# # n = np.log(b)
+# b = b[~np.isnan(b)]
+#
+#
+# tStat, pValue = stats.levene(a, b, center='median') #run independent sample T-Test
+# print("Levene: P-Value:{0} T-Statistic:{1}".format(pValue, tStat)) #print the P-Value and the T-Statistic
+# tStat, pValue = stats.ttest_ind(a, b, equal_var=False) #run independent sample T-Test
+# print("T-test: P-Value:{0} T-Statistic:{1}".format(pValue, tStat)) #print the P-Value and the T-Statistic
+#
 
 #### rejection sample swe
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of SWE for 14 Feb. 2019\n Upper Forest, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distribution of SWE for 14 Feb. 2019\n Forest plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 g, d_045_uf = resampling_histoplot(data_uf, 'swe_fcon_19_045', 'lpml15', 50)
@@ -181,7 +302,7 @@ fig.savefig(plot_out_dir + "freq_dist_resampled_swe_045_uf_lpml15.png")
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of SWE for 19 Feb. 2019\n Upper Forest, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distribution of SWE for 19 Feb. 2019\n Forest plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 g, d_050_uf = resampling_histoplot(data_uf, 'swe_fcon_19_050', 'lpml15', 50)
@@ -190,7 +311,7 @@ fig.savefig(plot_out_dir + "freq_dist_resampled_swe_050_uf_lpml15.png")
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of SWE for 21 Feb. 2019\n Upper Forest, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distribution of SWE for 21 Feb. 2019\n Forest plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 g, d_052_uf = resampling_histoplot(data_uf, 'swe_fcon_19_052', 'lpml15', 50)
@@ -206,7 +327,7 @@ all_swe_uf = pd.concat([d_045_uf.loc[:, ["swe", "date"]], d_050_uf.loc[:, ["swe"
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distributions of SWE for all days\n Upper Forest, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distributions of SWE for all days\n Forest plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 plot = sns.histplot(all_swe_uf, x="swe", hue="date", stat="density", common_norm=False, element="step")
@@ -225,7 +346,7 @@ e_052_uf.to_csv(rej_samp_out_file + 'resampled_swe_19_052_uf_fcon_r.05m_interp2x
 #### rejection sample dswe
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of $\Delta$SWE for 14-19 Feb. 2019\n Upper Forest, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distribution of $\Delta$SWE for 14-19 Feb. 2019\n Forest plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 g, d_045_050_uf = resampling_histoplot(data_uf, 'dswe_fnsd_19_045-19_050', 'lpml15', 50, plotbins=250)
@@ -234,7 +355,7 @@ fig.savefig(plot_out_dir + "freq_dist_resampled_dswe_045-050_uf_lpml15.png")
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of $\Delta$SWE for 19-21 Feb. 2019\n Upper Forest, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distribution of $\Delta$SWE for 19-21 Feb. 2019\n Forest plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 g, d_050_052_uf = resampling_histoplot(data_uf, 'dswe_fnsd_19_050-19_052', 'lpml15', 50, plotbins=200)
@@ -248,7 +369,7 @@ all_dswe_uf = pd.concat([d_045_050_uf.loc[:, ["dswe", "interval"]], d_050_052_uf
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distributions of $\Delta$SWE for all days\n Upper Forest, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distributions of $\Delta$SWE for all days\n Forest plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("$\Delta$SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 sns.histplot(all_dswe_uf, x="dswe", hue="interval", stat="density", common_norm=False, element="step", bins=200)
@@ -267,51 +388,45 @@ e_050_052_uf.to_csv(rej_samp_out_file + 'resampled_dswe_19_050-19_052_uf_fnsd_r.
 #### rejection sample hs
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of snow depth (HS) for 14 Feb. 2019\n Upper Clearing, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distribution of snow depth (HS) for 14 Feb. 2019\n Clearing plot, 5cm resolution')
 ax1.set_xlabel("HS [m]")
 ax1.set_ylabel("Relative frequency [-]")
-g, hs_045_uc = resampling_histoplot(data_uc, '19_045_hs', 'lpml15', 50, extra_col="19_045_hs_0", extra_lab="interpolated", plotbins=125)
+g, hs_045_uc = resampling_histoplot(data_uc, '19_045_hs', 'lpml15', 50, extra_col="19_045_hs_0", extra_lab="interpolated", plotbins=195)
 g.legend_.set_title(None)
 legend = g.get_legend()
 handles = legend.legendHandles
 legend.remove()
-g.legend([handles[0], handles[2], handles[1]], ["observed only", "interpolated", "rejection sampled"], loc="upper left")
+g.legend([handles[0], handles[2], handles[1]], ["limited interpolation", "full interpolation", "rejection sampling"], loc="upper left")
 fig.savefig(plot_out_dir + "freq_dist_resampled_hs_045_uc_lpml15.png")
 
-np.nanmean(data_uc.loc[:, "19_045_hs"]) / np.nanmean(hs_045_uc.loc[:, "19_045_hs"])
-np.nanmean(data_uc.loc[:, "19_045_hs_0"]) / np.nanmean(hs_045_uc.loc[:, "19_045_hs"])
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of snow depth (HS) for 19 Feb. 2019\n Upper Clearing, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distribution of snow depth (HS) for 19 Feb. 2019\n Clearing plot, 5cm resolution')
 ax1.set_xlabel("HS [m]")
 ax1.set_ylabel("Relative frequency [-]")
-g, hs_050_uc = resampling_histoplot(data_uc, '19_050_hs', 'lpml15', 50, extra_col="19_050_hs_0", extra_lab="interpolated", plotbins=125)
+g, hs_050_uc = resampling_histoplot(data_uc, '19_050_hs', 'lpml15', 50, extra_col="19_050_hs_0", extra_lab="interpolated", plotbins=194)
 g.legend_.set_title(None)
 legend = g.get_legend()
 handles = legend.legendHandles
 legend.remove()
-g.legend([handles[0], handles[2], handles[1]], ["observed only", "interpolated", "rejection sampled"], loc="upper left")
+g.legend([handles[0], handles[2], handles[1]], ["limited interpolation", "full interpolation", "rejection sampling"], loc="upper left")
 fig.savefig(plot_out_dir + "freq_dist_resampled_hs_050_uc_lpml15.png")
 
-np.nanmean(data_uc.loc[:, "19_050_hs"]) / np.nanmean(hs_050_uc.loc[:, "19_050_hs"])
-np.nanmean(data_uc.loc[:, "19_050_hs_0"]) / np.nanmean(hs_050_uc.loc[:, "19_050_hs"])
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of snow depth (HS) for 21 Feb. 2019\n Upper Clearing, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distribution of snow depth (HS) for 21 Feb. 2019\n Clearing plot, 5cm resolution')
 ax1.set_xlabel("HS [m]")
 ax1.set_ylabel("Relative frequency [-]")
-g, hs_052_uc = resampling_histoplot(data_uc, '19_052_hs', 'lpml15', 50, extra_col="19_052_hs_0", extra_lab="interpolated", plotbins=125)
+g, hs_052_uc = resampling_histoplot(data_uc, '19_052_hs', 'lpml15', 50, extra_col="19_052_hs_0", extra_lab="interpolated", plotbins=199)
 g.legend_.set_title(None)
 legend = g.get_legend()
 handles = legend.legendHandles
 legend.remove()
-g.legend([handles[0], handles[2], handles[1]], ["observed only", "interpolated", "rejection sampled"], loc="upper left")
+g.legend([handles[0], handles[2], handles[1]], ["limited interpolation", "full interpolation", "rejection sampling"], loc="upper left")
 fig.savefig(plot_out_dir + "freq_dist_resampled_hs_052_uc_lpml15.png")
 
-np.nanmean(data_uc.loc[:, "19_052_hs"]) / np.nanmean(hs_052_uc.loc[:, "19_052_hs"])
-np.nanmean(data_uc.loc[:, "19_052_hs_0"]) / np.nanmean(hs_052_uc.loc[:, "19_052_hs"])
 
 # plot all together
 hs_045_uc = hs_045_uc.assign(date="14 Feb", hs=data_uc.loc[:, "19_045_hs"])
@@ -321,10 +436,10 @@ all_hs_uc = pd.concat([hs_045_uc.loc[:, ["hs", "date"]], hs_050_uc.loc[:, ["hs",
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distributions of snow depth (HS) for all days\n Upper Clearing, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distributions of snow depth (HS) for all days\n Clearing plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("HS [m]")
 ax1.set_ylabel("Relative frequency [-]")
-plot = sns.histplot(all_hs_uc, x="hs", hue="date", stat="density", common_norm=False, element="step")
+plot = sns.histplot(all_hs_uc, x="hs", hue="date", stat="density", common_norm=False, element="step", bins=202)
 fig.savefig(plot_out_dir + "freq_dist_resampled_all_hs_uc_lpml15.png")
 
 # export rejection sampled points
@@ -337,10 +452,71 @@ e_hs_050_uc.to_csv(rej_samp_out_file + 'resampled_hs_19_050_uc_r.10m_interp2x_by
 e_hs_052_uc.to_csv(rej_samp_out_file + 'resampled_hs_19_052_uc_r.10m_interp2x_by_lpml15.csv', index=False)
 
 
+# # # Reload samples
+# hs_045_uc = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_045_uc_r.10m_interp2x_by_lpml15.csv')
+# hs_050_uc = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_050_uc_r.10m_interp2x_by_lpml15.csv')
+# hs_052_uc = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_052_uc_r.10m_interp2x_by_lpml15.csv')
+#
+# # stats
+#
+# # acceptance rates
+# hs_045_uc.__len__() / data_uc.loc[:, "19_045_hs"].__len__()
+# hs_050_uc.__len__() / data_uc.loc[:, "19_050_hs"].__len__()
+# hs_052_uc.__len__() / data_uc.loc[:, "19_052_hs"].__len__()
+#
+# mean
+np.nanmean(data_uc.loc[:, "19_045_hs"]) / np.nanmean(hs_045_uc.loc[:, "19_045_hs"])
+np.nanmean(data_uc.loc[:, "19_045_hs_0"]) / np.nanmean(hs_045_uc.loc[:, "19_045_hs"])
+
+np.nanmean(data_uc.loc[:, "19_050_hs"]) / np.nanmean(hs_050_uc.loc[:, "19_050_hs"])
+np.nanmean(data_uc.loc[:, "19_050_hs_0"]) / np.nanmean(hs_050_uc.loc[:, "19_050_hs"])
+
+np.nanmean(data_uc.loc[:, "19_052_hs"]) / np.nanmean(hs_052_uc.loc[:, "19_052_hs"])
+np.nanmean(data_uc.loc[:, "19_052_hs_0"]) / np.nanmean(hs_052_uc.loc[:, "19_052_hs"])
+
+# var
+np.nanvar(data_uc.loc[:, "19_045_hs"]) / np.nanvar(hs_045_uc.loc[:, "19_045_hs"])
+np.nanvar(data_uc.loc[:, "19_045_hs_0"]) / np.nanvar(hs_045_uc.loc[:, "19_045_hs"])
+
+np.nanvar(data_uc.loc[:, "19_050_hs"]) / np.nanvar(hs_050_uc.loc[:, "19_050_hs"])
+np.nanvar(data_uc.loc[:, "19_050_hs_0"]) / np.nanvar(hs_050_uc.loc[:, "19_050_hs"])
+
+np.nanvar(data_uc.loc[:, "19_052_hs"]) / np.nanvar(hs_052_uc.loc[:, "19_052_hs"])
+np.nanvar(data_uc.loc[:, "19_052_hs_0"]) / np.nanvar(hs_052_uc.loc[:, "19_052_hs"])
+
+# std
+np.nanstd(data_uc.loc[:, "19_045_hs"]) / np.nanstd(hs_045_uc.loc[:, "19_045_hs"])
+np.nanstd(data_uc.loc[:, "19_045_hs_0"]) / np.nanstd(hs_045_uc.loc[:, "19_045_hs"])
+
+np.nanstd(data_uc.loc[:, "19_050_hs"]) / np.nanstd(hs_050_uc.loc[:, "19_050_hs"])
+np.nanstd(data_uc.loc[:, "19_050_hs_0"]) / np.nanstd(hs_050_uc.loc[:, "19_050_hs"])
+
+np.nanstd(data_uc.loc[:, "19_052_hs"]) / np.nanstd(hs_052_uc.loc[:, "19_052_hs"])
+np.nanstd(data_uc.loc[:, "19_052_hs_0"]) / np.nanstd(hs_052_uc.loc[:, "19_052_hs"])
+#
+# from scipy import stats
+# # a = hs_045_uc.loc[:, "19_045_hs"]
+# # a = hs_050_uc.loc[:, "19_050_hs"]
+# a = hs_052_uc.loc[:, "19_052_hs"]
+# a = a[~np.isnan(a)]
+# # b = data_uc.loc[:, "19_045_hs_0"]
+# # b = data_uc.loc[:, "19_050_hs_0"]
+# # b = data_uc.loc[:, "19_052_hs_0"]
+# # b = data_uc.loc[:, "19_045_hs"]
+# # b = data_uc.loc[:, "19_050_hs"]
+# b = data_uc.loc[:, "19_052_hs"]
+# b = b[~np.isnan(b)]
+#
+# tStat, pValue = stats.levene(a, b, center='median') #run independent sample T-Test
+# print("Levene: P-Value:{0} T-Statistic:{1}".format(pValue, tStat)) #print the P-Value and the T-Statistic
+# tStat, pValue = stats.ttest_ind(a, b, equal_var=False) #run independent sample T-Test
+# print("T-test: P-Value:{0} T-Statistic:{1}".format(pValue, tStat)) #print the P-Value and the T-Statistic
+
+
 #### rejection sample swe
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of SWE for 14 Feb. 2019\n Upper Clearing, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distribution of SWE for 14 Feb. 2019\n Clearing plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 g, d_045_uc = resampling_histoplot(data_uc, 'swe_clin_19_045', 'lpml15', 50)
@@ -349,7 +525,7 @@ fig.savefig(plot_out_dir + "freq_dist_resampled_swe_045_uc_lpml15.png")
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of SWE for 19 Feb. 2019\n Upper Clearing, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distribution of SWE for 19 Feb. 2019\n Clearing plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 g, d_050_uc = resampling_histoplot(data_uc, 'swe_clin_19_050', 'lpml15', 50)
@@ -358,7 +534,7 @@ fig.savefig(plot_out_dir + "freq_dist_resampled_swe_050_uc_lpml15.png")
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of SWE for 21 Feb. 2019\n Upper Clearing, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distribution of SWE for 21 Feb. 2019\n Clearing plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 g, d_052_uc = resampling_histoplot(data_uc, 'swe_clin_19_052', 'lpml15', 50)
@@ -373,7 +549,7 @@ all_swe_uc = pd.concat([d_045_uc.loc[:, ["swe", "date"]], d_050_uc.loc[:, ["swe"
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distributions of SWE for all days\n Upper Clearing, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distributions of SWE for all days\n Clearing plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 plot = sns.histplot(all_swe_uc, x="swe", hue="date", stat="density", common_norm=False, element="step")
@@ -392,7 +568,7 @@ e_052_uc.to_csv(rej_samp_out_file + 'resampled_swe_19_052_uc_clin_r.05m_interp2x
 #### rejection sample dswe
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of $\Delta$SWE for 14-19 Feb. 2019\n Upper Clearing, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distribution of $\Delta$SWE for 14-19 Feb. 2019\n Clearing plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 g, d_045_050_uc = resampling_histoplot(data_uc, 'dswe_cnsd_19_045-19_050', 'lpml15', 50, plotbins=250)
@@ -401,7 +577,7 @@ fig.savefig(plot_out_dir + "freq_dist_resampled_dswe_045-050_uc_lpml15.png")
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of $\Delta$SWE for 19-21 Feb. 2019\n Upper Clearing, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distribution of $\Delta$SWE for 19-21 Feb. 2019\n Clearing plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 g, d_050_052_uc = resampling_histoplot(data_uc, 'dswe_cnsd_19_050-19_052', 'lpml15', 50, plotbins=250)
@@ -415,7 +591,7 @@ all_dswe_uc = pd.concat([d_045_050_uc.loc[:, ["dswe", "interval"]], d_050_052_uc
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distributions of $\Delta$SWE for all days\n Upper Clearing, 5cm resolution, rejection sampled with LPM-L')
+ax1.set_title('Frequency distributions of $\Delta$SWE for all days\n Clearing plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("$\Delta$SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 sns.histplot(all_dswe_uc, x="dswe", hue="interval", stat="density", common_norm=False, element="step", bins=250)
@@ -516,7 +692,7 @@ cc_data = cc_data.loc[cc_data.plots == 1, :]  # uf only
 # DNT
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of Distance to Nearest Tree (DNT)\n Upper Forest, 10cm resolution, snow-free canopy')
+ax1.set_title('Frequency distribution of Distance to Nearest Tree (DNT)\n Forest plot, 10cm resolution, snow-free canopy')
 ax1.set_xlabel("DNT [m]")
 ax1.set_ylabel("Relative frequency [-]")
 sns.histplot(cc_data, x="dnt", stat="density", element="step")
@@ -525,7 +701,7 @@ fig.savefig(plot_out_dir + "freq_dist_dnt_uf.png")
 # DCE
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of Distance from Canopy Edge (DCE)\n Upper Forest, 10cm resolution, snow-free canopy')
+ax1.set_title('Frequency distribution of Distance from Canopy Edge (DCE)\n Forest plot, 10cm resolution, snow-free canopy')
 ax1.set_xlabel("DCE [m]")
 ax1.set_ylabel("Relative frequency [-]")
 sns.histplot(cc_data, x="dce", stat="density", element="step", binwidth=0.1)
@@ -534,7 +710,7 @@ fig.savefig(plot_out_dir + "freq_dist_dce_uf.png")
 # CHM
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distribution of vegetation crown height\n Upper Forest, 10cm resolution, snow-free vegetation > 1m')
+ax1.set_title('Frequency distribution of vegetation crown height\n Forest plot, 10cm resolution, snow-free vegetation > 1m')
 ax1.set_xlabel("Vegetation crown height [m]")
 ax1.set_ylabel("Relative frequency [-]")
 sns.histplot(cc_data.loc[cc_data.chm > 1, ], x="chm", stat="density", element="step")
@@ -549,7 +725,7 @@ bc = pd.concat([set_b.loc[:, ["mch", "method"]],  set_c.loc[:, ["mch", "method"]
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distributions of mean canopy height (mCH)\n Upper Forest, 10cm resolution')
+ax1.set_title('Frequency distributions of mean canopy height (mCH)\n Forest plot, 10cm resolution')
 ax1.set_xlabel("Mean canopy height [m]")
 ax1.set_ylabel("Relative frequency [-]")
 sns.histplot(ab, x="mch", hue="method", stat="density", common_norm=False, element="step", bins=100)
@@ -557,7 +733,7 @@ fig.savefig(plot_out_dir + "freq_dist_mch_snow_off_uf.png")
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distributions of mean canopy height (mCH)\n Upper Forest, 10cm resolution')
+ax1.set_title('Frequency distributions of mean canopy height (mCH)\n Forest plot, 10cm resolution')
 ax1.set_xlabel("Mean canopy height [m]")
 ax1.set_ylabel("Relative frequency [-]")
 sns.histplot(bc, x="mch", hue="method", stat="density", common_norm=False, element="step", bins=100)
@@ -572,7 +748,7 @@ ab = pd.concat([set_a.loc[:, ["lpm", "method"]], set_b.loc[:, ["lpm", "method"]]
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.set_title('Frequency distributions of light transmittance\n Upper Forest, 10cm resolution, snow-free canopy')
+ax1.set_title('Frequency distributions of light transmittance\n Forest plot, 10cm resolution, snow-free canopy')
 ax1.set_xlabel("Transmittance [-]")
 ax1.set_ylabel("Relative frequency [-]")
 g = sns.histplot(ab, x="lpm", hue="method", stat="density", common_norm=False, element="step", bins=40)

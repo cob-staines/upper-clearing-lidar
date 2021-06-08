@@ -19,13 +19,13 @@ pd_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/analys
 pd = read.csv(pd_in, header=TRUE, na.strings = c("NA",""), sep=",")
 
 hs_parsed <- hs %>%
-  gather('key', 'lidar_hs', 13:72) %>%
+  gather('key', 'lidar_hs', 13:92) %>%
   mutate(doy=substr(key, 5, 7), lidar_res=as.numeric(substr(key, 9,11)), interp_len=str_sub(key,-1,-1)) %>%
   select(uid, doy, lidar_res, lidar_hs, interp_len)
 hs_parsed$doy = as.numeric(hs_parsed$doy)
 
 swe_parsed <- swe %>%
-  gather('key', 'lidar_swe', 13:132) %>%
+  gather('key', 'lidar_swe', 13:172) %>%
   mutate(doy=substr(key, 5, 7), lidar_res=as.numeric(substr(key, 9, 11)), density_assumption=str_sub(key,-6,-3), interp_len=str_sub(key,-1,-1)) %>%
   select(uid, doy, lidar_res, lidar_swe, density_assumption, interp_len)
 swe_parsed$doy = as.numeric(swe_parsed$doy)
@@ -51,7 +51,7 @@ survey$vegetation[survey$vegetation == "edge"] = "forest"
 survey$vegetation[survey$vegetation == "newtrees"] = "clearing"
 
 # filter to first 3 days only
-survey = filter(survey, doy %in% c(45, 50, 52))
+# survey = filter(survey, doy %in% c(45, 50, 52))
 
 
 # merge along uid
@@ -68,8 +68,8 @@ swe_merge$swe_quality_flag[swe_merge$snow_depth_cm < 20] = 1
 swe_merge = swe_merge[swe_merge$swe_quality_flag == 0,]
 swe_merge = swe_merge[swe_merge$interp_len == 2,]
 
-hs_swe = merge(hs_parsed, swe_parsed, all = TRUE, by=c('uid', 'doy', 'lidar_res'))
-hs_swe_pd = merge(pd_parsed, hs_swe, all = TRUE, by=c('uid', 'doy', 'lidar_res'))
+hs_swe = merge(hs_parsed, swe_parsed, all = TRUE, by=c('uid', 'doy', 'lidar_res', 'interp_len'))
+hs_swe_pd = merge(pd_parsed, hs_swe, all.x = TRUE, by=c('uid', 'doy', 'lidar_res'))
 all_merge = merge(survey, hs_swe_pd, all.y = TRUE, by=c('uid', 'doy')) %>%
   filter(!is.na(Point.Id), !is.na(swe_mm)) %>%
   mutate(lidar_snow_density = lidar_swe / lidar_hs) %>%
@@ -139,22 +139,21 @@ ggplot(all_merge, aes(x=density, y=lidar_snow_density, shape=density_assumption)
   geom_abline(intercept = 0, slope = 1, size=1) +
   labs(title="Snow density validation", x="manual snow density (kg/m^3)", y="lidar snow density (kg/m^3)")
 
-# all_merge %>%
-#   filter(lidar_res == .1 | lidar_res == .25) %>%
-#   ggplot(., aes(x=hs_dif, y=lidar_pd, color=as.factor(doy))) +
-#     facet_grid(lidar_res ~ .) +
-#     geom_point() +
-#     scale_y_continuous(trans='log10', breaks = c(100, 1000, 10000)) +
-#     labs(title="Lidar snow depth error with snow on ground point density", x="lidar snow depth - manual (m)", y="lidar snow on ground point density (pts/m^2)")
-# 
-# all_merge %>%
-#   filter(lidar_res == .1 | lidar_res == .25) %>%
-#   ggplot(., aes(x=hs_dif, y=(snow_off_pd + lidar_pd)/2, color=cover)) +
-#   facet_grid(doy ~ lidar_res) +
-#   geom_point() +
-#   geom_vline(xintercept=0) +
-#   scale_y_continuous(trans='log10', breaks = c(100, sqrt(10) * 100, 1000, sqrt(10) * 1000)) +
-#   labs(title="Lidar snow depth error with snow on ground point density", x="lidar snow depth - manual (m)", y="mean lidar ground point density (pts/m^2)")
+all_merge %>%
+  filter(lidar_res == .25, interp_len == 2) %>%
+  ggplot(., aes(x=lidar_pd, y=hs_dif, color=as.factor(vegetation))) +
+    geom_point() +
+    scale_x_continuous(trans='log10', breaks = c(100, 1000, 10000)) +
+    labs(title="Lidar snow depth error with snow on ground point density", x="lidar snow depth - manual (m)", y="lidar snow on ground point density (pts/m^2)")
+
+all_merge %>%
+  filter(lidar_res == .1 | lidar_res == .25) %>%
+  ggplot(., aes(x=hs_dif, y=(snow_off_pd + lidar_pd)/2, color=cover)) +
+  facet_grid(doy ~ lidar_res) +
+  geom_point() +
+  geom_vline(xintercept=0) +
+  scale_y_continuous(trans='log10', breaks = c(100, sqrt(10) * 100, 1000, sqrt(10) * 1000)) +
+  labs(title="Lidar snow depth error with snow on ground point density", x="lidar snow depth - manual (m)", y="mean lidar ground point density (pts/m^2)")
 
 
 # groups and error metrics

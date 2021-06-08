@@ -10,19 +10,17 @@ import rastools
 
 
 # 19_149
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off\\'
-# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_5m\\'
-cn_coef = 0.191206
-#### old # cn_coef = 0.198508
+# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\'
+# cn_coef = 0.1841582
 
 
 # 045_050_052
-# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\'
-# cn_coef = 0.132154
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\'
+cn_coef = 0.1692154
 
 # optimization
-# batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_19_149\\"
-# batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_045_050_052\\"
+# # batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_off\\"
+# batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_on\\"
 # cn_coef = 1  # optimization
 
 file_out = batch_dir + "outputs\\rshmetalog_footprint_products.csv"
@@ -58,7 +56,13 @@ footprint_df = pd.DataFrame({
     "lrs_tx_1_deg": np.nan,
     "lrs_tx_75_deg": np.nan,
     "lrs_tx_90_deg": np.nan,
-    "lrs_sky_view": np.nan
+    "lrs_lai_1_deg": np.nan,
+    "lrs_lai_15_deg": np.nan,
+    "lrs_lai_75_deg": np.nan,
+    "lrs_lai_90_deg": np.nan,
+    "lrs_lai_2000": np.nan,
+    "lrs_sky_view": np.nan,
+    "lrs_cc": np.nan
 })
 
 z_step = 5000
@@ -81,15 +85,15 @@ for zz in range(0, z_count):
         # cn_stack[:, :, ii] = tif.imread(batch_dir + "outputs\\" + rshmeta.file_name[ii])[:, :, 0] * cn_coef
         im = tif.imread(batch_dir + "outputs\\" + rshmeta.file_name[zz * z_step + ii])
         cn_stack[:, :, ii] = im[:, :, 0] * cn_coef
-        cn_std_stack[:, :, ii] = im[:, :, 1] * cn_coef
+        # cn_std_stack[:, :, ii] = im[:, :, 1] * cn_coef  # for error analysis
 
     cn_stack_long = cn_stack
     cn_stack_long = np.swapaxes(np.swapaxes(cn_stack_long, 1, 2), 0, 1).reshape(cn_stack_long.shape[2], -1)
     tx_stack_long = np.exp(-cn_stack_long)
 
-    cn_std_stack_long = cn_std_stack
-    cn_std_stack_long = np.swapaxes(np.swapaxes(cn_std_stack_long, 1, 2), 0, 1).reshape(cn_std_stack_long.shape[2], -1)
-    tx_std_stack_long = np.exp(-cn_std_stack_long)
+    # cn_std_stack_long = cn_std_stack
+    # cn_std_stack_long = np.swapaxes(np.swapaxes(cn_std_stack_long, 1, 2), 0, 1).reshape(cn_std_stack_long.shape[2], -1)
+    # tx_std_stack_long = np.exp(-cn_std_stack_long)
 
     # summarize by angle band
     angle_step = 1  # in degrees
@@ -99,16 +103,16 @@ for zz in range(0, z_count):
     bin_count = len(bins)
 
     cn_bin_means = np.full([z_num, bin_count], np.nan)
-    cn_std_bin_means = np.full([z_num, bin_count], np.nan)
+    # cn_std_bin_means = np.full([z_num, bin_count], np.nan)
     tx_bin_means = np.full([z_num, bin_count], np.nan)
-    tx_std_bin_means = np.full([z_num, bin_count], np.nan)
+    # tx_std_bin_means = np.full([z_num, bin_count], np.nan)
     for ii in range(0, bin_count):
         bb = bins[ii]
         mask = (phi_bin == bb).reshape(phi.size)
         cn_bin_means[:, ii] = np.mean(cn_stack_long[:, mask], axis=1)
-        cn_std_bin_means[:, ii] = np.mean(cn_std_stack_long[:, mask], axis=1)
+        # cn_std_bin_means[:, ii] = np.mean(cn_std_stack_long[:, mask], axis=1)
         tx_bin_means[:, ii] = np.mean(tx_stack_long[:, mask], axis=1)
-        tx_std_bin_means[:, ii] = np.mean(tx_std_stack_long[:, mask], axis=1)
+        # tx_std_bin_means[:, ii] = np.mean(tx_std_stack_long[:, mask], axis=1)
 
 
     def angle_range_stat(lower_lim, upper_lim, var, weight_by="solid_angle"):
@@ -158,11 +162,13 @@ for zz in range(0, z_count):
     footprint_df.loc[z_low:z_high - 1, "lrs_lai_75_deg"] = angle_range_stat(0, 75, 2 * cn_bin_means * cos_proj)
     footprint_df.loc[z_low:z_high - 1, "lrs_lai_90_deg"] = angle_range_stat(0, 90, 2 * cn_bin_means * cos_proj)
 
-    footprint_df.loc[z_low:z_high - 1, "lrs_lai_2000"] = 2 * (0.034 * footprint_df.lrs_cn_1 +
-                                                              0.104 * footprint_df.lrs_cn_2 +
-                                                              0.160 * footprint_df.lrs_cn_3 +
-                                                              0.218 * footprint_df.lrs_cn_4 +
-                                                              0.484 * footprint_df.lrs_cn_5)
+    cos_mean_phi = np.cos((np.array([1, 2, 3, 4, 5]) * 15 - 15./2) * np.pi / 180)
+
+    footprint_df.loc[z_low:z_high - 1, "lrs_lai_2000"] = 2 * (0.034 * footprint_df.lrs_cn_1 * cos_mean_phi[0] +
+                                                              0.104 * footprint_df.lrs_cn_2 * cos_mean_phi[1] +
+                                                              0.160 * footprint_df.lrs_cn_3 * cos_mean_phi[2] +
+                                                              0.218 * footprint_df.lrs_cn_4 * cos_mean_phi[3] +
+                                                              0.484 * footprint_df.lrs_cn_5 * cos_mean_phi[4])
 
     footprint_df.loc[z_low:z_high - 1, "lrs_sky_view"] = angle_range_stat(0, 75, tx_bin_means, weight_by="cos")
     footprint_df.loc[z_low:z_high - 1, "lrs_cc"] = 1 - angle_range_stat(0, 75, tx_bin_means, weight_by="solid_angle")

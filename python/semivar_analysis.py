@@ -509,8 +509,7 @@ n_bins = np.rint(30 * 2 / res).astype(int)
 
 d_bounds = [0, res * (n_bins)/2]
 spv_lrs_lai_1deg = geotk.bin_summarize(samps_lrs_lai_1deg, n_bins, d_bounds=d_bounds)
-lala = spv_lrs_lai_1deg
-lala.variance = spv_lrs_lai_1deg.variance / spv_lrs_lai_1deg.variance[n_bins-2]
+spv_lrs_lai_1deg.variance[0] / spv_lrs_lai_1deg.variance[n_bins-2]
 spv_lrs_lai_15deg = geotk.bin_summarize(samps_lrs_lai_15deg, n_bins, d_bounds=d_bounds)
 spv_lrs_lai_15deg.variance[0] / spv_lrs_lai_15deg.variance[n_bins-2]
 spv_lrs_lai_75deg = geotk.bin_summarize(samps_lrs_lai_75deg, n_bins, d_bounds=d_bounds)
@@ -522,3 +521,4 @@ spv_re_dswe_045_050.variance[0] / spv_re_dswe_045_050.variance[n_bins-2]
 spv_re_dswe_050_052 = geotk.bin_summarize(samps_re_dswe_050_052, n_bins, d_bounds=d_bounds)
 spv_re_dswe_050_052.variance[0] / spv_re_dswe_050_052.variance[n_bins-2]
 
+lala = spv_lrs_lai_1deg.variance / norm_lrs_lai_1deg

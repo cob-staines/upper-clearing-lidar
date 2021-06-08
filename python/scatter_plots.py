@@ -198,21 +198,27 @@ x_labs = ['SWE\nFeb 14', 'SWE\nFeb 19', 'SWE\nFeb 21', '$\Delta$SWE\nStorm 1', '
 
 y_vars = ['chm', 'dnt', 'dce',
           'mCH_19_149_resampled', 'fcov', 'lpml15',
-          'lrs_cn_1_deg', 'lrs_cn_1_deg_snow_on',
-          'lrs_cn_1', 'lrs_cn_1_snow_on', 'contactnum_1',
-          'lrs_cn_5', 'lrs_cn_5_snow_on', 'contactnum_5',
-          'lrs_lai_75_deg', 'lrs_lai_75_deg_snow_on', 'lai_s_cc',
-          'lrs_cc', 'lrs_cc_snow_on', 'cc',
-          'lrs_sky_view', 'lrs_sky_view_snow_on'
+          # 'lrs_cn_1_deg', 'lrs_cn_1_deg_snow_on',
+          'lrs_tx_1_deg_snow_on', 'lrs_tx_1_deg',
+          # 'lrs_cn_1', 'lrs_cn_1_snow_on', 'contactnum_1',
+          'lrs_tx_1_snow_on', 'lrs_tx_1', 'transmission_s_1',
+          # 'lrs_cn_5', 'lrs_cn_5_snow_on', 'contactnum_5',
+          'lrs_tx_2_snow_on', 'lrs_tx_2', 'transmission_s_2',
+          'lrs_lai_75_deg_snow_on', 'lrs_lai_75_deg', 'lai_s_cc',
+          'lrs_cc_snow_on', 'lrs_cc', 'cc',
+          'lrs_sky_view_snow_on', 'lrs_sky_view',
           ]
 y_labs = ['$CHM$', '$DNT$', '$DCE$',
           r'$mCH$', '$fCov$', '$LPM$-$L$',
-          r'$\chi_{1}^{\blacktriangle}$', r'$\chi_{1}^{\vartriangle}$',
-          r'$\chi_{15}^{\blacktriangle}$', r'$\chi_{15}^{\vartriangle}$', r'$\chi_{15}^{\bullet}$',
-          r'$\chi_{60-75}^{\blacktriangle}$', r'$\chi_{60-75}^{\vartriangle}$', r'$\chi_{60-75}^{\bullet}$',
-          r'$LAI_{75}^{\blacktriangle}$', r'$LAI_{75}^{\vartriangle}$', r'$LAI_{2000}^{\bullet}$',
-          r'$CC^{\blacktriangle}$', r'$CC^{\vartriangle}$', r'$CC^{\bullet}$',
-          r'$V_{S}^{\blacktriangle}$', r'$V_{S}^{\vartriangle}$'
+          # r'$\chi_{1}^{\blacktriangle}$', r'$\chi_{1}^{\vartriangle}$',
+          r'$T_{1}^{\vartriangle}$', r'$T_{1}^{\blacktriangle}$',
+          # r'$\chi_{15}^{\blacktriangle}$', r'$\chi_{15}^{\vartriangle}$', r'$\chi_{15}^{\bullet}$',
+          r'$T_{15}^{\vartriangle}$', r'$T_{15}^{\blacktriangle}$', r'$T_{15}^{\bullet}$',
+          # r'$\chi_{60-75}^{\blacktriangle}$', r'$\chi_{60-75}^{\vartriangle}$', r'$\chi_{60-75}^{\bullet}$',
+          r'$T_{15-30}^{\vartriangle}$', r'$T_{15-30}^{\blacktriangle}$', r'$T_{15-30}^{\bullet}$',
+          r'$LAI_{75}^{\vartriangle}$', r'$LAI_{75}^{\blacktriangle}$', r'$LAI_{2000}^{\bullet}$',
+          r'$CC^{\vartriangle}$', r'$CC^{\blacktriangle}$', r'$CC^{\bullet}$',
+          r'$V_{S}^{\vartriangle}$', r'$V_{S}^{\blacktriangle}$',
           ]
 
 y_res = [10, 10, 10,
@@ -222,7 +228,8 @@ y_res = [10, 10, 10,
          25, 25, 25,
          25, 25, 25,
          25, 25, 25,
-         25, 25
+         25, 25, 25,
+         25, 25,
          ]
 
 # export stats
@@ -252,11 +259,11 @@ for ii in range(0, imax):
     for jj in range(0, jmax):
         if spr_p[ii, jj] < 0.001:
             # spr_str[ii, jj] = "{0:3.3f}\n(<.001)".format(spr[ii, jj])
-            spr_str[ii, jj] = "{0:3.3f}".format(spr[ii, jj])
+            spr_str[ii, jj] = "{0:3.3f}$^*$".format(spr[ii, jj])
         elif spr_p[ii, jj] >= 0.05:
-            spr_str[ii, jj] = "{0:3.3f}**\n({1:3.3f})".format(spr[ii, jj], spr_p[ii, jj])
-        else:
             spr_str[ii, jj] = "{0:3.3f}\n({1:3.3f})".format(spr[ii, jj], spr_p[ii, jj])
+        else:
+            spr_str[ii, jj] = "{0:3.3f}$^*$\n({1:3.3f})".format(spr[ii, jj], spr_p[ii, jj])
 
 # plot heatmap
 correlation_mat = df_all.loc[:, x_vars + y_vars].corr(method="spearman")
@@ -266,21 +273,25 @@ sns.heatmap(correlation_mat_sub, annot=spr_str, fmt='', vmin=-1, vmax=1, cmap="R
 fig.savefig(plot_out_dir + "spearman_heatmap.png")
 
 
+
+
 # calculate medians of canopy metrics
 # all points
 
 y_stats = ["mean_all",
+           "std_all",
            "median_all",
            "median_canopy",
            "max_all"]
 
-can_stats = pd.DataFrame(columns=y_stats, index=y_vars, data = np.nan)
+can_stats = pd.DataFrame(columns=y_stats, index=y_vars, data=np.nan)
 
 canopy_10 = (df_all.chm >= 1)
 canopy_25 = (df_all.chm_median >= 1)
 for jj in range(len(y_vars)):
         yy = y_vars[jj]
         can_stats.mean_all[jj] = np.nanmean(df_all.loc[:, yy])
+        can_stats.std_all[jj] = np.nanstd(df_all.loc[:, yy])
         can_stats.median_all[jj] = np.nanmedian(df_all.loc[:, yy])
         can_stats.max_all[jj] = np.nanmax(df_all.loc[:, yy])
 
@@ -305,33 +316,33 @@ can_stats.to_csv(stat_file + "canopy_stats.csv")
 # xc = xc.loc[xc.uf == 1, :]
 # xc.loc[:, 'cn_mean'] = xc.loc[:, 'er_p0_mean'] * 0.19447
 # xc.loc[:, 'transmission_rs'] = np.exp(-xc.loc[:, 'cn_mean'])
-
-
-x_dat = df_25.lai_s_cc
-y_dat = df_25.lrs_cn_75_deg
-
-x_dat = df_25.swe_fcon_19_050
-y_dat = df_25.lrs_tx_1
-
-x_dat = df_25.transmission_s_1
-y_dat = df_25.lrs_tx_1
-
-x_dat = df_25.lai_no_cor
-y_dat = df_25.lrs_lai_2000
-
-plotrange = [[np.nanquantile(x_dat, .0005), np.nanquantile(x_dat, .9995)],
-                     [np.nanquantile(y_dat, .0005), np.nanquantile(y_dat, .9995)]]
-plotrange = [[0, np.nanquantile(x_dat, .9995)],
-                     [0, np.nanquantile(y_dat, .9995)]]
+#
+#
+# x_dat = df_25.lai_s_cc
+# y_dat = df_25.lrs_cn_75_deg
+#
+# x_dat = df_25.swe_fcon_19_050
+# y_dat = df_25.lrs_tx_1
+#
+# x_dat = df_25.transmission_s_1
+# y_dat = df_25.lrs_tx_1
+#
+# x_dat = df_25.lai_no_cor
+# y_dat = df_25.lrs_lai_2000
+#
+# plotrange = [[np.nanquantile(x_dat, .0005), np.nanquantile(x_dat, .9995)],
+#                      [np.nanquantile(y_dat, .0005), np.nanquantile(y_dat, .9995)]]
 # plotrange = [[0, np.nanquantile(x_dat, .9995)],
-#                      [0, 4]]
-# plt.hist2d(x_dat, y_dat, range=plotrange, bins=(np.array([8, 5.7]) * 20).astype(int), norm=colors.LogNorm(), cmap="Blues")
-plt.hist2d(x_dat, y_dat, range=plotrange, bins=(np.array([8, 5.7]) * 20).astype(int), cmap="Blues")
-fig, ax = plt.subplots(nrows=2, ncols=2)
+#                      [0, np.nanquantile(y_dat, .9995)]]
+# # plotrange = [[0, np.nanquantile(x_dat, .9995)],
+# #                      [0, 4]]
+# # plt.hist2d(x_dat, y_dat, range=plotrange, bins=(np.array([8, 5.7]) * 20).astype(int), norm=colors.LogNorm(), cmap="Blues")
+# plt.hist2d(x_dat, y_dat, range=plotrange, bins=(np.array([8, 5.7]) * 20).astype(int), cmap="Blues")
+# fig, ax = plt.subplots(nrows=2, ncols=2)
 
 
 
-def plot_together(df, x_dat, y_dat, titles, suptitle="", lims=None, x_lab=None, y_lab=None):
+def plot_together(df, x_dat, y_dat, titles, suptitle="", lims=None, x_lab=None, y_lab=None, x_weights=None):
     n_plots = len(y_dat)
     fig, ax = plt.subplots(nrows=1, ncols=n_plots, sharey=True, sharex=True, figsize=(3 * n_plots, 3.8), constrained_layout=True)
 
@@ -350,7 +361,14 @@ def plot_together(df, x_dat, y_dat, titles, suptitle="", lims=None, x_lab=None, 
 
         # ax.hist2d(df.loc[:, x_dat[ii]], df.loc[:, y_dat[ii]], range=squarerange,
         #           bins=(np.array([8, 8]) * 10).astype(int), cmap="Blues")
-        ax[ii].scatter(df.loc[:, x_dat[ii]], df.loc[:, y_dat[ii]], alpha=.15, s=1)
+
+        if x_weights is not None:
+            x_scalar = x_weights[ii]
+        else:
+            x_scalar = 1
+        xx = -np.log(df.loc[:, x_dat[ii]] * x_scalar)
+        yy = -np.log(df.loc[:, y_dat[ii]])
+        ax[ii].scatter(xx, yy, alpha=.15, s=1)
         plt.ylim(lims)
         plt.xlim(lims)
         ax[ii].title.set_text(titles[ii])
@@ -368,6 +386,7 @@ def plot_together(df, x_dat, y_dat, titles, suptitle="", lims=None, x_lab=None, 
 
     return fig, ax
 
+## don't use contact number here!!!
 x_dat = ["contactnum_1",
          "contactnum_2",
          "contactnum_3",
@@ -388,14 +407,18 @@ y_dat = ["lrs_cn_1",
 
 
 
-titles = ["0-15$^{\circ}$",
-          "15-30$^{\circ}$",
-          "30-45$^{\circ}$",
-          "45-60$^{\circ}$",
-          "60-75$^{\circ}$"]
+titles = ["0$^{\circ}$-15$^{\circ}$",
+          "15$^{\circ}$-30$^{\circ}$",
+          "30$^{\circ}$-45$^{\circ}$",
+          "45$^{\circ}$-60$^{\circ}$",
+          "60$^{\circ}$-75$^{\circ}$"]
 
 maxmin = [np.nanmin((df_25.loc[:, x_dat], df_25.loc[:, y_dat])) - .25,
               np.nanmax((df_25.loc[:, x_dat], df_25.loc[:, y_dat])) + .25]
+
+maxmin = [0, 6]
+
+x_weights = 1/np.cos((np.array([1, 2, 3, 4, 5]) * 15 - 15./2) * np.pi / 180)
 fig, ax = plot_together(df_25, x_dat, y_dat, titles, lims=maxmin,
                         suptitle="Contact number methods comparison over the Upper Forest",
                         y_lab=r"$\chi_{a-b}^{\blacktriangle}$ [-]",
@@ -415,25 +438,27 @@ y_dat = ["lrs_tx_1",
          "lrs_tx_4",
          "lrs_tx_5"]
 
-titles = ["0-15$^{\circ}$",
-          "15-30$^{\circ}$",
-          "30-45$^{\circ}$",
-          "45-60$^{\circ}$",
-          "60-75$^{\circ}$"]
+titles = ["0$^{\circ}$-15$^{\circ}$",
+          "15$^{\circ}$-30$^{\circ}$",
+          "30$^{\circ}$-45$^{\circ}$",
+          "45$^{\circ}$-60$^{\circ}$",
+          "60$^{\circ}$-75$^{\circ}$"]
 
 
-fig, ax = plot_together(df_25, x_dat, y_dat, titles, lims=[0, 1],
+fig, ax = plot_together(df_25, x_dat, y_dat, titles, lims=[0, 6],
                         suptitle="Transmittance methods comparison over the Upper Forest",
                         y_lab=r"$T_{a-b}^{\blacktriangle}$ [-]",
                         x_lab=r"$T_{a-b}^{\bullet}$ [-]")
 fig.savefig(plot_out_dir + "tx_comparison.png")
 
 fig, ax = plt.subplots(nrows=1, ncols=1, sharey=True, sharex=True, figsize=(8, 6), constrained_layout=True)
-x_dat = ["lai_s_cc"]
-x_dat = ["lai_s_cc"]
+# x_dat = ["lai_s_cc"]
+x_dat = ["transmission_s_5"]
 # y_dat = ["lai_s_cc_pois"]
-y_dat = ["lrs_lai_75_deg"]
+# y_dat = ["lrs_lai_1_deg"]
 # y_dat = ["lrs_lai_2000"]
+# y_dat = ["lrs_lai_75_deg"]
+y_dat = ["lrs_tx_5"]
 titles = ["LAI methods comparison over Upper Forest"]
 df = df_25
 ii = 0
@@ -445,10 +470,14 @@ offset = 0
 #                  [np.nanquantile(df.loc[:, y_dat], .0005) - offset, np.nanquantile(df.loc[:, y_dat], .995) + offset]]
 # squarerange = [[np.min(plotrange), np.max(plotrange)],
 #                [np.min(plotrange), np.max(plotrange)]]
-maxmin=[np.nanmin((df.loc[:, x_dat], df.loc[:, y_dat])) - .25, np.nanmax((df.loc[:, x_dat], df.loc[:, y_dat])) + .25]
+
+# xx = -np.log(df.loc[:, x_dat])
+xx = -np.log(df.loc[:, x_dat])
+yy = -np.log(df.loc[:, y_dat])
+maxmin=[np.nanmin((xx, yy)) - .25, np.nanmax((xx, yy)) + .25]
 # ax.hist2d(df.loc[:, x_dat[ii]], df.loc[:, y_dat[ii]], range=squarerange,
 #           bins=(np.array([8, 8]) * 10).astype(int), cmap="Blues")
-ax.scatter(df.loc[:, x_dat[ii]], df.loc[:, y_dat[ii]], alpha=.25, s=25)
+ax.scatter(xx, yy, alpha=.25, s=25)
 plt.ylim(maxmin)
 plt.xlim(maxmin)
 ax.title.set_text(titles[ii])
@@ -471,9 +500,43 @@ fig.savefig(plot_out_dir + "lai_comparison.png")
 # fig, ax = plot_together(df_25, x_dat, y_dat, titles, suptitle="LAI comparison between methods across angle bands for Upper Forest", plotrange = [[0, 5], [0, 5]])
 # fig.savefig(plot_out_dir + "lai_comparison.png")
 
-xx = "lrs_lai_75_deg"
-# yy = "lrs_lai_15_deg"
-yy = "lrs_lai_1_deg"
+
+# stats
+# xx = "contactnum_5"
+# yy = "lrs_cn_5"
+
+# xx = "transmission_s_5"
+# yy = "lrs_tx_5"
+
+xx = "lai_s_cc"
+yy = "lrs_lai_2000"
+
+
 valid = ~np.isnan(df_25[xx]) & ~np.isnan(df_25[yy])
-spearmanr(df_25.loc[valid, xx], df_25.loc[valid, yy])
-pearsonr(df_25.loc[valid, xx], df_25.loc[valid, yy])
+pCor, pValue = pearsonr(df_25.loc[valid, xx], df_25.loc[valid, yy])
+print("Pearsons: Correlaiton:{0} P-Value:{1}".format(pCor, pValue)) #print the P-Value and the T-Statistic
+rmsd = np.sqrt(np.mean((df_25.loc[valid, yy] - df_25.loc[valid, xx]) ** 2))
+print("RMSD: {0}".format(rmsd))
+mb = np.mean(df_25.loc[valid, yy] - df_25.loc[valid, xx])
+print("Mean Bias: {0}".format(mb))
+rat = np.mean(df_25.loc[valid, xx] / df_25.loc[valid, yy])
+print("Relative Ratio: {0}".format(rat))
+# investigation into spatial differences
+
+xx = "lrs_cn_5"
+yy = "contactnum_5"
+
+# xx = "lrs_tx_2"
+# yy = "lrs_tx_2_snow_on"
+
+# xx = "lai_s_cc"
+# yy = "lrs_lai_2000"
+
+var_dif = df_25[xx] - df_25[yy]
+valid = ~np.isnan(var_dif)
+x_coord = df_25.x_coord
+y_coord = df_25.y_coord
+
+plt.scatter(x_coord[valid], y_coord[valid], c=var_dif[valid])
+# plt.scatter(x_coord[valid], y_coord[valid], c=df_25.loc[valid, xx])
+plt.colorbar()

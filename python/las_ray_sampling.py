@@ -1601,9 +1601,7 @@ def rs_hemigen(rshmeta, vox, tile_count_1d=1, n_cores=1):
             # multiple cores
             with mpp.ThreadPool(processes=n_cores) as pool:
                 # mm = pool.starmap(rshm_iterate, zip(rshm_list, repeat(rshmeta), repeat(vox), log_path_list, np.arange(0, len(tiles)), repeat(len(tiles) + 1)))
-                mm = pool.starmap(rshm_iterate,
-                                  zip(rshm_list, repeat(rshmeta), repeat(vox), log_path_list, np.arange(0, len(tiles)),
-                                      repeat(len(tiles))))
+                mm = pool.starmap(rshm_iterate, zip(rshm_list, repeat(rshmeta), repeat(vox), log_path_list, np.arange(0, len(tiles)), repeat(len(tiles))))
         else:
             # single core
             for jj in range(0, len(tiles)):

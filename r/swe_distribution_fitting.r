@@ -54,6 +54,12 @@ uc_050_052 = read.csv(uc_050_052_in, header=TRUE, na.strings = c("NA",""), sep="
   rename(dswe = "dswe_cnsd_19_050.19_052")
 
 
+# Check normality of dswe distributions
+# qqnorm(uf_045_050$dswe)
+# qqnorm(uf_050_052$dswe)
+# qqnorm(uc_045_050$dswe)
+# qqnorm(uc_050_052$dswe)
+
 # coefficient of variation
 cv_uf_045 = sd(uf_045$swe)/mean(uf_045$swe)
 cv_uf_050 = sd(uf_050$swe)/mean(uf_050$swe)
@@ -75,16 +81,19 @@ sd(uc_052$swe)
 # dswe parameters
 mean(uf_045_050$dswe)
 sd(uf_045_050$dswe)
+sd(uf_045_050$dswe)/mean(uf_045_050$dswe)
 
 mean(uc_045_050$dswe)
 sd(uc_045_050$dswe)
+sd(uc_045_050$dswe)/mean(uc_045_050$dswe)
 
 mean(uf_050_052$dswe)
 sd(uf_050_052$dswe)
+sd(uf_050_052$dswe)/mean(uf_050_052$dswe)
 
 mean(uc_050_052$dswe)
 sd(uc_050_052$dswe)
-
+sd(uc_050_052$dswe)/mean(uc_050_052$dswe)
 
 # shook 1995
 qq_func = function(data){

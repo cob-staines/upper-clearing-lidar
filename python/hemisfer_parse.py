@@ -6,10 +6,12 @@ rx_dict = {
     'picture': re.compile(r'picture\s*(?P<picture>.*)\n'),
     'threshold': re.compile(r'threshold\s*(?P<threshold>\S+).*\n'),
     'ringcount_ringwidth': re.compile(r'rings\s*(?P<ringcount>\d+)\s*(?P<ringwidth_deg>\d+,\d+).*\n'),
-    'ring_table': re.compile(r'ring\tangle.*width\n'),
+    'ring_table': re.compile(r'ring\s*angle.*width\n'),
     'transmission': re.compile(r'transmission\s*(?P<transmission>.*)%\n'),
     'openness': re.compile(r'openness\s*(?P<openness>.*)%\n'),
-    'licor_lai': re.compile(r'LiCor LAI2000\s*(?P<lai_no_cor>\d+,\d+)\s*(?P<laa_no_cor>\d+)\s*(?P<lai_s>\d+,\d+)\s*(?P<laa_s>\d+)\s*(?P<lai_cc>\d+,\d+)\s*(?P<laa_cc>\d+)\s*(?P<lai_s_cc>\d+,\d+)\s*(?P<laa_s_cc>\d+)\n')
+    'corrections': re.compile(r'\scorrections\s*')
+    # 'licor_lai': re.compile(r'LiCor LAI2000\s*(?P<lai_no_cor>\d+,\d+)\s*(?P<laa_no_cor>\d+)\s*(?P<lai_s>\d+,\d+)\s*(?P<laa_s>\d+)\s*(?P<lai_cc>\d+,\d+)\s*(?P<laa_cc>\d+)\s*(?P<lai_s_cc>\d+,\d+)\s*(?P<laa_s_cc>\d+)\n')
+
 }
 
 rx_conditional = {
@@ -25,6 +27,9 @@ rx_conditional = {
     'ring_th_3': re.compile(r'3\s\S*\s(?P<threshold_3>\S*)\s\S*\s\S*\s(?P<transmission_3>\S*)\s(?P<transmission_s_3>\S*)\s(?P<contactnum_3>\S*)\s(?P<gaps_3>\S*)\s\S*\s\S*'),
     'ring_th_4': re.compile(r'4\s\S*\s(?P<threshold_4>\S*)\s\S*\s\S*\s(?P<transmission_4>\S*)\s(?P<transmission_s_4>\S*)\s(?P<contactnum_4>\S*)\s(?P<gaps_4>\S*)\s\S*\s\S*'),
     'ring_th_5': re.compile(r'5\s\S*\s(?P<threshold_5>\S*)\s\S*\s\S*\s(?P<transmission_5>\S*)\s(?P<transmission_s_5>\S*)\s(?P<contactnum_5>\S*)\s(?P<gaps_5>\S*)\s\S*\s\S*'),
+    'licor_lai': re.compile(r'LiCor LAI2000\s*(?P<lai_no_cor>\d+,\d+)\s*(?P<laa_no_cor>\d+)\s*(?P<lai_s>\d+,\d+)\s*(?P<laa_s>\d+)\s*(?P<lai_cc>\d+,\d+)\s*(?P<laa_cc>\d+)\s*(?P<lai_s_cc>\d+,\d+)\s*(?P<laa_s_cc>\d+)\n'),
+    'thimonier_lai': re.compile(r'T. & al. \(2010\)\s*(?P<lai_t_no_cor>\d+,\d+)\s*(?P<laa_t_no_cor>\d+)\s*(?P<lai_t_s>\d+,\d+)\s*(?P<laa_t_s>\d+)\s*(?P<lai_t_cc>\d+,\d+)\s*(?P<laa_t_cc>\d+)\s*(?P<lai_t_s_cc>\d+,\d+)\s*(?P<laa_t_s_cc>\d+)\n'),
+    'thimonier_skyview': re.compile(r'T. & al. \(2010\)\s*(?P<skyview_no_cor>\d+([.,]\d+)?)%\s*-\s*(?P<skyview_s>\d+([.,]\d+)?)%\s*-\s*(?P<skyview_cc>\d+([.,]\d+)?)%\s*(?P<skyview_gaps_cc>\d+([.,]\d+)?)%\s*(?P<skyview_s_cc>\d+([.,]\d+)?)%\s*(?P<skyview_gaps_s_cc>\d+([.,]\d+)?)%\n')
 }
 
 def _parse_line(line):
@@ -99,7 +104,47 @@ def parse_file(file_in, file_out, hemimeta_in=None):
                             # add group and value to entry
                             entry.update({list(match.re.groupindex.keys())[ii]: match.group(
                                 list(match.re.groupindex.keys())[ii])})
-                elif key == 'licor_lai':  # at the last trigger key
+                # elif key == 'licor_lai':  # at the last trigger key
+                #     # append entry to data
+                #     data.append(entry)
+                #     # clear entry for next round
+                #     entry = {}
+                elif key == 'corrections':  # at the last trigger key
+                    # advance 4 lines
+                    line = file_object.readline()
+                    line = file_object.readline()
+                    line = file_object.readline()
+                    line = file_object.readline()
+
+                    # licor lai
+                    match = rx_conditional['licor_lai'].search(line)
+                    for ii in range(0, match.re.groups):
+                        # add group and value to entry
+                        entry.update({list(match.re.groupindex.keys())[ii]: match.group(
+                            list(match.re.groupindex.keys())[ii])})
+
+                    line = file_object.readline()
+
+                    # Thimonier lai
+                    match = rx_conditional['thimonier_lai'].search(line)
+                    for ii in range(0, match.re.groups):
+                        # add group and value to entry
+                        entry.update({list(match.re.groupindex.keys())[ii]: match.group(
+                            list(match.re.groupindex.keys())[ii])})
+
+                    # advance 4 lines
+                    line = file_object.readline()
+                    line = file_object.readline()
+                    line = file_object.readline()
+                    line = file_object.readline()
+
+                    # Thimonier skyview
+                    match = rx_conditional['thimonier_skyview'].search(line)
+                    for ii in range(0, len(match.re.groupindex)):
+                        # add group and value to entry
+                        entry.update({list(match.re.groupindex.keys())[ii]: match.group(
+                            list(match.re.groupindex.keys())[ii])})
+
                     # append entry to data
                     data.append(entry)
                     # clear entry for next round
@@ -134,16 +179,19 @@ def parse_file(file_in, file_out, hemimeta_in=None):
 
 # optimization
 # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_149\\clean\\sized\\thresholded\\LAI.dat"
-# # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\045_052_050\\LAI_045_050_052.dat"
-# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\poisson\\LAI.dat"
-# file_out = file_in.replace('.dat', '_parsed.dat')
-# lai_parsed = parse_file(file_in, file_out)
+# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\045_052_050\\LAI_045_050_052_test.dat"
+# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_045\\clean\\sized\\thresholded\\LAI.dat"
+# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_050\\clean\\sized\\thresholded\\LAI.dat"
+# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_052\\clean\\sized\\thresholded\\LAI.dat"
+file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\poisson\\LAI.dat"
+file_out = file_in.replace('.dat', '_parsed.dat')
+lai_parsed = parse_file(file_in, file_out)
 
 # # outputs
-# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr0_os.65\\outputs\\LAI.dat"
-file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr0.15_os14.5\\outputs\\LAI.dat"
-file_out = file_in.replace('.dat', '_parsed.dat')
-lai_parsed = parse_file(file_in, file_out, hemimeta_in=True)
+# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr0_os.65_snow_off_dem_offset.25\\outputs\\LAI.dat"
+# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr.15_os14.5_snow_off_dem_offset.25\\outputs\\LAI.dat"
+# file_out = file_in.replace('.dat', '_parsed.dat')
+# lai_parsed = parse_file(file_in, file_out, hemimeta_in=True)
 
 
 
