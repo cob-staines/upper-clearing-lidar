@@ -401,8 +401,7 @@ df_25.loc[:, "cn_from_tx_5"] = -np.log(df_25.loc[:, "transmission_s_5"])
 x_dat = ["cn_from_tx_1",
          "cn_from_tx_2",
          "cn_from_tx_3",
-         "cn_from_tx_4",
-         "cn_from_tx_5"]
+         "cn_from_tx_4"]
 
 # y_dat = ["contactnum_1_pois",
 #          "contactnum_2_pois",
@@ -413,16 +412,14 @@ x_dat = ["cn_from_tx_1",
 y_dat = ["lrs_cn_1",
          "lrs_cn_2",
          "lrs_cn_3",
-         "lrs_cn_4",
-         "lrs_cn_5"]
+         "lrs_cn_4"]
 
 
 
 titles = ["0$^{\circ}$-15$^{\circ}$",
           "15$^{\circ}$-30$^{\circ}$",
           "30$^{\circ}$-45$^{\circ}$",
-          "45$^{\circ}$-60$^{\circ}$",
-          "60$^{\circ}$-75$^{\circ}$"]
+          "45$^{\circ}$-60$^{\circ}$"]
 
 # x_weights = 1/np.cos((np.array([1, 2, 3, 4, 5]) * 15 - 15./2) * np.pi / 180)
 
@@ -439,20 +436,17 @@ fig.savefig(plot_out_dir + "cn_comparison.png")
 x_dat = ["transmission_s_1",
          "transmission_s_2",
          "transmission_s_3",
-         "transmission_s_4",
-         "transmission_s_5"]
+         "transmission_s_4"]
 
 y_dat = ["lrs_tx_1",
          "lrs_tx_2",
          "lrs_tx_3",
-         "lrs_tx_4",
-         "lrs_tx_5"]
+         "lrs_tx_4"]
 
 titles = ["0$^{\circ}$-15$^{\circ}$",
           "15$^{\circ}$-30$^{\circ}$",
           "30$^{\circ}$-45$^{\circ}$",
-          "45$^{\circ}$-60$^{\circ}$",
-          "60$^{\circ}$-75$^{\circ}$"]
+          "45$^{\circ}$-60$^{\circ}$"]
 
 
 fig, ax = plot_together(df_25, x_dat, y_dat, titles, lims=[0, 1],
@@ -463,12 +457,12 @@ fig.savefig(plot_out_dir + "tx_comparison.png")
 
 fig, ax = plt.subplots(nrows=1, ncols=1, sharey=True, sharex=True, figsize=(8, 6), constrained_layout=True)
 x_dat = ["lai_s_cc"]
-# x_dat = ["lrs_lai_75_deg"]
+# x_dat = ["lrs_lai_60_deg"]
 # x_dat = ["transmission_s_5"]
 # y_dat = ["lai_s_cc_pois"]
 # y_dat = ["lrs_lai_1_deg"]
 y_dat = ["lrs_lai_2000"]
-# y_dat = ["lrs_lai_15_deg"]
+# y_dat = ["lrs_lai_60_deg"]
 # x_dat = ["lrs_tx_5"]
 # y_dat = ["lrs_cn_5"]
 titles = ["LAI methods comparison over Upper Forest"]

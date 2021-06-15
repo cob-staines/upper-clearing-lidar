@@ -4,7 +4,7 @@ library('ggplot2')
 
 # optimize by transmission over analysis rings
 
-plot_out_dir = "C:/Users/Cob/index/educational/usask/research/masters/graphics/thesis_graphics/validation/hemiphoto_validation/"
+plot_out_dir = "C:/Users/Cob/index/educational/usask/research/masters/graphics/thesis_graphics/validation/reprojection_validation/"
 p_width = 8  # inches
 p_height = 5.7  # inches
 dpi = 100
@@ -104,7 +104,7 @@ ggplot(., aes(x=optimization_scalar, y=tx_wmb)) +
   geom_point() +
   geom_line() +
   labs(x="point size scalar [-]", y="transmittance mean bias [-]")
-ggsave(paste0(plot_out_dir, "point_size_optimization_weighted_mean_bian.png"), width=p_width, height=p_height, dpi=dpi)
+# ggsave(paste0(plot_out_dir, "point_size_optimization_weighted_mean_bian.png"), width=p_width, height=p_height, dpi=dpi)
 
 # weighted mean bias cn
 df_agg %>%
@@ -112,8 +112,10 @@ df_agg %>%
 ggplot(., aes(x=optimization_scalar, y=cn_wmb)) +
   geom_point() +
   geom_line() +
+  xlim(0.2, NA) +
+  ylim(-0.15, NA) +
   labs(x="point size scalar [-]", y="contact number mean bias weighted by solid angle [-]")
-ggsave(paste0(plot_out_dir, "point_size_optimization_cn_weighted_mean_bian.png"), width=p_width, height=p_height, dpi=dpi)
+#ggsave(paste0(plot_out_dir, "point_size_optimization_cn_weighted_mean_bian.png"), width=p_width, height=p_height, dpi=dpi)
 
 
 # rmse tx
@@ -140,8 +142,10 @@ df_agg %>%
 ggplot(., aes(x=optimization_scalar, y=cn_wrmse)) +
   geom_point() +
   geom_line() +
+  xlim(0.2, NA) +
+  ylim(NA, 0.28) +
   labs(x="point size scalar [-]", y="RMSE weighted by solid angle [-]")
-ggsave(paste0(plot_out_dir, "point_size_optimization_cn_weighted_rmse.png"), width=p_width, height=p_height, dpi=dpi)
+# ggsave(paste0(plot_out_dir, "point_size_optimization_cn_weighted_rmse.png"), width=p_width, height=p_height, dpi=dpi)
 
 # mae tx
 ggplot(df_agg, aes(x=optimization_scalar, y=tx_mae, color=poisson_radius_m)) +
@@ -152,13 +156,13 @@ ggplot(df_agg, aes(x=optimization_scalar, y=tx_mae, color=poisson_radius_m)) +
 
 # cn plot
 df_drop %>%
-  filter(poisson_radius_m == 0, optimization_scalar == 0.5) %>%
+  filter(poisson_radius_m == 0, optimization_scalar == 0.53) %>%
 ggplot(., aes(x=-log(synth_transmission), y=-log(transmission), color=ring_number)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
   labs(title="Contact number (X) methods comparison", x='X (point reprojection)', y='X (thresholded hemispherical photography)', color='Zenith angle\nband [deg]') +
   scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
-ggsave(paste0(plot_out_dir, "point_reprojection_cn_error_eval_os0.57.png"), width=p_width, height=p_height, dpi=dpi)
+# ggsave(paste0(plot_out_dir, "point_reprojection_cn_error_eval_os0.53.png"), width=p_width, height=p_height, dpi=dpi)
 
 
 # tx plot
@@ -211,8 +215,8 @@ approx(x=df_sub$tx_mean_bias, y=df_sub$optimization_scalar, xout=0)
 
 model_eval = function(nn = 0){
   
-  df_sub = df %>%
-    filter(poisson_radius_m == 0, optimization_scalar == .57)
+  df_sub = df_drop %>%
+    filter(poisson_radius_m == 0, optimization_scalar == .53)
   
   if(nn > 0){
     df_sub = df_sub %>%
@@ -254,5 +258,4 @@ model_eval(1)
 model_eval(2)
 model_eval(3)
 model_eval(4)
-model_eval(5)
 
