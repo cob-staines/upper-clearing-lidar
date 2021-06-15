@@ -493,8 +493,13 @@ spv_swe_052 = geotk.bin_summarize(samps_swe_052, n_bins, d_bounds=d_bounds)
 spv_swe_052.variance[0] / spv_swe_052.variance[n_bins-1]
 spv_dswe_045_050 = geotk.bin_summarize(samps_dswe_045_050, n_bins, d_bounds=d_bounds)
 spv_dswe_045_050.variance[0] / spv_dswe_045_050.variance[n_bins-1]
+(spv_dswe_045_050.variance - spv_dswe_045_050.variance[0]) / (spv_dswe_045_050.variance - spv_dswe_045_050.variance[n_bins - 1])
+
+(stats_dswe_045_050.variance - spv_dswe_045_050.variance[0]) / (spv_dswe_045_050.variance[n_bins - 1] - spv_dswe_045_050.variance[0])
+
 spv_dswe_050_052 = geotk.bin_summarize(samps_dswe_050_052, n_bins, d_bounds=d_bounds)
 spv_dswe_050_052.variance[0] / spv_dswe_050_052.variance[n_bins-1]
+(stats_dswe_050_052.variance - spv_dswe_050_052.variance[0]) / (spv_dswe_050_052.variance[n_bins - 1] - spv_dswe_050_052.variance[0])
 
 # 10cm
 res = 0.1

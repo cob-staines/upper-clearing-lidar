@@ -38,6 +38,7 @@ if not os.path.exists(hemimeta.file_dir):
 # max distance of points considered in image
 hemimeta.max_distance = 50  # meters
 hemimeta.min_distance = .5  # meters
+hemimeta.max_phi = 65 * np.pi / 180  # radians
 hemi_m_above_ground = 0  # meters
 
 # image size

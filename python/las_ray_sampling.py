@@ -1512,7 +1512,7 @@ def rshm_iterate(rshm, rshmeta, vox, log_path, process_id=0, nrows=4):
 
     return rshm
 
-def rs_hemigen(rshmeta, vox, tile_count_1d=1, n_cores=1):
+def rs_hemigen(rshmeta, vox, tile_count_1d=1, n_cores=1, initial_index=0):
 
     tot_time = time.time()
 
@@ -1554,6 +1554,9 @@ def rs_hemigen(rshmeta, vox, tile_count_1d=1, n_cores=1):
     # export phi_theta_lookup of vectors in grid
     vector_set = hemi_vectors(rshmeta.img_size, rshmeta.max_phi_rad)
     vector_set.to_csv(rshm.file_dir[0] + "phi_theta_lookup.csv", index=False)
+
+    if initial_index is not 0:
+        rshm = rshm.iloc[initial_index:, :]
 
     if tile_count_1d == 1:
         # single tile, single core

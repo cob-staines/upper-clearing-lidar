@@ -15,14 +15,12 @@ import matplotlib.colors as colors
 plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\thesis_graphics\\modeling snow accumulation\\"
 
 # # ray tracing run
-# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off\\outputs\\'
 # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\outputs\\'
-# scaling_coef = 0.1841582  # snow_off
+# scaling_coef = 0.220319  # snow_off
 # canopy = "snow_off"
 
-# # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\outputs\\'
 batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\outputs\\'
-scaling_coef = 0.1692154  # snow_on
+scaling_coef = 0.141832  # snow_on
 canopy = "snow_on"
 
 
@@ -103,7 +101,7 @@ imrange[phi <= max_phi] = True
 
 # # filter hemimeta to desired images
 # delineate training set (set_param < param_thresh) and test set (set_param >= param thresh)
-param_thresh = 0.5
+param_thresh = .25
 set_param = np.random.random(len(hemi_var))
 hemi_var.loc[:, 'training_set'] = set_param < param_thresh
 # build hemiList from training_set only
@@ -122,17 +120,17 @@ hemiList = hemi_var.loc[hemi_var.training_set, :].reset_index()
 # date = "19_052"
 # covariant = hemiList.swe_fcon_19_052
 
-# date = "045-050"
-# covariant = hemiList.loc[:, "dswe_fnsd_19_045-19_050"]
-# # covariant_error = 1/np.sqrt(hemiList.loc[:, "count_045"]) + 1/np.sqrt(hemiList.loc[:, "count_050"]) + 2/np.sqrt(hemiList.loc[:, "count_149"])/4
-# covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_045"], hemiList.loc[:, "count_050"], hemiList.loc[:, "count_149"]], axis=0) / 16)
-# covariant_error = covariant_error * 0.1 * 85.1
+date = "045-050"
+covariant = hemiList.loc[:, "dswe_fnsd_19_045-19_050"]
+# covariant_error = 1/np.sqrt(hemiList.loc[:, "count_045"]) + 1/np.sqrt(hemiList.loc[:, "count_050"]) + 2/np.sqrt(hemiList.loc[:, "count_149"])/4
+covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_045"], hemiList.loc[:, "count_050"], hemiList.loc[:, "count_149"]], axis=0) / 16)
+covariant_error = covariant_error * 0.1 * 85.1
 
-date = "050-052"
-covariant = hemiList.loc[:, "dswe_fnsd_19_050-19_052"]
-# covariant_error = (1/np.sqrt(hemiList.loc[:, "count_050"]/16) + 1/np.sqrt(hemiList.loc[:, "count_052"]/16) + 2/np.sqrt(hemiList.loc[:, "count_149"]/16))/4
-covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_050"], hemiList.loc[:, "count_052"], hemiList.loc[:, "count_149"]], axis=0) / 16)
-covariant_error = covariant_error * 0.1 * 72.2
+# date = "050-052"
+# covariant = hemiList.loc[:, "dswe_fnsd_19_050-19_052"]
+# # covariant_error = (1/np.sqrt(hemiList.loc[:, "count_050"]/16) + 1/np.sqrt(hemiList.loc[:, "count_052"]/16) + 2/np.sqrt(hemiList.loc[:, "count_149"]/16))/4
+# covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_050"], hemiList.loc[:, "count_052"], hemiList.loc[:, "count_149"]], axis=0) / 16)
+# covariant_error = covariant_error * 0.1 * 72.2
 
 valid = ~np.isnan(covariant) & ~np.isnan(covariant_error)
 
@@ -144,7 +142,7 @@ erstack = np.full([imsize, imsize, len(hemiList)], np.nan)
 for ii in tqdm(range(0, len(hemiList)), desc="loading images", ncols=100, leave=True):
     img = tif.imread(batch_dir + hemiList.file_name[ii]) * scaling_coef
     imstack[:, :, ii] = img[:, :, 0]
-    erstack[:, :, ii] = img[:, :, 1]
+    # erstack[:, :, ii] = img[:, :, 1]
     # print(str(ii + 1) + ' of ' + str(len(hemiList)))
 #
 # # preview of correlation coefficient
@@ -322,21 +320,10 @@ print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}   {6:9s}   {7:9s}'.fo
 
 
 if date == "045-050":
-    # p0 = np.array([0.11534765, 0.57799291, 0.11109643, 2.4170248, 3.68344911])  # 19_045-19_050, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.094308
-    # p0 = np.array([0.11481182, 0.56503876, 0.10936873, 2.44018817, 3.71200706])  # 19_045-19_050, 045-050-052, min_ct >= 10, fnsd, no bb, 25% of data, r2 = 0.119853
-    # p0 = np.array([0.12120457, 0.45225687, 0.11644756, 2.46708285, 3.47311711])  # 19_045-19_050, 045-050-052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.130916
-    # p0 = np.array([0.11644756, 2.46708285, 0.12120457, 3.47311711, 0.45225687])  # 19_045-19_050, 045-050-052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.130916  # new format --
-    p0 = np.array([0.13138135, 2.46542192, 0.1194041, 3.35773715, 0.52777705])  # 19_045-19_050, snow_on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.107854
+    p0 = np.array([0.12443505, 2.41098088, 0.1261094, 3.30426545, 0.47887124])  # 19_045-19_050, snow_on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.096572
 
 elif date == "050-052":
-    # p0 = np.array([0.14113609, 0.24675274, 0.21223623, 2.46673482, 6.93602817])  # 19_050-19_052, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.085339
-    # p0 = np.array([0.14024832, 0.25270547, 0.19313204, 2.49243517, 7.00353594])  # 19_050-19_052, 045-050-052, min_ct >= 10, fnsd, no bb, 25% of data, r2 = 0.108983
-    # p0 = np.array([0.14959617, 0.27760338, 0.20224104, 2.58846094, 7.47697446])  # 19_050-19_052, 045-050-052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.170783
-    # p0 = np.array([0.20224104, 2.58846094, 0.14959617, 7.47697446, 0.27760338])  # 19_050-19_052, 045-050-052, min_ct >= 25, fnsd, no bb, 50% of data, r2 = 0.170783 # new format (0.08115358061317013 all points no filter)
-    # p0 = np.array([ 0.19831661, 2.46775433, 0.14027416, 6.90337943, 0.25090424, 0, 0])  # 19_050-19_052, snow-on, fnsd, 25% of data, r2 = 0.089205 # no uniform term
-    # p0 = np.array([ 0.19831661,  2.46775433, 0, 0, 0, 1.70155981, -0.36045782])  # 19_050-19_052, snow-on, fnsd, 25% of data, r2 = 0.074600 # no gaussian term
-    # p0 = np.array([ 0.19831661,  2.46775433, 0.14027416, 6.90337943, 0.25090424, 1.70155981, -0.36045782])  # 19_050-19_052, snow-on, fnsd, 25% of data, r2 = 0.074600 # no uniform term
-    p0 = np.array([0.24854724, 2.39575035, 0.17155165, 6.97084751, 0.26603563]) # 19_050-19_052, snow-on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.111375
+    p0 = np.array([0.24059357, 2.45428547, 0.15926226, 6.82865305, 0.2289259 ]) # 19_050-19_052, snow-on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.103976
 
 # elif date == "19_045":
 #     p0 = None
@@ -694,183 +681,24 @@ plt.clabel(CS, inline=1, fontsize=8)
 
 fig.savefig(plot_out_dir + "footprint_corcoef_" + date + "_" + canopy + "_mu_" + str(intnum) + "_contours.png")
 
-## do it again, just plot transmittance (no dswe shenanigans)!
 
-# intnum = p0[4]
-intnum = 1
+# locate peak coords and values
+np.nanmax(corcoef_e[phi <= 75 * np.pi / 180])
+max_xy = np.where(corcoef_e == np.nanmax(corcoef_e[phi <= 75 * np.pi / 180]))
+phi[max_xy] * 180 / np.pi
+theta[max_xy] * 180 / np.pi
 
-# rerun corcoef_e with optimized transmission scalar
-hemi_mean_tx = np.full((imsize, imsize), np.nan)
-hemi_sd_tx = np.full((imsize, imsize), np.nan)
-corcoef_e = np.full((imsize, imsize), np.nan)
-for ii in range(0, imsize):
-    for jj in range(0, imsize):
-        if imrange[jj, ii]:
-            tx = np.exp(-intnum * imstack[jj, ii, valid])
-            hemi_mean_tx[jj, ii] = np.mean(tx)
-            hemi_sd_tx[jj, ii] = np.std(tx)
-            # corcoef_e[jj, ii] = np.corrcoef(covariant[valid], tx)[0, 1]
+np.nanmax(corcoef_e)
+max_xy = np.where(corcoef_e == np.nanmax(corcoef_e))
+phi[max_xy] * 180 / np.pi
+theta[max_xy] * 180 / np.pi
 
-    print(ii)
-
-def add_polar_axes(r_label_color="black"):
-    # create polar axes and labels
-    ax = fig.add_subplot(111, polar=True, label="polar")
-    ax.set_facecolor("None")
-    ax.set_rmax(90)
-    ax.set_rgrids(np.linspace(0, 90, 7), labels=['', '15$^\circ$', '30$^\circ$', '45$^\circ$', '60$^\circ$', '75$^\circ$', '90$^\circ$'], angle=315)
-    [t.set_color(r_label_color) for t in ax.yaxis.get_ticklabels()]
-    ax.set_theta_zero_location("N")
-    ax.set_theta_direction(-1)
-    ax.set_thetagrids(np.linspace(0, 360, 4, endpoint=False), labels=['N\n  0$^\circ$', 'W\n  270$^\circ$', 'S\n  180$^\circ$', 'E\n  90$^\circ$'])
-
-
-## plot mean tx
-fig = plt.figure(figsize=(7, 7))
-#create axes in the background to show cartesian image
-ax0 = fig.add_subplot(111)
-im = ax0.imshow(hemi_mean_tx, cmap='Greys_r', clim=(0, 1))
-ax0.axis("off")
-
-add_polar_axes(r_label_color="white")
-
-# add colorbar
-fig.subplots_adjust(top=0.95, left=0.1, right=0.75, bottom=0.05)
-cbar_ax = fig.add_axes([0.85, 0.20, 0.03, 0.6])
-fig.colorbar(im, cax=cbar_ax)
-
-## plot sd tx
-fig = plt.figure(figsize=(7, 7))
-#create axes in the background to show cartesian image
-ax0 = fig.add_subplot(111)
-im = ax0.imshow(hemi_sd_tx, cmap='Greys_r')
-ax0.axis("off")
-
-add_polar_axes()
-
-# add colorbar
-fig.subplots_adjust(top=0.95, left=0.1, right=0.75, bottom=0.05)
-cbar_ax = fig.add_axes([0.85, 0.20, 0.03, 0.6])
-fig.colorbar(im, cax=cbar_ax)
-
-# summarize by angle band
-phi_step = 1  # in degrees
-phi_bin = np.floor(phi * 180 / (np.pi * phi_step)) * phi_step  # similar to ceil, except for int values
-bins = np.unique(phi_bin)
-bins = bins[~np.isnan(bins)]
-bin_count = len(bins)
-
-theta_step = 90
-theta_bin = (theta * 180 / np.pi + 45)
-theta_bin[theta_bin >= 360] -= 360
-theta_bin = np.floor(theta_bin / theta_step) * theta_step
-t_bins = np.unique(theta_bin)  # N, E, S, W
-t_bins = t_bins[~np.isnan(t_bins)]
-t_bin_count = len(t_bins)
-
-
-# tx_bin_mean = np.full(bin_count, np.nan)
-# tx_bin_sd = np.full(bin_count, np.nan)
-# for ii in range(0, bin_count):
-#     bb = bins[ii]
-#     mask = (phi_bin == bb)
-#     tx_bin_mean[ii] = np.mean(hemi_mean_tx[mask])
-#     tx_bin_sd[ii] = np.mean(hemi_sd_tx[mask])
-#     # tx_std_bin_means[:, ii] = np.mean(tx_std_stack_long[:, mask], axis=1)
-#
-# plt.plot(bins, tx_bin_mean)
-# lower_bound = tx_bin_mean - tx_bin_sd
-# upper_bound = tx_bin_mean + tx_bin_sd
-# plt.fill_between(bins, lower_bound, upper_bound, alpha=0.5)
-# # plt.plot(bins, tx_bin_sd)
-
-# by direction
-tx_bin_mean = np.full([bin_count, t_bin_count], np.nan)
-tx_bin_sd = np.full([bin_count, t_bin_count], np.nan)
-for jj in range(0, t_bin_count):
-    tt = t_bins[jj]
-    for ii in range(0, bin_count):
-        bb = bins[ii]
-        mask = (phi_bin == bb) & (theta_bin == tt)
-        tx_bin_mean[ii, jj] = np.mean(hemi_mean_tx[mask])
-        tx_bin_sd[ii, jj] = np.mean(hemi_sd_tx[mask])
-        # tx_std_bin_means[:, ii] = np.mean(tx_std_stack_long[:, mask], axis=1)
-
-
-fig = plt.figure()
-fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
-ax1 = fig.add_subplot(111)
-plt.plot(bins, tx_bin_mean[:, 0], label="North")
-plt.plot(bins, tx_bin_mean[:, 1], label="East")
-plt.plot(bins, tx_bin_mean[:, 2], label="South")
-plt.plot(bins, tx_bin_mean[:, 3], label="West")
-plt.legend(loc="upper right")
-
-lower_bound = tx_bin_mean - tx_bin_sd
-upper_bound = tx_bin_mean + tx_bin_sd
-
-plt.fill_between(bins, lower_bound[:, 0], upper_bound[:, 0], alpha=0.25)
-plt.fill_between(bins, lower_bound[:, 1], upper_bound[:, 1], alpha=0.25)
-plt.fill_between(bins, lower_bound[:, 2], upper_bound[:, 2], alpha=0.25)
-plt.fill_between(bins, lower_bound[:, 3], upper_bound[:, 3], alpha=0.25)
-
-plt.xlim(0, 90)
-plt.ylim(0, 1)
-ax1.set_ylabel("Light transmittance [-]")
-ax1.set_xlabel("Angle from zenith [$^{\circ}$]")
-
-# plt.plot(bins, tx_bin_sd[:, 0])
-# plt.plot(bins, tx_bin_sd[:, 1])
-# plt.plot(bins, tx_bin_sd[:, 2])
-# plt.plot(bins, tx_bin_sd[:, 3])
-
-#
-# ###
-# # plot radial distribution of corcoef_e
-# sig = xopt[0]
-# cpy = xopt[2]
-# cpx = xopt[3]
-# yid, xid = np.indices((imsize, imsize))
-# radist = np.sqrt((yid - cpy) ** 2 + (xid - cpx) ** 2) * np.pi / 180
-#
-# radcor = pd.DataFrame({"phi": np.rint(np.ravel(radist) * 180 / np.pi).astype(int),
-#                        "corcoef_e": np.ravel(corcoef_e)})
-#
-# radmean = radcor.groupby('phi').mean().reset_index(drop=False)
-# radmean = radmean.assign(gaus=np.exp(- 0.5 * (radmean.phi * np.pi / (sig * 180)) ** 2))
-#
-# plt.plot(radmean.phi, radmean.corcoef_e)
-# plt.plot(radmean.phi, radmean.gaus * np.nanmax(radmean.corcoef_e))
-# plt.plot(radmean.phi, radmean.corcoef_e - radmean.gaus * np.nanmax(radmean.corcoef_e))
-#
-# ###
-#
-# maxcoords = np.where(corcoef_e == np.nanmax(corcoef_e))
-# jj = maxcoords[0][0]
-# ii = maxcoords[1][0]
-#
-# plt.scatter(hemiList.covariant, np.exp(-xopt[1] * imstack[jj, ii, :]), alpha=0.1, s=5)
-#
-# immid = ((imsize - 1)/2).astype(int)
-# jj = immid
-# ii = immid
-# plt.scatter(hemiList.covariant, np.exp(-xopt[1] * imstack[jj, ii, :]), alpha=0.1, s=5)
-# # cumulative weights... this is all messed
-#
-# plt.imshow(sprank, cmap=plt.get_cmap('Purples_r'))
-# plt.colorbar()
-#
-
-# angle_lookup_covar.sqr_covar_weighted
-# angle_lookup_covar.sort_values(phi)
-# peace = angle_lookup_covar.loc[~np.isnan(angle_lookup_covar.covar), :]
-# peace.loc[:, 'sqr_covar_weight_cumsum'] = np.cumsum(peace.sort_values('phi').sqr_covar_weight.values).copy()
-#
-# plt.scatter(peace.phi, peace.sqr_covar_weight_cumsum)
+np.nanmin(corcoef_e)
+min_xy = np.where(corcoef_e == np.nanmin(corcoef_e))
+phi[min_xy] * 180 / np.pi
+theta[min_xy] * 180 / np.pi
 
 # plot scatter at coords
-
-
 # p0 = popt.copy()
 
 intnum = 1

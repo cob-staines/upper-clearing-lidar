@@ -204,7 +204,7 @@ y_vars = ['chm', 'dnt', 'dce',
           'lrs_tx_1_snow_on', 'lrs_tx_1', 'transmission_s_1',
           # 'lrs_cn_5', 'lrs_cn_5_snow_on', 'contactnum_5',
           'lrs_tx_2_snow_on', 'lrs_tx_2', 'transmission_s_2',
-          'lrs_lai_75_deg_snow_on', 'lrs_lai_75_deg', 'lai_s_cc',
+          'lrs_lai_60_deg_snow_on', 'lrs_lai_60_deg', 'lai_s_cc',
           'lrs_cc_snow_on', 'lrs_cc', 'cc',
           'lrs_sky_view_snow_on', 'lrs_sky_view',
           ]
@@ -216,7 +216,7 @@ y_labs = ['$CHM$', '$DNT$', '$DCE$',
           r'$T_{15}^{\vartriangle}$', r'$T_{15}^{\blacktriangle}$', r'$T_{15}^{\bullet}$',
           # r'$\chi_{60-75}^{\blacktriangle}$', r'$\chi_{60-75}^{\vartriangle}$', r'$\chi_{60-75}^{\bullet}$',
           r'$T_{15-30}^{\vartriangle}$', r'$T_{15-30}^{\blacktriangle}$', r'$T_{15-30}^{\bullet}$',
-          r'$LAI_{75}^{\vartriangle}$', r'$LAI_{75}^{\blacktriangle}$', r'$LAI_{2000}^{\bullet}$',
+          r'$LAI_{60}^{\vartriangle}$', r'$LAI_{60}^{\blacktriangle}$', r'$LAI_{2000}^{\bullet}$',
           r'$CC^{\vartriangle}$', r'$CC^{\blacktriangle}$', r'$CC^{\bullet}$',
           r'$V_{S}^{\vartriangle}$', r'$V_{S}^{\blacktriangle}$',
           ]
@@ -224,7 +224,6 @@ y_labs = ['$CHM$', '$DNT$', '$DCE$',
 y_res = [10, 10, 10,
          10, 10, 10,
          25, 25,
-         25, 25, 25,
          25, 25, 25,
          25, 25, 25,
          25, 25, 25,
@@ -342,20 +341,16 @@ can_stats.to_csv(stat_file + "canopy_stats.csv")
 
 
 
-def plot_together(df, x_dat, y_dat, titles, suptitle="", lims=None, x_lab=None, y_lab=None, x_weights=None):
+def plot_together(df, x_dat, y_dat, titles, lims, suptitle="", x_lab=None, y_lab=None, x_weights=None):
     n_plots = len(y_dat)
     fig, ax = plt.subplots(nrows=1, ncols=n_plots, sharey=True, sharex=True, figsize=(3 * n_plots, 3.8), constrained_layout=True)
 
-    plotrange = [[0, np.nanquantile(df.loc[:, x_dat], .9995)],
-                     [0, np.nanquantile(df.loc[:, y_dat], .9995)]]
-    # squarerange = [[np.min(plotrange), np.max(plotrange)],
-    #                [np.min(plotrange), np.max(plotrange)]]
-    xx = [np.min(plotrange), np.max(plotrange)]
-    # maxmin = [np.nanmin((df.loc[:, x_dat], df.loc[:, y_dat])) - .25,
-    #           np.nanmax((df.loc[:, x_dat], df.loc[:, y_dat])) + .25]
+
+    minmax = [np.min(lims), np.max(lims)]
+
     for ii in range(0, n_plots):
         # 1-1 line
-        ax[ii].plot(xx, xx, color="black", linewidth=0.5)
+        ax[ii].plot(minmax, minmax, color="black", linewidth=0.5)
 
         # ax[ii].hist2d(df.loc[:, x_dat[ii]], df.loc[:, y_dat[ii]], range=squarerange, bins=(np.array([8, 5.7]) * 20).astype(int), cmap="Blues")
 
@@ -366,11 +361,15 @@ def plot_together(df, x_dat, y_dat, titles, suptitle="", lims=None, x_lab=None, 
             x_scalar = x_weights[ii]
         else:
             x_scalar = 1
-        xx = -np.log(df.loc[:, x_dat[ii]] * x_scalar)
-        yy = -np.log(df.loc[:, y_dat[ii]])
+
+        xx = df.loc[:, x_dat[ii]] * x_scalar
+        yy = df.loc[:, y_dat[ii]]
+
+        # scatter plot
         ax[ii].scatter(xx, yy, alpha=.15, s=1)
         plt.ylim(lims)
         plt.xlim(lims)
+
         ax[ii].title.set_text(titles[ii])
         if ii == 0:
             ax[ii].set_ylabel(y_lab)
@@ -387,11 +386,23 @@ def plot_together(df, x_dat, y_dat, titles, suptitle="", lims=None, x_lab=None, 
     return fig, ax
 
 ## don't use contact number here!!!
-x_dat = ["contactnum_1",
-         "contactnum_2",
-         "contactnum_3",
-         "contactnum_4",
-         "contactnum_5"]
+# x_dat = ["contactnum_1",
+#          "contactnum_2",
+#          "contactnum_3",
+#          "contactnum_4",
+#          "contactnum_5"]
+
+df_25.loc[:, "cn_from_tx_1"] = -np.log(df_25.loc[:, "transmission_s_1"])
+df_25.loc[:, "cn_from_tx_2"] = -np.log(df_25.loc[:, "transmission_s_2"])
+df_25.loc[:, "cn_from_tx_3"] = -np.log(df_25.loc[:, "transmission_s_3"])
+df_25.loc[:, "cn_from_tx_4"] = -np.log(df_25.loc[:, "transmission_s_4"])
+df_25.loc[:, "cn_from_tx_5"] = -np.log(df_25.loc[:, "transmission_s_5"])
+
+x_dat = ["cn_from_tx_1",
+         "cn_from_tx_2",
+         "cn_from_tx_3",
+         "cn_from_tx_4",
+         "cn_from_tx_5"]
 
 # y_dat = ["contactnum_1_pois",
 #          "contactnum_2_pois",
@@ -413,14 +424,13 @@ titles = ["0$^{\circ}$-15$^{\circ}$",
           "45$^{\circ}$-60$^{\circ}$",
           "60$^{\circ}$-75$^{\circ}$"]
 
+# x_weights = 1/np.cos((np.array([1, 2, 3, 4, 5]) * 15 - 15./2) * np.pi / 180)
+
 maxmin = [np.nanmin((df_25.loc[:, x_dat], df_25.loc[:, y_dat])) - .25,
               np.nanmax((df_25.loc[:, x_dat], df_25.loc[:, y_dat])) + .25]
 
-maxmin = [0, 6]
-
-x_weights = 1/np.cos((np.array([1, 2, 3, 4, 5]) * 15 - 15./2) * np.pi / 180)
 fig, ax = plot_together(df_25, x_dat, y_dat, titles, lims=maxmin,
-                        suptitle="Contact number methods comparison over the Upper Forest",
+                        suptitle="Contact number comparison between methods over the forest plot",
                         y_lab=r"$\chi_{a-b}^{\blacktriangle}$ [-]",
                         # y_lab=r"$\chi_{a-b}^{\bullet}$ (Poisson radius 0.15m) [-]",
                         x_lab=r"$\chi_{a-b}^{\bullet}$ [-]")
@@ -445,20 +455,22 @@ titles = ["0$^{\circ}$-15$^{\circ}$",
           "60$^{\circ}$-75$^{\circ}$"]
 
 
-fig, ax = plot_together(df_25, x_dat, y_dat, titles, lims=[0, 6],
-                        suptitle="Transmittance methods comparison over the Upper Forest",
+fig, ax = plot_together(df_25, x_dat, y_dat, titles, lims=[0, 1],
+                        suptitle="Light ransmittance comparison between methods over the forest plot",
                         y_lab=r"$T_{a-b}^{\blacktriangle}$ [-]",
                         x_lab=r"$T_{a-b}^{\bullet}$ [-]")
 fig.savefig(plot_out_dir + "tx_comparison.png")
 
 fig, ax = plt.subplots(nrows=1, ncols=1, sharey=True, sharex=True, figsize=(8, 6), constrained_layout=True)
-# x_dat = ["lai_s_cc"]
-x_dat = ["transmission_s_5"]
+x_dat = ["lai_s_cc"]
+# x_dat = ["lrs_lai_75_deg"]
+# x_dat = ["transmission_s_5"]
 # y_dat = ["lai_s_cc_pois"]
 # y_dat = ["lrs_lai_1_deg"]
-# y_dat = ["lrs_lai_2000"]
-# y_dat = ["lrs_lai_75_deg"]
-y_dat = ["lrs_tx_5"]
+y_dat = ["lrs_lai_2000"]
+# y_dat = ["lrs_lai_15_deg"]
+# x_dat = ["lrs_tx_5"]
+# y_dat = ["lrs_cn_5"]
 titles = ["LAI methods comparison over Upper Forest"]
 df = df_25
 ii = 0
@@ -472,8 +484,8 @@ offset = 0
 #                [np.min(plotrange), np.max(plotrange)]]
 
 # xx = -np.log(df.loc[:, x_dat])
-xx = -np.log(df.loc[:, x_dat])
-yy = -np.log(df.loc[:, y_dat])
+xx = df.loc[:, x_dat]
+yy = df.loc[:, y_dat]
 maxmin=[np.nanmin((xx, yy)) - .25, np.nanmax((xx, yy)) + .25]
 # ax.hist2d(df.loc[:, x_dat[ii]], df.loc[:, y_dat[ii]], range=squarerange,
 #           bins=(np.array([8, 8]) * 10).astype(int), cmap="Blues")
@@ -502,14 +514,14 @@ fig.savefig(plot_out_dir + "lai_comparison.png")
 
 
 # stats
-# xx = "contactnum_5"
-# yy = "lrs_cn_5"
+xx = "contactnum_5"
+yy = "lrs_cn_5"
 
 # xx = "transmission_s_5"
 # yy = "lrs_tx_5"
 
-xx = "lai_s_cc"
-yy = "lrs_lai_2000"
+# xx = "lai_s_cc"
+# yy = "lrs_lai_2000"
 
 
 valid = ~np.isnan(df_25[xx]) & ~np.isnan(df_25[yy])
@@ -521,22 +533,44 @@ mb = np.mean(df_25.loc[valid, yy] - df_25.loc[valid, xx])
 print("Mean Bias: {0}".format(mb))
 rat = np.mean(df_25.loc[valid, xx] / df_25.loc[valid, yy])
 print("Relative Ratio: {0}".format(rat))
+
+
 # investigation into spatial differences
 
-xx = "lrs_cn_5"
-yy = "contactnum_5"
+df_25_sub = df_25.loc[~np.isnan(df_25.transmission_s_1), :].copy()
 
-# xx = "lrs_tx_2"
-# yy = "lrs_tx_2_snow_on"
+df_25_sub.loc[:, "x_index_new"] = ((df_25_sub.x_index - np.nanmin(df_25_sub.x_index)) / 4).astype(int)
+df_25_sub.loc[:, "y_index_new"] = ((df_25_sub.y_index - np.nanmin(df_25_sub.y_index)) / 4).astype(int)
+
+xx = df_25_sub.lrs_cn_5
+yy = -np.log(df_25_sub.transmission_s_5)
+
+xx = df_25.lrs_cn_4
+xx = df_25_sub.lrs_cn_4
+yy = df_25_sub.contactnum_4
 
 # xx = "lai_s_cc"
 # yy = "lrs_lai_2000"
 
-var_dif = df_25[xx] - df_25[yy]
-valid = ~np.isnan(var_dif)
-x_coord = df_25.x_coord
-y_coord = df_25.y_coord
+var_dif = yy - xx
 
-plt.scatter(x_coord[valid], y_coord[valid], c=var_dif[valid])
+map = np.full((np.nanmax(df_25_sub.y_index_new) + 1, np.nanmax(df_25_sub.x_index_new) + 1), np.nan)
+map[df_25_sub.y_index_new, df_25_sub.x_index_new] = yy
+
+map = np.full((np.nanmax(df_25.y_index) - np.nanmin(df_25.y_index) + 1, np.nanmax(df_25.x_index) - np.nanmin(df_25.x_index) + 1), np.nan)
+map[df_25.y_index - np.nanmin(df_25.y_index), df_25.x_index - np.nanmin(df_25.x_index)] = xx
+
+fig = plt.figure()
+fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
+ax1 = fig.add_subplot(111)
+# plt.scatter(x_coord[valid], y_coord[valid], c=var_dif[valid])
+plt.imshow(map, interpolation="nearest", cmap="plasma", clim=(0, 4))
+# plt.imshow(map, interpolation="nearest", cmap="RdYlBu", clim=(0, 1))
 # plt.scatter(x_coord[valid], y_coord[valid], c=df_25.loc[valid, xx])
 plt.colorbar()
+
+
+
+
+
+

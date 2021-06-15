@@ -197,6 +197,7 @@ def hemigen(hdf5_path, hemimeta, initial_index=0, final_index=None):
                        "point_size_scalar": hemimeta.point_size_scalar,
                        "max_distance_m": hemimeta.max_distance,
                        "min_distance_m": hemimeta.min_distance,
+                       # "max_phi_rad": hemimeta.max_phi,
                        "img_size_in": hemimeta.img_size,
                        "img_res_dpi": hemimeta.img_resolution,
                        "created_datetime": None,
@@ -230,21 +231,21 @@ def hemigen(hdf5_path, hemimeta, initial_index=0, final_index=None):
 
         # calculate r
         r = np.sqrt(np.sum(p1 ** 2, axis=1))
+        phi = np.arccos(p1[:, 2] / r)
         # subset to within max_radius
-        subset_f = (r < hemimeta.max_distance) & (r > hemimeta.min_distance)
-        r = r[subset_f]
-        p1 = p1[subset_f]
+        subset_f = (r < hemimeta.max_distance) & (r > hemimeta.min_distance) & (phi <= hemimeta.max_phi)
 
         # flip over x axis for upward-looking perspective
-        p1[:, 0] = -p1[:, 0]
+        p1_sub = p1[subset_f]
+        p1_sub[:, 0] = -p1_sub[:, 0]
 
         # calculate plot vars
-        data = pd.DataFrame({'theta': np.arccos(p1[:, 2] / r),
-                             'phi': np.arctan2(p1[:, 1], p1[:, 0]),
-                             'area': ((1 / r) ** 2) * hemimeta.point_size_scalar})
+        data = pd.DataFrame({'phi': phi[subset_f],
+                             'theta': np.arctan2(p1_sub[:, 1], p1_sub[:, 0]),
+                             'area': ((1 / r[subset_f]) ** 2) * hemimeta.point_size_scalar})
 
         # plot
-        sp1.set_offsets(np.c_[np.flip(data.phi), np.flip(data.theta)])
+        sp1.set_offsets(np.c_[np.flip(data.theta), np.flip(data.phi)])
         sp1.set_sizes(data.area)
 
         # save figure to file

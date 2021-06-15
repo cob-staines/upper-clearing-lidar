@@ -17,16 +17,17 @@ rx_dict = {
 rx_conditional = {
     'transmission_gaps': re.compile(r'\sgaps\s*(?P<transmission_gaps>.*)%\n'),
     'openness_gaps': re.compile(r'\sgaps\s*(?P<openness_gaps>.*)%\n'),
-    'ring_1': re.compile(r'1\s\S*\s\S*\s\S*\s(?P<transmission_1>\S*)\s(?P<transmission_s_1>\S*)\s(?P<contactnum_1>\S*)\s(?P<gaps_1>\S*)\s\S*\s\S*'),
-    'ring_2': re.compile(r'2\s\S*\s\S*\s\S*\s(?P<transmission_2>\S*)\s(?P<transmission_s_2>\S*)\s(?P<contactnum_2>\S*)\s(?P<gaps_2>\S*)\s\S*\s\S*'),
-    'ring_3': re.compile(r'3\s\S*\s\S*\s\S*\s(?P<transmission_3>\S*)\s(?P<transmission_s_3>\S*)\s(?P<contactnum_3>\S*)\s(?P<gaps_3>\S*)\s\S*\s\S*'),
-    'ring_4': re.compile(r'4\s\S*\s\S*\s\S*\s(?P<transmission_4>\S*)\s(?P<transmission_s_4>\S*)\s(?P<contactnum_4>\S*)\s(?P<gaps_4>\S*)\s\S*\s\S*'),
-    'ring_5': re.compile(r'5\s\S*\s\S*\s\S*\s(?P<transmission_5>\S*)\s(?P<transmission_s_5>\S*)\s(?P<contactnum_5>\S*)\s(?P<gaps_5>\S*)\s\S*\s\S*'),
-    'ring_th_1': re.compile(r'1\s\S*\s(?P<threshold_1>\S*)\s\S*\s\S*\s(?P<transmission_1>\S*)\s(?P<transmission_s_1>\S*)\s(?P<contactnum_1>\S*)\s(?P<gaps_1>\S*)\s\S*\s\S*'),
-    'ring_th_2': re.compile(r'2\s\S*\s(?P<threshold_2>\S*)\s\S*\s\S*\s(?P<transmission_2>\S*)\s(?P<transmission_s_2>\S*)\s(?P<contactnum_2>\S*)\s(?P<gaps_2>\S*)\s\S*\s\S*'),
-    'ring_th_3': re.compile(r'3\s\S*\s(?P<threshold_3>\S*)\s\S*\s\S*\s(?P<transmission_3>\S*)\s(?P<transmission_s_3>\S*)\s(?P<contactnum_3>\S*)\s(?P<gaps_3>\S*)\s\S*\s\S*'),
-    'ring_th_4': re.compile(r'4\s\S*\s(?P<threshold_4>\S*)\s\S*\s\S*\s(?P<transmission_4>\S*)\s(?P<transmission_s_4>\S*)\s(?P<contactnum_4>\S*)\s(?P<gaps_4>\S*)\s\S*\s\S*'),
-    'ring_th_5': re.compile(r'5\s\S*\s(?P<threshold_5>\S*)\s\S*\s\S*\s(?P<transmission_5>\S*)\s(?P<transmission_s_5>\S*)\s(?P<contactnum_5>\S*)\s(?P<gaps_5>\S*)\s\S*\s\S*'),
+    'ring': re.compile(r'(?P<ring_num>\d)\s\S*\s\S*\s\S*\s(?P<transmission>\S*)\s(?P<transmission_s>\S*)\s(?P<contactnum>\S*)\s(?P<gaps>\S*)\s\S*\s\S*'),
+    # 'ring_1': re.compile(r'1\s\S*\s\S*\s\S*\s(?P<transmission_1>\S*)\s(?P<transmission_s_1>\S*)\s(?P<contactnum_1>\S*)\s(?P<gaps_1>\S*)\s\S*\s\S*'),
+    # 'ring_2': re.compile(r'2\s\S*\s\S*\s\S*\s(?P<transmission_2>\S*)\s(?P<transmission_s_2>\S*)\s(?P<contactnum_2>\S*)\s(?P<gaps_2>\S*)\s\S*\s\S*'),
+    # 'ring_3': re.compile(r'3\s\S*\s\S*\s\S*\s(?P<transmission_3>\S*)\s(?P<transmission_s_3>\S*)\s(?P<contactnum_3>\S*)\s(?P<gaps_3>\S*)\s\S*\s\S*'),
+    # 'ring_4': re.compile(r'4\s\S*\s\S*\s\S*\s(?P<transmission_4>\S*)\s(?P<transmission_s_4>\S*)\s(?P<contactnum_4>\S*)\s(?P<gaps_4>\S*)\s\S*\s\S*'),
+    # 'ring_5': re.compile(r'5\s\S*\s\S*\s\S*\s(?P<transmission_5>\S*)\s(?P<transmission_s_5>\S*)\s(?P<contactnum_5>\S*)\s(?P<gaps_5>\S*)\s\S*\s\S*'),
+    # 'ring_th_1': re.compile(r'1\s\S*\s(?P<threshold_1>\S*)\s\S*\s\S*\s(?P<transmission_1>\S*)\s(?P<transmission_s_1>\S*)\s(?P<contactnum_1>\S*)\s(?P<gaps_1>\S*)\s\S*\s\S*'),
+    # 'ring_th_2': re.compile(r'2\s\S*\s(?P<threshold_2>\S*)\s\S*\s\S*\s(?P<transmission_2>\S*)\s(?P<transmission_s_2>\S*)\s(?P<contactnum_2>\S*)\s(?P<gaps_2>\S*)\s\S*\s\S*'),
+    # 'ring_th_3': re.compile(r'3\s\S*\s(?P<threshold_3>\S*)\s\S*\s\S*\s(?P<transmission_3>\S*)\s(?P<transmission_s_3>\S*)\s(?P<contactnum_3>\S*)\s(?P<gaps_3>\S*)\s\S*\s\S*'),
+    # 'ring_th_4': re.compile(r'4\s\S*\s(?P<threshold_4>\S*)\s\S*\s\S*\s(?P<transmission_4>\S*)\s(?P<transmission_s_4>\S*)\s(?P<contactnum_4>\S*)\s(?P<gaps_4>\S*)\s\S*\s\S*'),
+    # 'ring_th_5': re.compile(r'5\s\S*\s(?P<threshold_5>\S*)\s\S*\s\S*\s(?P<transmission_5>\S*)\s(?P<transmission_s_5>\S*)\s(?P<contactnum_5>\S*)\s(?P<gaps_5>\S*)\s\S*\s\S*'),
     'licor_lai': re.compile(r'LiCor LAI2000\s*(?P<lai_no_cor>\d+,\d+)\s*(?P<laa_no_cor>\d+)\s*(?P<lai_s>\d+,\d+)\s*(?P<laa_s>\d+)\s*(?P<lai_cc>\d+,\d+)\s*(?P<laa_cc>\d+)\s*(?P<lai_s_cc>\d+,\d+)\s*(?P<laa_s_cc>\d+)\n'),
     'thimonier_lai': re.compile(r'T. & al. \(2010\)\s*(?P<lai_t_no_cor>\d+,\d+)\s*(?P<laa_t_no_cor>\d+)\s*(?P<lai_t_s>\d+,\d+)\s*(?P<laa_t_s>\d+)\s*(?P<lai_t_cc>\d+,\d+)\s*(?P<laa_t_cc>\d+)\s*(?P<lai_t_s_cc>\d+,\d+)\s*(?P<laa_t_s_cc>\d+)\n'),
     'thimonier_skyview': re.compile(r'T. & al. \(2010\)\s*(?P<skyview_no_cor>\d+([.,]\d+)?)%\s*-\s*(?P<skyview_s>\d+([.,]\d+)?)%\s*-\s*(?P<skyview_cc>\d+([.,]\d+)?)%\s*(?P<skyview_gaps_cc>\d+([.,]\d+)?)%\s*(?P<skyview_s_cc>\d+([.,]\d+)?)%\s*(?P<skyview_gaps_s_cc>\d+([.,]\d+)?)%\n')
@@ -93,17 +94,17 @@ def parse_file(file_in, file_out, hemimeta_in=None):
                     match = rx_conditional['openness_gaps'].search(line)
                     entry.update({list(match.re.groupindex.keys())[0]: match.group(list(match.re.groupindex.keys())[0])})
                 elif key == 'ring_table':
-                    for jj in range(1, 6):
-                        line = file_object.readline()
-                        if entry['threshold'] == 'rings':
-                            key = 'ring_th_' + str(jj)
-                        else:
-                            key = 'ring_' + str(jj)
-                        match = rx_conditional[key].search(line)
-                        for ii in range(0, match.re.groups):
+                    key = 'ring'
+                    line = file_object.readline()
+                    match = rx_conditional[key].search(line)
+                    while match:
+                        ring_num = match.group(list(match.re.groupindex.keys())[0])  # first match is ring num
+                        for ii in range(1, match.re.groups):
                             # add group and value to entry
-                            entry.update({list(match.re.groupindex.keys())[ii]: match.group(
+                            entry.update({list(match.re.groupindex.keys())[ii] + '_' + ring_num: match.group(
                                 list(match.re.groupindex.keys())[ii])})
+                        line = file_object.readline()
+                        match = rx_conditional[key].search(line)
                 # elif key == 'licor_lai':  # at the last trigger key
                 #     # append entry to data
                 #     data.append(entry)
@@ -187,9 +188,10 @@ file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\l
 file_out = file_in.replace('.dat', '_parsed.dat')
 lai_parsed = parse_file(file_in, file_out)
 
-# # outputs
+# # # outputs
+# # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr0_os0.57_snow_off_dem_offset.25\\outputs\\LAI.dat"
 # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr0_os.65_snow_off_dem_offset.25\\outputs\\LAI.dat"
-# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr.15_os14.5_snow_off_dem_offset.25\\outputs\\LAI.dat"
+# # # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr.15_os14.5_snow_off_dem_offset.25\\outputs\\LAI.dat"
 # file_out = file_in.replace('.dat', '_parsed.dat')
 # lai_parsed = parse_file(file_in, file_out, hemimeta_in=True)
 

@@ -10,8 +10,8 @@ def main():
     vox = vc.vox
 
     # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_19_149\\'
-    batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_off\\'
-    # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_off\\'
+    # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_on_max100m\\'
+    batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_off_max100m\\'
 
     # batch_dir = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\batches\\lrs_hemi_opt_test\\'
 
@@ -55,12 +55,11 @@ def main():
 
     # ray geometry
     # phi_step = (np.pi / 2) / (180 * 2)
-    # rshmeta.img_size = 1000  # square, in pixels/ray samples
     rshmeta.img_size = 181  # square, in pixels/ray samples
     # rshmeta.max_phi_rad = phi_step * rshmeta.img_size
     rshmeta.max_phi_rad = np.pi/2
     hemi_m_above_ground = img_lookup.height_m  # meters
-    rshmeta.max_distance = 50  # meters
+    rshmeta.max_distance = 100  # meters
     # rshmeta.min_distance = vox.step[0] * np.sqrt(3)  # meters
     rshmeta.min_distance = 0  # meters
 
@@ -132,9 +131,10 @@ ii = 0
 
 # snow_off_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\"
 snow_off_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_off\\"
+snow_off_coef = 0.1098851  # optimized for cn dropping 5th
 # snow_off_coef = 0.191206
 # snow_off_coef = 0.155334
-snow_off_coef = 0.1841582  # tx wls
+# snow_off_coef = 0.1841582  # tx wls
 # snow_off_coef = 0.220319  # cn wls
 # snow_off_coef = 0.1857892  # tx wmae
 # snow_off_coef = 0.2137436  # cn wmae
@@ -143,13 +143,12 @@ cn_off = load_lrs_img_cn(snow_off_dir, snow_off_coef, ii)
 tx_off = np.exp(-cn_off)
 
 # snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\"
-snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_on\\"
-
-# snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\"
-# snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on\\"
+# snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_on\\"
+snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_on_for_snow_on_locations\\"
+snow_on_coef = 0.1364449  # optimized for cn dropping 5th
 # snow_on_coef = 0.132154
 # snow_on_coef = 0.137942
-snow_on_coef = 0.169215  # tx wls
+# snow_on_coef = 0.169215  # tx wls
 # snow_on_coef = 0.141832  # cn wls
 # snow_on_coef = 0.1736879  # tx wmae
 # snow_on_coef = 0.1487048  # cn wmae

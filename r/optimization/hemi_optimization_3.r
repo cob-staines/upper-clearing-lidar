@@ -11,7 +11,7 @@ dpi = 100
 
 photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/19_149/clean/sized/thresholded/LAI_parsed.dat"
 photos_lai = read.csv(photos_lai_in, header=TRUE, na.strings = c("NA",""), sep=",")
-photos_lai$original_file = gsub("_r.jpg", ".JPG", photos_lai$picture)
+photos_lai$original_file = gsub("_r.jpg", ".JPG", photos_lai$picture, ignore.case=TRUE)
 photos_meta_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/hemi_lookup_cleaned.csv"
 photos_meta = read.csv(photos_meta_in, header=TRUE, na.strings = c("NA",""), sep=",")
 photos_meta$id <- as.numeric(rownames(photos_meta)) - 1
@@ -31,8 +31,10 @@ comp_times = synth_meta %>%
   summarise(ct_mean = mean(computation_time_s))
 
 synth = merge(synth_lai, synth_meta, by.x='picture', by.y='file_name', all.x=TRUE)
-synth = synth[, c("id", "poisson_radius_m", "optimization_scalar", "transmission_s_1", "transmission_s_2", "transmission_s_3", "transmission_s_4", "transmission_s_5")]
-names(synth) = c("id", "poisson_radius_m", "optimization_scalar", "synth_transmission_s_1", "synth_transmission_s_2", "synth_transmission_s_3", "synth_transmission_s_4", "synth_transmission_s_5")
+# synth = synth[, c("id", "poisson_radius_m", "optimization_scalar", "transmission_s_1", "transmission_s_2", "transmission_s_3", "transmission_s_4", "transmission_s_5")]
+synth = synth[, c("id", "poisson_radius_m", "optimization_scalar", "transmission_s_1", "transmission_s_2", "transmission_s_3", "transmission_s_4")]
+# names(synth) = c("id", "poisson_radius_m", "optimization_scalar", "synth_transmission_s_1", "synth_transmission_s_2", "synth_transmission_s_3", "synth_transmission_s_4", "synth_transmission_s_5")
+names(synth) = c("id", "poisson_radius_m", "optimization_scalar", "synth_transmission_s_1", "synth_transmission_s_2", "synth_transmission_s_3", "synth_transmission_s_4")
 # all = merge(synth, photos, by='id', all.x=TRUE, suffixes=c("_synth", "_photo"))
 df = merge(synth, photos, by='id', all.x=TRUE)
 
@@ -44,7 +46,11 @@ df = df %>%
 # df$optimization_scalar = as.factor(df$optimization_scalar)
 
 df = df %>%
-  mutate(tx_error = synth_transmission - transmission, cn_error = -log(synth_transmission) - -log(transmission))
+  mutate(tx_error = synth_transmission - transmission, cn_error = -log(synth_transmission) - -log(transmission))%>%
+  mutate(solid_angle = 2* pi * (cos((as.numeric(ring_number) - 1) * 15 * pi / 180) - cos(as.numeric(ring_number) * 15 * pi / 180)))
+
+# drop ring 5
+df_drop = df[df$ring_number != "5",]
 
 # # calculate errors
 # all = all %>%
@@ -78,8 +84,7 @@ mae = function(difdata){
 # plots
 
 # error metrics
-df_agg = df %>%
-  mutate(solid_angle = 2* pi * (cos((as.numeric(ring_number) - 1) * 15 * pi / 180) - cos(as.numeric(ring_number) * 15 * pi / 180))) %>%
+df_agg = df_drop %>%
   group_by(poisson_radius_m, optimization_scalar) %>%
   summarise(tx_rmse = rmse(tx_error), tx_mae = mae(tx_error), tx_mean_bias = mean(tx_error, na.rm = TRUE), tx_wrmse=wrmse(tx_error, solid_angle), tx_wmb = wmb(tx_error, solid_angle), cn_rmse = rmse(cn_error), cn_mae = mae(cn_error), cn_mean_bias = mean(cn_error, na.rm = TRUE), cn_wrmse=wrmse(cn_error, solid_angle), cn_wmb = wmb(cn_error, solid_angle))
 df_agg$poisson_radius_m = as.factor(df_agg$poisson_radius_m)
@@ -102,11 +107,13 @@ ggplot(., aes(x=optimization_scalar, y=tx_wmb)) +
 ggsave(paste0(plot_out_dir, "point_size_optimization_weighted_mean_bian.png"), width=p_width, height=p_height, dpi=dpi)
 
 # weighted mean bias cn
-ggplot(df_agg, aes(x=optimization_scalar, y=cn_wmb, color=poisson_radius_m)) +
+df_agg %>%
+  filter(poisson_radius_m == 0) %>%
+ggplot(., aes(x=optimization_scalar, y=cn_wmb)) +
   geom_point() +
   geom_line() +
-  xlim(0, 1) +
-  labs(x="point size scalar [-]", y="transmittance mean bias weighted by solid angle [-]")
+  labs(x="point size scalar [-]", y="contact number mean bias weighted by solid angle [-]")
+ggsave(paste0(plot_out_dir, "point_size_optimization_cn_weighted_mean_bian.png"), width=p_width, height=p_height, dpi=dpi)
 
 
 # rmse tx
@@ -125,15 +132,16 @@ ggplot(., aes(x=optimization_scalar, y=tx_wrmse)) +
   geom_line() + 
   # ylim(0, NA) +
   labs(x="point size scalar [-]", y="transmittance RMSE [-]")
-ggsave(paste0(plot_out_dir, "point_size_optimization_weighted_rmse.png"), width=p_width, height=p_height, dpi=dpi)
+# ggsave(paste0(plot_out_dir, "point_size_optimization_tx_weighted_rmse.png"), width=p_width, height=p_height, dpi=dpi)
 
 # wrmse cn
-ggplot(df_agg, aes(x=optimization_scalar, y=cn_wrmse, color=poisson_radius_m)) +
+df_agg %>%
+  filter(poisson_radius_m == 0) %>%
+ggplot(., aes(x=optimization_scalar, y=cn_wrmse)) +
   geom_point() +
-  geom_line() + 
-  ylim(0, NA) +
-  xlim(0, 1.2) +
-  labs(x="point size scalar [-]", y="transmittance RMSE weighted by solid angle [-]")
+  geom_line() +
+  labs(x="point size scalar [-]", y="RMSE weighted by solid angle [-]")
+ggsave(paste0(plot_out_dir, "point_size_optimization_cn_weighted_rmse.png"), width=p_width, height=p_height, dpi=dpi)
 
 # mae tx
 ggplot(df_agg, aes(x=optimization_scalar, y=tx_mae, color=poisson_radius_m)) +
@@ -141,26 +149,53 @@ ggplot(df_agg, aes(x=optimization_scalar, y=tx_mae, color=poisson_radius_m)) +
   geom_line()
 
 ###
-df %>%
-  filter(poisson_radius_m == 0, optimization_scalar == 1.06) %>%
-  ggplot(., aes(x=synth_transmission, y=transmission, color=ring_number)) +
+
+# cn plot
+df_drop %>%
+  filter(poisson_radius_m == 0, optimization_scalar == 0.5) %>%
+ggplot(., aes(x=-log(synth_transmission), y=-log(transmission), color=ring_number)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) +
+  labs(title="Contact number (X) methods comparison", x='X (point reprojection)', y='X (thresholded hemispherical photography)', color='Zenith angle\nband [deg]') +
+  scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
+ggsave(paste0(plot_out_dir, "point_reprojection_cn_error_eval_os0.57.png"), width=p_width, height=p_height, dpi=dpi)
+
+
+# tx plot
+df_drop %>%
+  filter(poisson_radius_m == 0, optimization_scalar == 0.5) %>%
+ggplot(., aes(x=synth_transmission, y=transmission, color=ring_number)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
   ylim(0, 1) +
   xlim(0, 1) +
   labs(title="Light transmittance (T) validation", x='T (point reprojection)', y='T (hemispherical photography)', color='Zenith angle\nband [deg]') +
   scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
-#ggsave(paste0(plot_out_dir, "snow_off_tx_error_eval.png"), width=p_width, height=p_height, dpi=dpi)
-ggsave(paste0(plot_out_dir, "point_reprojection_tx_error_eval_os1.06.png"), width=p_width, height=p_height, dpi=dpi)
+# ggsave(paste0(plot_out_dir, "point_reprojection_tx_error_eval_os1.3.png"), width=p_width, height=p_height, dpi=dpi)
+
+df %>%
+  filter(poisson_radius_m == 0, optimization_scalar == 1.3) %>%
+  ggplot(., aes(x=-log(synth_transmission), y=-log(transmission), color=ring_number)) +
+  geom_point()
 
 ###
 
 df_sub = df_agg %>%
   filter(poisson_radius_m == 0)
 approx(x=df_sub$tx_mean_bias, y=df_sub$optimization_scalar, xout=0)
+approx(x=df_sub$cn_mean_bias, y=df_sub$optimization_scalar, xout=0)
 approx(x=df_sub$tx_wmb, y=df_sub$optimization_scalar, xout=0)
+approx(x=df_sub$cn_wmb, y=df_sub$optimization_scalar, xout=0)
 
-os = df_sub$optimization_scalar[1:(length(df_sub)-2)] + diff(df_sub$optimization_scalar) / 2
+os = df_sub$optimization_scalar[1:(nrow(df_sub)-1)] + diff(df_sub$optimization_scalar) / 2
+xx = diff(df_sub$cn_wrmse) / diff(df_sub$optimization_scalar)
+approx(x=xx, y=os, xout=0)
+
+yy = summary(app)$coefficients[1] + xx * summary(app)$coefficients[2]
+
+ox = -summary(app)$coefficients[1] / summary(app)$coefficients[2]
+
+os = df_sub$optimization_scalar[1:(nrow(df_sub)-1)] + diff(df_sub$optimization_scalar) / 2
 xx = diff(df_sub$tx_wrmse) / diff(df_sub$optimization_scalar)
 approx(x=xx, y=os, xout=0)
 
@@ -174,52 +209,10 @@ approx(x=df_sub$tx_mean_bias, y=df_sub$optimization_scalar, xout=0)
 
 # stats
 
-x = -log(df$synth_transmission)
-y = -log(df$transmission)
-summary(lm(y ~ 0 + x))
-
-x = df$synth_transmission
-y = df$transmission
-summary(lm(y ~ 0 + x))
-
-model_eval = function(nn = 0){
-  df_sub = df %>%
-    filter(poisson_radius_m == 0, optimization_scalar == .66) %>%
-    mutate(synth_cn = -log(synth_transmission), cn = -log(transmission), cn_error = synth_cn - cn)
-
-  if(nn > 0){
-    df_sub = df_sub %>%
-      filter(ring_number == nn)
-  }
-  
-  
-  tx_ssres = sum((df_sub$tx_error)^2, na.rm=TRUE)
-  tx_sstot = sum((mean(df_sub$transmission, na.rm=TRUE) - df_sub$transmission)^2, na.rm=TRUE)
-  tx_r2 = 1 - tx_ssres / tx_sstot
-  tx_r2_adj = 1 - (1 - tx_r2) * (sum(!is.na(df_sub$transmission)) - 1) / (sum(!is.na(df_sub$transmission)) - 2)
-  
-  cn_ssres = sum((df_sub$cn_error)^2, na.rm=TRUE)
-  cn_sstot = sum((mean(df_sub$cn, na.rm=TRUE) - df_sub$cn)^2, na.rm=TRUE)
-  cn_r2 = 1 - cn_ssres / cn_sstot
-  cn_r2_adj = 1 - (1 - cn_r2) * (sum(!is.na(df_sub$cn)) - 1) / (sum(!is.na(df_sub$cn)) - 2)
-  
-  # stats
-  rmse_cn = sqrt(mean((df_sub$cn_error)^2, na.rm=TRUE))
-  rmse_tx = sqrt(mean((df_sub$tx_error)^2, na.rm=TRUE))
-  
-  c(tx_r2_adj, rmse_tx, cn_r2_adj, rmse_cn)
-}
-
-model_eval(1)
-model_eval(2)
-model_eval(3)
-model_eval(4)
-model_eval(5)
-
 model_eval = function(nn = 0){
   
   df_sub = df %>%
-    filter(poisson_radius_m == 0, optimization_scalar == .82)
+    filter(poisson_radius_m == 0, optimization_scalar == .57)
   
   if(nn > 0){
     df_sub = df_sub %>%
@@ -230,16 +223,30 @@ model_eval = function(nn = 0){
   cn = -log(tx)
   syn_tx = df_sub$synth_transmission
   syn_cn = -log(syn_tx)
+  weights = df_sub$solid_angle
+  weights = weights / sum(weights)
   
-  tx_lm = lm(tx ~ syn_tx)
+  tx_error = syn_tx - tx
+  cn_error = syn_cn - cn
+  
+  tx_lm = lm(tx ~ syn_tx, weights=weights)
   tx_r2_adj = summary(tx_lm)$adj.r.squared
   tx_rmse = summary(tx_lm)$sigma
+  tx_p = pf(summary(tx_lm)$fstatistic[1], summary(tx_lm)$fstatistic[2], summary(tx_lm)$fstatistic[3], lower.tail=FALSE)
   
-  cn_lm = lm(cn ~ syn_cn)
+  tx_wrmse = sqrt(sum(weights * (tx_error^2)))
+  tx_wmb = sum(tx_error * weights)
+  
+  cn_lm = lm(cn ~ syn_cn, weights=weights)
   cn_r2_adj = summary(cn_lm)$adj.r.squared
   cn_rmse = summary(cn_lm)$sigma
+  cn_p = pf(summary(cn_lm)$fstatistic[1], summary(cn_lm)$fstatistic[2], summary(cn_lm)$fstatistic[3], lower.tail=FALSE)
   
-  c(tx_r2_adj, tx_rmse, cn_r2_adj, cn_rmse)
+  cn_wrmse = sqrt(sum(weights * (cn_error^2)))
+  cn_wmb = sum(cn_error * weights)
+  
+  # c(tx_r2_adj, tx_p, tx_wrmse, tx_wmb, cn_r2_adj, cn_p, cn_wrmse, cn_wmb)
+  c(tx_r2_adj, tx_wrmse, tx_wmb, cn_r2_adj, cn_wrmse, cn_wmb)
 }
 
 model_eval(0)
@@ -249,5 +256,3 @@ model_eval(3)
 model_eval(4)
 model_eval(5)
 
-ggplot(df_sub, aes(x=transmission, y=synth_transmission)) +
-  geom_point()
