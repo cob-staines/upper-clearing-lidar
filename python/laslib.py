@@ -157,6 +157,7 @@ def hemigen(hdf5_path, hemimeta, initial_index=0, final_index=None):
     import h5py
     import time
     import os
+    from tqdm import tqdm
 
     tot_time = time.time()
 
@@ -215,9 +216,9 @@ def hemigen(hdf5_path, hemimeta, initial_index=0, final_index=None):
     if final_index is None:
         final_index = hemimeta.origin.shape[0]
 
-    for ii in range(initial_index, final_index):
+    for ii in tqdm(range(initial_index, final_index), leave=True, ncols=100, desc="hemisfer"):
         start = time.time()
-        print("Generating " + hemimeta.file_name[ii] + " ...")
+        # print("Generating " + hemimeta.file_name[ii] + " ...")
 
         p1 = p0 - hemimeta.origin[ii]
 
@@ -259,7 +260,7 @@ def hemigen(hdf5_path, hemimeta, initial_index=0, final_index=None):
         # write to log file
         hm.iloc[ii:ii + 1].to_csv(log_path, encoding='utf-8', mode='a', header=False, index=False)
 
-        print(str(ii + 1) + " of " + str(hemimeta.origin.shape[0]) + " complete: " + str(hm.computation_time_s[ii]) + " seconds")
+        # print(str(ii + 1) + " of " + str(hemimeta.origin.shape[0]) + " complete: " + str(hm.computation_time_s[ii]) + " seconds")
 
     print("-------- Hemigen completed--------")
     print(str(hemimeta.origin.shape[0] - initial_index) + " images generated in " + str(int(time.time() - tot_time)) + " seconds")
