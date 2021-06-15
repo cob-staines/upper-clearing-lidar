@@ -9,7 +9,7 @@ import os
 # pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\1m_dem_points_mb_15.csv"
 
 
-batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\uf_1m_pr0_os1.3_snow_off_dem_offset.25_set1\\'
+batch_dir = 'C:\\Users\\jas600\\workzone\\data\\hemigen\\uf_1m_pr0_os0.53_snow_off_dem_offset.25_set1\\'
 las_in = "C:\\Users\\jas600\\workzone\\data\\ray_sampling\\sources\\19_149\\19_149_las_proc_classified_merged.las"
 pts_in = 'C:\\Users\\jas600\\workzone\\data\\hemi_grid_points\\mb_65_r.25m_snow_off_offset.25\\dem_r.25_point_ids_1m subset.csv'
 
@@ -37,7 +37,7 @@ if not os.path.exists(hemimeta.file_dir):
 
 # max distance of points considered in image
 hemimeta.max_distance = 50  # meters
-hemimeta.min_distance = .5  # meters
+hemimeta.min_distance = 0  # meters
 hemimeta.max_phi = 65 * np.pi / 180  # radians
 hemi_m_above_ground = 0  # meters
 
@@ -71,7 +71,7 @@ hemimeta.origin = np.array([pts.x_utm11n,
 
 
 # point size
-hemimeta.optimization_scalar = 1.3
+hemimeta.optimization_scalar = 0.53
 footprint = 0.15  # in m
 c = 2834.64  # meters to points
 hemimeta.point_size_scalar = footprint**2 * c * hemimeta.optimization_scalar
