@@ -16,11 +16,11 @@ plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\gr
 
 # # ray tracing run
 # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\outputs\\'
-# scaling_coef = 0.220319  # snow_off
+# scaling_coef = 0.1921595  # snow_off
 # canopy = "snow_off"
 
 batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\outputs\\'
-scaling_coef = 0.141832  # snow_on
+scaling_coef = 0.1364611  # snow_on
 canopy = "snow_on"
 
 
@@ -321,6 +321,7 @@ print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}   {6:9s}   {7:9s}'.fo
 
 if date == "045-050":
     p0 = np.array([0.12443505, 2.41098088, 0.1261094, 3.30426545, 0.47887124])  # 19_045-19_050, snow_on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.096572
+    p0 = np.array([0.11151353, 2.48955825, 0.11688505, 3.31781129, 0.5085631 ])  # 19_045-19_050, snow_on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.119771
 
 elif date == "050-052":
     p0 = np.array([0.24059357, 2.45428547, 0.15926226, 6.82865305, 0.2289259 ]) # 19_050-19_052, snow-on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.103976
@@ -343,8 +344,8 @@ elif date == "050-052":
 
 u_out = (180 / np.pi, 180 / np.pi, 180 / np.pi, 1, 1)
 
-p0 * u_out
-rsq(p0)
+popt * u_out
+rsq(popt)
 #
 # sig_out = xopt[0] * 180 / np.pi
 # intnum_out = 1/xopt[1]
@@ -511,8 +512,8 @@ fig.savefig(plot_out_dir + "optimization_gaussian_width_sigma_" + date + "_" + c
 
 #####
 # interaction scalar
-# sample optimization topography for mu*
-v_list = np.linspace(0, 1, 100)  # mu*
+# sample optimization topography for w*
+v_list = np.linspace(0, 1, 100)  # w*
 w_data = pd.DataFrame(columns={"mu", "r2"})
 ii = 0
 px = p0.copy()
@@ -532,15 +533,15 @@ fig = plt.figure()
 fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
 ax1 = fig.add_subplot(111)
 if date == "045-050":
-    ax1.set_title('Optimization of snowfall absorbtion coefficient $\mu^*$\nUpper Forest, 14-19 Feb. 2019, 25cm resolution')
+    ax1.set_title('Optimization of snowfall absorbtion coefficient $\omega^*$\nUpper Forest, 14-19 Feb. 2019, 25cm resolution')
 elif date == "050-052":
-    ax1.set_title('Optimization of snowfall absorbtion coefficient $\mu^*$\nUpper Forest, 19-21 Feb. 2019, 25cm resolution')
+    ax1.set_title('Optimization of snowfall absorbtion coefficient $\omega^*$\nUpper Forest, 19-21 Feb. 2019, 25cm resolution')
 ax1.set_ylabel("$R^2$ for $\Delta$SWE vs. modeled snow accumulation")
-ax1.set_xlabel("snowfall absorbtion coefficient $\mu^*$ [-]")
+ax1.set_xlabel("snow contact absorbtion correction factor $\omega^*/\omega$ [-]")
 plt.plot(w_data.mu, w_data.r2)
 plt.xlim(0, 1)
 plt.ylim(0, .10)
-fig.savefig(plot_out_dir + "optimization_snow_absorption_mu_star_" + date + "_" + canopy + ".png")
+fig.savefig(plot_out_dir + "optimization_snow_absorption_w_star_" + date + "_" + canopy + ".png")
 
 
 ################################################

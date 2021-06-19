@@ -142,3 +142,37 @@ np.median(ut_2.loc[:, 'Air Temperature'])
 
 np.max(uf_1.loc[:, "Wind Speed"])
 np.max(uf_2.loc[:, "Wind Speed"])
+
+
+def angle_dist(unit1, unit2, rad=False):
+    # unit 1 can be a vector, unit 2 cannot be
+    if rad:
+        unit1 = unit1 * 180 / np.pi
+        unit2 = unit2 * 180 / np.pi
+    phi = (unit2-unit1) % 360
+
+    sign = np.full_like(unit1, -1)
+    # used to calculate sign
+    sign[np.all((phi >= 0, phi <= 180), axis=0)] = 1
+    sign[np.all((phi <= -180, phi >= -360), axis=0)] = 1
+
+    result = phi
+    result[phi > 180] = 360 - phi
+
+    if rad:
+        result = result * np.pi / 180
+
+    return result*sign
+
+
+# calculate mean wind vectors
+vn_ut_1 = np.nanmean(ut_1.loc[:, "Wind Speed"] * np.cos(ut_1.loc[:, "Wind Direction"] * np.pi / 180))
+ve_ut_1 = np.nanmean(ut_1.loc[:, "Wind Speed"] * np.sin(ut_1.loc[:, "Wind Direction"] * np.pi / 180))
+theta_ut_1 = np.arctan2(ve_ut_1, vn_ut_1)
+s_ut_1 = np.sqrt(np.nanmean(ut_1.loc[:, "Wind Speed"] * angle_dist(ut_1.loc[:, "Wind Direction"] * np.pi / 180, theta_ut_1, rad=True) ** 2)) * 180 / np.pi
+
+
+vn_ut_2 = np.nanmean(ut_2.loc[:, "Wind Speed"] * np.cos(ut_2.loc[:, "Wind Direction"] * np.pi / 180))
+ve_ut_2 = np.nanmean(ut_2.loc[:, "Wind Speed"] * np.sin(ut_2.loc[:, "Wind Direction"] * np.pi / 180))
+theta_ut_2 = np.arctan2(ve_ut_2, vn_ut_2)
+s_ut_2 = np.sqrt(np.nanmean(ut_2.loc[:, "Wind Speed"] * angle_dist(ut_2.loc[:, "Wind Direction"] * np.pi / 180, theta_ut_2, rad=True) ** 2)) * 180 / np.pi

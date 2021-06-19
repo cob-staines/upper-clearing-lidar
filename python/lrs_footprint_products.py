@@ -11,34 +11,34 @@ import rastools
 
 # # # 19_149 -- snow_off
 # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\'
-# cn_coef = 0.1098851  # optimized for cn dropping 5th
+# cn_coef = 0.1921595  # optimized for cn dropping 5th
 # # cn_coef = 0.220319  # optimized for cn
 
 
 # 045_050_052 -- snow_on
-# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\'
-# cn_coef = 0.1364449  # optimized for cn dropping 5th
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\'
+cn_coef = 0.1364611  # optimized for cn dropping 5th
 # cn_coef = 0.141832  # optimized for cn
 
 # optimization
+# batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_off\\"
+# batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_on\\"
+# batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_off_max150m\\"
+# batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_on_max150m\\"
+# batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_off\\"
+# batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_on\\"
 # batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_off\\"
 # batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_on\\"
-# batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_off_max100m\\"
-# batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_on_max100m\\"
-batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_off\\"
-# batch_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_on\\"
-# cn_coef = 0.1364449
-# cn_coef = 0.1098851
 # cn_coef = 1
 
 # threshold transmittances
-# threshold = 0.5
+# threshold = 0.772
 threshold = None
 
 if threshold is None:
     file_out = batch_dir + "outputs\\rshmetalog_footprint_products.csv"
 else:
-    file_out = batch_dir + "outputs\\rshmetalog_footprint_products_threshold.csv"
+    file_out = batch_dir + "outputs\\rshmetalog_footprint_products_threshold" + str(threshold) + ".csv"
 
 rshmeta = pd.read_csv(batch_dir + "outputs\\rshmetalog.csv")
 imsize = rshmeta.img_size_px[0]  # assuming all images have same dimensions
@@ -153,27 +153,6 @@ for zz in range(0, z_count):
 
         return output
 
-    footprint_df.loc[z_low:z_high-1, "lrs_cn_1"] = angle_range_stat(0, 15, cn_bin_means)
-    footprint_df.loc[z_low:z_high-1, "lrs_cn_2"] = angle_range_stat(15, 30, cn_bin_means)
-    footprint_df.loc[z_low:z_high-1, "lrs_cn_3"] = angle_range_stat(30, 45, cn_bin_means)
-    footprint_df.loc[z_low:z_high-1, "lrs_cn_4"] = angle_range_stat(45, 60, cn_bin_means)
-    footprint_df.loc[z_low:z_high-1, "lrs_cn_5"] = angle_range_stat(60, 75, cn_bin_means)
-
-    footprint_df.loc[z_low:z_high-1, "lrs_cn_1_deg"] = angle_range_stat(0, 1, cn_bin_means)
-    footprint_df.loc[z_low:z_high-1, "lrs_cn_60_deg"] = angle_range_stat(0, 60, cn_bin_means)
-    footprint_df.loc[z_low:z_high-1, "lrs_cn_75_deg"] = angle_range_stat(0, 75, cn_bin_means)
-    footprint_df.loc[z_low:z_high-1, "lrs_cn_90_deg"] = angle_range_stat(0, 90, cn_bin_means)
-
-    # # calculate transmittance bands from cn bands
-    # footprint_df.loc[z_low:z_high-1, "lrs_tx_1"] = np.exp(-footprint_df.lrs_cn_1)
-    # footprint_df.loc[z_low:z_high-1, "lrs_tx_2"] = np.exp(-footprint_df.lrs_cn_2)
-    # footprint_df.loc[z_low:z_high-1, "lrs_tx_3"] = np.exp(-footprint_df.lrs_cn_3)
-    # footprint_df.loc[z_low:z_high-1, "lrs_tx_4"] = np.exp(-footprint_df.lrs_cn_4)
-    # footprint_df.loc[z_low:z_high-1, "lrs_tx_5"] = np.exp(-footprint_df.lrs_cn_5)
-    #
-    # footprint_df.loc[z_low:z_high-1, "lrs_tx_1_deg"] = np.exp(-footprint_df.lrs_cn_1_deg)
-    # footprint_df.loc[z_low:z_high-1, "lrs_tx_75_deg"] = np.exp(-footprint_df.lrs_cn_75_deg)
-    # footprint_df.loc[z_low:z_high-1, "lrs_tx_90_deg"] = np.exp(-footprint_df.lrs_cn_90_deg)
 
     footprint_df.loc[z_low:z_high-1, "lrs_tx_1"] = angle_range_stat(0, 15, tx_bin_means)
     footprint_df.loc[z_low:z_high-1, "lrs_tx_2"] = angle_range_stat(15, 30, tx_bin_means)
@@ -197,6 +176,28 @@ for zz in range(0, z_count):
         # footprint_df.loc[z_low:z_high-1, "lrs_cn_1_deg"] = -np.log(footprint_df.lrs_tx_1_deg)
         footprint_df.loc[z_low:z_high-1, "lrs_cn_75_deg"] = -np.log(footprint_df.lrs_tx_75_deg)
         footprint_df.loc[z_low:z_high-1, "lrs_cn_90_deg"] = -np.log(footprint_df.lrs_tx_90_deg)
+    else:
+        footprint_df.loc[z_low:z_high-1, "lrs_cn_1"] = angle_range_stat(0, 15, cn_bin_means)
+        footprint_df.loc[z_low:z_high-1, "lrs_cn_2"] = angle_range_stat(15, 30, cn_bin_means)
+        footprint_df.loc[z_low:z_high-1, "lrs_cn_3"] = angle_range_stat(30, 45, cn_bin_means)
+        footprint_df.loc[z_low:z_high-1, "lrs_cn_4"] = angle_range_stat(45, 60, cn_bin_means)
+        footprint_df.loc[z_low:z_high-1, "lrs_cn_5"] = angle_range_stat(60, 75, cn_bin_means)
+
+        footprint_df.loc[z_low:z_high-1, "lrs_cn_1_deg"] = angle_range_stat(0, 1, cn_bin_means)
+        footprint_df.loc[z_low:z_high-1, "lrs_cn_60_deg"] = angle_range_stat(0, 60, cn_bin_means)
+        footprint_df.loc[z_low:z_high-1, "lrs_cn_75_deg"] = angle_range_stat(0, 75, cn_bin_means)
+        footprint_df.loc[z_low:z_high-1, "lrs_cn_90_deg"] = angle_range_stat(0, 90, cn_bin_means)
+
+    # # calculate transmittance bands from cn bands
+    # footprint_df.loc[z_low:z_high-1, "lrs_tx_1"] = np.exp(-footprint_df.lrs_cn_1)
+    # footprint_df.loc[z_low:z_high-1, "lrs_tx_2"] = np.exp(-footprint_df.lrs_cn_2)
+    # footprint_df.loc[z_low:z_high-1, "lrs_tx_3"] = np.exp(-footprint_df.lrs_cn_3)
+    # footprint_df.loc[z_low:z_high-1, "lrs_tx_4"] = np.exp(-footprint_df.lrs_cn_4)
+    # footprint_df.loc[z_low:z_high-1, "lrs_tx_5"] = np.exp(-footprint_df.lrs_cn_5)
+    #
+    # footprint_df.loc[z_low:z_high-1, "lrs_tx_1_deg"] = np.exp(-footprint_df.lrs_cn_1_deg)
+    # footprint_df.loc[z_low:z_high-1, "lrs_tx_75_deg"] = np.exp(-footprint_df.lrs_cn_75_deg)
+    # footprint_df.loc[z_low:z_high-1, "lrs_tx_90_deg"] = np.exp(-footprint_df.lrs_cn_90_deg)
 
     # lai vertical projection
     cos_proj = np.cos(bins * np.pi / 180)

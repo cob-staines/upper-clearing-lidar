@@ -24,6 +24,7 @@ def main():
 
     # rshmeta.lookup_db = 'count'
     rshmeta.lookup_db = 'posterior'
+    rshmeta.config_id = vc.config_id
 
     rshmeta.agg_sample_length = vox.sample_length
     rshmeta.agg_method = 'single_ray_agg'

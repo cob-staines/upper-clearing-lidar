@@ -8,8 +8,8 @@ p_height = 5.7  # inches
 dpi = 100
 
 
-# photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/19_149/clean/sized/thresholded/LAI_parsed.dat"
-photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/045_052_050/LAI_045_050_052_parsed.dat"
+photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/19_149/clean/sized/thresholded/LAI_parsed.dat"
+# photos_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/045_052_050/LAI_045_050_052_parsed.dat"
 photos_lai = read.csv(photos_lai_in, header=TRUE, na.strings = c("NA",""), sep=",")
 photos_lai$original_file = toupper(gsub("_r.jpg", ".JPG", photos_lai$picture, ignore.case=TRUE))
 photos_meta_in = "C:/Users/Cob/index/educational/usask/research/masters/data/hemispheres/hemi_lookup_cleaned.csv"
@@ -21,43 +21,44 @@ photos = merge(photos_lai, photos_meta, by.x='original_file', by.y='filename', a
 # photos = photos[, c("original_file", "transmission_1", "transmission_2", "transmission_3", "transmission_4", "transmission_5", "transmission_s_1", "transmission_s_2", "transmission_s_3", "transmission_s_4", "transmission_s_5", "contactnum_1", "contactnum_2", "contactnum_3", "contactnum_4", "contactnum_5")]
 photos = photos[, c("original_file", "transmission_s_1", "transmission_s_2", "transmission_s_3", "transmission_s_4", "transmission_s_5")]
 
-# rsm_big_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px1000_snow_off/outputs/rshmetalog_footprint_products.csv"
-rsm_big_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px1000_snow_on/outputs/rshmetalog_footprint_products.csv"
+rsm_big_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px1000_snow_off/outputs/rshmetalog_footprint_products.csv"
+# rsm_big_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px1000_snow_on/outputs/rshmetalog_footprint_products.csv"
 rsm_big = read.csv(rsm_big_in, header=TRUE, na.strings = c("NA",""), sep=",")
 rsm_big$id = as.character(rsm_big$id)
 rsm_big = rsm_big[, c("id", "lrs_cn_1", "lrs_cn_2", "lrs_cn_3", "lrs_cn_4", "lrs_cn_5")]
 colnames(rsm_big) = c("id", "lrs_cn_big_1", "lrs_cn_big_2", "lrs_cn_big_3", "lrs_cn_big_4", "lrs_cn_big_5")
 
-# rsm_far_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_off_max150m/outputs/rshmetalog_footprint_products.csv"
-rsm_far_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_on_max150m/outputs/rshmetalog_footprint_products.csv"
+rsm_far_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_off_max150m/outputs/rshmetalog_footprint_products.csv"
+# rsm_far_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_on_max150m/outputs/rshmetalog_footprint_products.csv"
 rsm_far = read.csv(rsm_far_in, header=TRUE, na.strings = c("NA",""), sep=",")
 rsm_far$id = as.character(rsm_far$id)
 rsm_far = rsm_far[, c("id", "lrs_cn_1", "lrs_cn_2", "lrs_cn_3", "lrs_cn_4", "lrs_cn_5")]
 colnames(rsm_far) = c("id", "lrs_cn_far_1", "lrs_cn_far_2", "lrs_cn_far_3", "lrs_cn_far_4", "lrs_cn_far_5")
 
-# rsm_bin_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_off/outputs/rshmetalog_footprint_products_threshold.csv"
-rsm_bin_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_on/outputs/rshmetalog_footprint_products_threshold.csv"
+rsm_bin_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_off/outputs/rshmetalog_footprint_products_threshold0.772.csv"
+# rsm_bin_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_on/outputs/rshmetalog_footprint_products_threshold0.772.csv"
 rsm_bin = read.csv(rsm_bin_in, header=TRUE, na.strings = c("NA",""), sep=",")
 rsm_bin$id = as.character(rsm_bin$id)
 rsm_bin = rsm_bin[, c("id", "lrs_cn_1", "lrs_cn_2", "lrs_cn_3", "lrs_cn_4", "lrs_cn_5", "lrs_tx_1", "lrs_tx_2", "lrs_tx_3", "lrs_tx_4", "lrs_tx_5")]
 colnames(rsm_bin) = c("id", "lrs_cn_bin_1", "lrs_cn_bin_2", "lrs_cn_bin_3", "lrs_cn_bin_4", "lrs_cn_bin_5", "lrs_tx_bin_1", "lrs_tx_bin_2", "lrs_tx_bin_3", "lrs_tx_bin_4", "lrs_tx_bin_5")
 
-# rsm_raw_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_off/outputs/rshmetalog_footprint_products.csv"
-rsm_raw_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_on/outputs/rshmetalog_footprint_products.csv"
+rsm_raw_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_off/outputs/rshmetalog_footprint_products.csv"
+# rsm_raw_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_on/outputs/rshmetalog_footprint_products.csv"
 rsm_raw = read.csv(rsm_raw_in, header=TRUE, na.strings = c("NA",""), sep=",")
 rsm_raw$id = as.character(rsm_raw$id)
 rsm_raw = rsm_raw[, c("id", "lrs_cn_1", "lrs_cn_2", "lrs_cn_3", "lrs_cn_4", "lrs_cn_5", "lrs_tx_1", "lrs_tx_2", "lrs_tx_3", "lrs_tx_4", "lrs_tx_5")]
 
-# rsm_scl_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_off/outputs/rshmetalog_footprint_products_scaled.csv"
-rsm_scl_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_on/outputs/rshmetalog_footprint_products_scaled.csv"
+rsm_scl_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_off/outputs/rshmetalog_footprint_products_scaled.csv"
+# rsm_scl_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_on/outputs/rshmetalog_footprint_products_scaled.csv"
 rsm_scl = read.csv(rsm_scl_in, header=TRUE, na.strings = c("NA",""), sep=",")
 rsm_scl$id = as.character(rsm_scl$id)
 rsm_scl = rsm_scl[, c("id", "lrs_cn_1", "lrs_cn_2", "lrs_cn_3", "lrs_cn_4", "lrs_cn_5", "lrs_tx_1", "lrs_tx_2", "lrs_tx_3", "lrs_tx_4", "lrs_tx_5")]
 colnames(rsm_scl) = c("id", "lrs_cn_scl_1", "lrs_cn_scl_2", "lrs_cn_scl_3", "lrs_cn_scl_4", "lrs_cn_scl_5", "lrs_tx_scl_1", "lrs_tx_scl_2", "lrs_tx_scl_3", "lrs_tx_scl_4", "lrs_tx_scl_5")
 
 
-rsm_merge = merge(rsm_far, rsm_big, by='id')
-rsm_merge = merge(rsm_bin, rsm_merge, by='id')
+
+rsm_merge = merge(rsm_bin, rsm_far, by='id')
+rsm_merge = merge(rsm_big, rsm_merge, by='id')
 rsm_merge = merge(rsm_raw, rsm_merge, by='id')
 rsm_merge = merge(rsm_scl, rsm_merge, by='id')
 rsm_df = rsm_merge %>%
@@ -69,7 +70,7 @@ rsm_df = rsm_merge %>%
 ggplot(rsm_df, aes(x=lrs_cn, y=lrs_cn_big, color=ring_number)) +
   geom_abline(intercept = 0, slope = 1) +
   geom_point() +
-  labs(title="Mean band-wise expected returns E[<u>] resolution sensitivity (snow-on)", x='E[<u>] (1-degree resolution)', y='E[<u>] (0.18-degree resolution)', color='Zenith angle\nband [deg]') +
+  labs(title="Mean band-wise expected returns E[<u>] resolution sensitivity (snow-off)", x='E[<u>] (1-degree resolution)', y='E[<u>] (0.18-degree resolution)', color='Zenith angle\nband [deg]') +
   scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
 # ggsave(paste0(plot_out_dir, "snow_off_cn_res_eval.png"), width=p_width, height=p_height, dpi=dpi)
 # ggsave(paste0(plot_out_dir, "snow_on_cn_res_eval.png"), width=p_width, height=p_height, dpi=dpi)
@@ -89,7 +90,7 @@ summary(max_lm)
 ggplot(rsm_df, aes(x=-log(lrs_tx_scl), y=lrs_cn_scl, color=ring_number)) +
   geom_abline(intercept = 0, slope = 1) +
   geom_point() +
-  labs(title="Mean band-wise contact number E(X) commutation response (snow-on)", x='-ln(E[exp(-X)])', y='E[X]', color='Zenith angle\nband [deg]') +
+  labs(title="Mean band-wise contact number E(X) commutation response (snow-off)", x='-ln(E[exp(-X)])', y='E[X]', color='Zenith angle\nband [deg]') +
   scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
 # ggsave(paste0(plot_out_dir, "snow_off_cn_bin_eval.png"), width=p_width, height=p_height, dpi=dpi)
 # ggsave(paste0(plot_out_dir, "snow_on_cn_bin_eval.png"), width=p_width, height=p_height, dpi=dpi)
@@ -99,7 +100,7 @@ summary(bin_lm)
 ggplot(rsm_df, aes(x=-log(lrs_tx_bin), y=-log(lrs_tx_scl), color=ring_number)) +
   geom_abline(intercept = 0, slope = 1) +
   geom_point() +
-  labs(title="Mean band-wise contact number -ln(E[T]) threshold response (snow-on)", x='-ln(E[H(T - 0.5)])', y='-ln(E[T])', color='Zenith angle\nband [deg]') +
+  labs(title="Mean band-wise contact number -ln(E[T]) threshold response (snow-off)", x='-ln(E[H(T - 0.772)])', y='-ln(E[T])', color='Zenith angle\nband [deg]') +
   scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
 # ggsave(paste0(plot_out_dir, "snow_off_cn_thresh_eval.png"), width=p_width, height=p_height, dpi=dpi)
 # ggsave(paste0(plot_out_dir, "snow_on_cn_thresh_eval.png"), width=p_width, height=p_height, dpi=dpi)
@@ -144,9 +145,11 @@ lmw_rsm_mean_cn_drop = lm(-log(df_drop$transmission_s) ~ 0 + df_drop$lrs_cn, wei
 summary(lmw_rsm_mean_cn_drop)
 cn_lmw_drop = predict(lmw_rsm_mean_cn_drop, df_drop)
 
-lmw_rsm_mean_cn_drop_bin = lm(-log(df_drop$transmission_s) ~ 0 + df_drop$lrs_cn_bin, weights=df_drop$solid_angle)
+# lmw_rsm_mean_cn_drop_bin = lm(-log(df_drop$transmission_s) ~ 0 + df_drop$lrs_cn_bin, weights=df_drop$solid_angle)
+lmw_rsm_mean_cn_drop_bin = lm(-log(df_drop$transmission_s[is.finite(df_drop$lrs_cn_bin)]) ~ 0 + df_drop$lrs_cn_bin[is.finite(df_drop$lrs_cn_bin)], weights=df_drop$solid_angle[is.finite(df_drop$lrs_cn_bin)])
 summary(lmw_rsm_mean_cn_drop_bin)
-cn_lmw_drop_bin = predict(lmw_rsm_mean_cn_drop_bin, df_drop)
+# cn_lmw_drop_bin = predict(lmw_rsm_mean_cn_drop_bin, df_drop)
+cn_lmw_drop_bin = df_drop$lrs_cn_bin * summary(lmw_rsm_mean_cn_drop_bin)$coefficients[1]
 
 # bin_lm = lm(-log(transmission_s) ~ lrs_cn_bin, data = df)
 # summary(bin_lm)
@@ -244,16 +247,17 @@ cn_lmw_drop_bin = predict(lmw_rsm_mean_cn_drop_bin, df_drop)
 ggplot(df_drop, aes(x=summary(lmw_rsm_mean_cn_drop)$coefficients[1] * lrs_cn, y=-log(transmission_s), color=ring_number)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
-  labs(title="Mean band-wise contact number E[X] methods comparison (snow-on)", x='E[X] (ray sampling)', y='E[X] (thresholded hemispherical photography)', color='Zenith angle\nband [deg]') +
+  labs(title="Mean band-wise contact number E[X] methods comparison (snow-off)", x='E[X] (ray sampling)', y='E[X] (thresholded hemispherical photography)', color='Zenith angle\nband [deg]') +
   scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
 # ggsave(paste0(plot_out_dir, "snow_off_cn_photo_error_eval.png"), width=p_width, height=p_height, dpi=dpi)
 # ggsave(paste0(plot_out_dir, "snow_on_cn_photo_error_eval.png"), width=p_width, height=p_height, dpi=dpi)
 
 # cn bin
-ggplot(df_drop, aes(x=summary(lmw_rsm_mean_cn_drop_bin)$coefficients[1] * lrs_cn_bin, y=-log(transmission_s), color=ring_number)) +
+# ggplot(df_drop, aes(x=summary(lmw_rsm_mean_cn_drop_bin)$coefficients[1] * lrs_cn_bin, y=-log(transmission_s), color=ring_number)) +
+ggplot(df_drop, aes(x=lrs_cn_bin, y=-log(transmission_s), color=ring_number)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
-  labs(title="Mean band-wise contact number E[X] thresholded methods comparison (snow-on)", x='E[X] (thresholded ray sampling)', y='E[X] (thresholded hemispherical photography)', color='Zenith angle\nband [deg]') +
+  labs(title="Mean band-wise contact number E[X] thresholded methods comparison (snow-off)", x='E[X] (thresholded ray sampling)', y='E[X] (thresholded hemispherical photography)', color='Zenith angle\nband [deg]') +
   scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
 # ggsave(paste0(plot_out_dir, "snow_off_cn_bin_photo_error_eval.png"), width=p_width, height=p_height, dpi=dpi)
 # ggsave(paste0(plot_out_dir, "snow_on_cn_bin_photo_error_eval.png"), width=p_width, height=p_height, dpi=dpi)
@@ -297,8 +301,8 @@ model_eval = function(nn = 0){
   # cn model
   tx = df_sub$transmission_s
   cn = -log(tx)
-  # lrs_cn = df_sub$lrs_cn * summary(lmw_rsm_mean_cn_drop)$coefficients[1]
-  lrs_cn = df_sub$lrs_cn_bin * summary(lmw_rsm_mean_cn_drop_bin)$coefficients[1]
+  lrs_cn = df_sub$lrs_cn * summary(lmw_rsm_mean_cn_drop)$coefficients[1]
+  # lrs_cn = df_sub$lrs_cn_bin * summary(lmw_rsm_mean_cn_drop_bin)$coefficients[1]
   # lrs_cn = df_sub$lrs_cn * lmw_rsm_mean_cn$coefficients[1]
   # lrs_cn = predict(nlsw2_rsm_mean_cn, newdata=df_sub)
   lrs_tx = exp(-lrs_cn)

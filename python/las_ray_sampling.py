@@ -1544,6 +1544,7 @@ def rs_hemigen(rshmeta, vox, tile_count_1d=1, n_cores=1, initial_index=0):
                         "min_distance_m": rshmeta.min_distance,
                         "max_distance_m": rshmeta.max_distance,
                         "lookup_db": rshmeta.lookup_db,
+                        "config_id": rshmeta.config_id,
                         "agg_method": rshmeta.agg_method,
                         "created_datetime": np.nan,
                         "computation_time_s": np.nan})
@@ -1665,6 +1666,7 @@ def rs_gridgen(rsgmeta, vox, chunksize=1000000, initial_index=0, commentation=Tr
                         "min_distance_m": rsgmeta.min_distance,
                         "max_distance_m": rsgmeta.max_distance,
                         "lookup_db": rsgmeta.lookup_db,
+                        "config_id": rsgmeta.config_id,
                         "agg_method": rsgmeta.agg_method,
                         "prior": str(rsgmeta.prior),
                         "created_datetime": None,

@@ -23,6 +23,7 @@ def main():
 
      # rshmeta.lookup_db = 'count'
     rsgmeta.lookup_db = 'posterior'
+    rsgmeta.config_id = vc.config_id
 
     rsgmeta.agg_sample_length = vox.sample_length
     rsgmeta.agg_method = 'single_ray_agg'

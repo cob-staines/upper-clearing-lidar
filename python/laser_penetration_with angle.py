@@ -79,14 +79,14 @@ plt.plot(lpm.phi, lpm.g_lpmc, label="g_lpmc")
 plt.legend()
 
 #####
-# compare with same from ray sampling
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\outputs\\'
-scaling_coef = 0.1841582  # snow_off
-canopy = "snow_off"
+# # compare with same from ray sampling
+# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\outputs\\'
+# scaling_coef = 0.1921595  # snow_off
+# canopy = "snow_off"
 
-# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\outputs\\'
-# scaling_coef = 0.1692154  # snow_on
-# canopy = "snow_on"
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\outputs\\'
+scaling_coef = 0.1364611  # snow_on
+canopy = "snow_on"
 
 # load canopy stats
 df_25_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\merged_data_products\\merged_uf_r.25m_canopy_19_149_median-snow.csv'
@@ -357,16 +357,16 @@ plt.ylim([0, 0.7])
 plt.legend()
 ax1.set_ylabel("Extinction efficiency [-]")
 ax1.set_xlabel("Elevation angle [$^{\circ}$]")
-fig.savefig(plot_out_dir + "uf_g_elevation_" + canopy + ".png")
+fig.savefig(plot_out_dir + "uf_g_elevation.png")
 
-bin_mid = (np.array([1, 2, 3, 4, 5]) - .5) * 15
+bin_mid = (np.array([1, 2, 3, 4]) - .5) * 15
 
 g_hemi_1 = -np.log(np.mean(df_25.transmission_s_1)) * np.cos((bin_mid[0]) * np.pi / 180) / np.mean(df_25.lai_s_cc)
 g_hemi_2 = -np.log(np.mean(df_25.transmission_s_2)) * np.cos((bin_mid[1]) * np.pi / 180) / np.mean(df_25.lai_s_cc)
 g_hemi_3 = -np.log(np.mean(df_25.transmission_s_3)) * np.cos((bin_mid[2]) * np.pi / 180) / np.mean(df_25.lai_s_cc)
 g_hemi_4 = -np.log(np.mean(df_25.transmission_s_4)) * np.cos((bin_mid[3]) * np.pi / 180) / np.mean(df_25.lai_s_cc)
-g_hemi_5 = -np.log(np.mean(df_25.transmission_s_5)) * np.cos((bin_mid[4]) * np.pi / 180) / np.mean(df_25.lai_s_cc)
-g_hemi = np.array([g_hemi_1, g_hemi_2, g_hemi_3, g_hemi_4, g_hemi_5])
+# g_hemi_5 = -np.log(np.mean(df_25.transmission_s_5)) * np.cos((bin_mid[4]) * np.pi / 180) / np.mean(df_25.lai_s_cc)
+g_hemi = np.array([g_hemi_1, g_hemi_2, g_hemi_3, g_hemi_4])
 
 def gx(xx, phi):
     k = np.sqrt(xx ** 2 + np.tan(phi * np.pi / 180) ** 2) / (xx + 1.702 * (xx + 1.12) ** -0.708)
@@ -387,7 +387,7 @@ plt.plot(tx_all.phi, tx_all.g_all_snow_off, label="snow off")
 # plt.plot(90 - tx_all.phi, tx_all.g_tx_mean_s_snow_off, label="Snow off south")
 # plt.plot(90 - tx_all.phi, tx_all.g_tx_mean_w_snow_off, label="Snow off west")
 plt.plot(tx_all.phi, tx_all.g_all_snow_on, label="snow on")
-plt.scatter(bin_mid, g_hemi, label="hemi")
+# plt.scatter(bin_mid, g_hemi, label="hemi")
 # plt.plot(90 - tx_all.phi, tx_all.g_tx_mean_n_snow_on, label="Snow on north")
 # plt.plot(90 - tx_all.phi, tx_all.g_tx_mean_e_snow_on, label="Snow on east")
 # plt.plot(90 - tx_all.phi, tx_all.g_tx_mean_s_snow_on, label="Snow on south")
@@ -395,14 +395,14 @@ plt.scatter(bin_mid, g_hemi, label="hemi")
 # plt.plot(tx_all.phi, gx_0, label="gx_0")
 # plt.plot(tx_all.phi, gx_h5, label="gx_0.5")
 # plt.plot(tx_all.phi, gx_h75, label="gx_0.75")
-# plt.plot(tx_all.phi, gx_1, label="gx_1")
+# # plt.plot(tx_all.phi, gx_1, label="gx_1")
 # plt.plot(tx_all.phi, gx_inf, label="gx_inf")
 plt.xlim([0, 90])
 plt.ylim([0, 1])
 plt.legend()
 ax1.set_ylabel("Extinction efficiency [-]")
 ax1.set_xlabel("Elevation angle [$^{\circ}$]")
-fig.savefig(plot_out_dir + "uf_g_" + canopy + ".png")
+fig.savefig(plot_out_dir + "uf_g.png")
 
 
 
@@ -426,7 +426,7 @@ plt.ylim(0, 1)
 plt.legend()
 ax1.set_ylabel("Light transmittance [-]")
 ax1.set_xlabel("Angle from zenith [$^{\circ}$]")
-fig.savefig(plot_out_dir + "uf_tx_zenith_all_" + canopy + ".png")
+fig.savefig(plot_out_dir + "uf_tx_zenith_all.png")
 
 # LAS classes:
 # 1 -- unclassified

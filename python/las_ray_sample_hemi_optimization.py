@@ -5,13 +5,11 @@ def main():
     import os
 
     # call voxel config
-    import vox_045_050_052_config as vc
-    # import vox_19_149_config as vc
+    # import vox_045_050_052_config as vc
+    import vox_19_149_config as vc
     vox = vc.vox
 
-    # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_beta_single_ray_agg_19_149\\'
-    # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_on_max100m\\'
-    batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px181_snow_off_max100m\\'
+    batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_off\\'
 
     # batch_dir = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\batches\\lrs_hemi_opt_test\\'
 
@@ -41,6 +39,7 @@ def main():
 
     # rshmeta.lookup_db = 'count'
     rshmeta.lookup_db = 'posterior'
+    rshmeta.config_id = vc.config_id
 
     rshmeta.agg_method = 'single_ray_agg'
     rshmeta.agg_sample_length = vox.agg_sample_length
@@ -55,11 +54,11 @@ def main():
 
     # ray geometry
     # phi_step = (np.pi / 2) / (180 * 2)
-    rshmeta.img_size = 181  # square, in pixels/ray samples
+    rshmeta.img_size = 1000  # square, in pixels/ray samples
     # rshmeta.max_phi_rad = phi_step * rshmeta.img_size
     rshmeta.max_phi_rad = np.pi/2
     hemi_m_above_ground = img_lookup.height_m  # meters
-    rshmeta.max_distance = 100  # meters
+    rshmeta.max_distance = 50  # meters
     # rshmeta.min_distance = vox.step[0] * np.sqrt(3)  # meters
     rshmeta.min_distance = 0  # meters
 
@@ -104,9 +103,7 @@ def main():
 
     rshmeta.file_name = ["las_19_149_id_" + str(id) + ".tif" for id in pts.id]
 
-    rshm = lrs.rs_hemigen(rshmeta, vox)
-
-
+    rshm = lrs.rs_hemigen(rshmeta, vox, initial_index=6)
 
 
 if __name__ == "__main__":
@@ -131,7 +128,7 @@ ii = 0
 
 # snow_off_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\"
 snow_off_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_off\\"
-snow_off_coef = 0.1098851  # optimized for cn dropping 5th
+snow_off_coef = 0.19216  # optimized for cn dropping 5th
 # snow_off_coef = 0.191206
 # snow_off_coef = 0.155334
 # snow_off_coef = 0.1841582  # tx wls
@@ -144,8 +141,8 @@ tx_off = np.exp(-cn_off)
 
 # snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\"
 # snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_on\\"
-snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_on_for_snow_on_locations\\"
-snow_on_coef = 0.1364449  # optimized for cn dropping 5th
+snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_on_at_snow_off\\"
+snow_on_coef = 0.136461  # optimized for cn dropping 5th
 # snow_on_coef = 0.132154
 # snow_on_coef = 0.137942
 # snow_on_coef = 0.169215  # tx wls
@@ -169,6 +166,7 @@ ax.set_axis_off()
 fig.savefig(plot_out_dir + 'lrs_snow_off_tx_id' + str(ii) + '.png')
 
 fig, ax = plt.subplots(figsize=(10, 10), dpi=100)
+# fig, ax = plt.subplots(figsize=(1.81, 1.81), dpi=100)
 # img = ax.imshow(tx_on, interpolation='nearest', cmap='Greys_r', clim=[0, 1])
 fim = plt.figimage(tx_on, cmap='Greys_r', clim=[0, 1])
 ax.set_axis_off()

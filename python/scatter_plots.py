@@ -17,7 +17,7 @@ df_25_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\
 df_25 = pd.read_csv(df_25_in)
 df_25.loc[:, 'cc'] = 1 - df_25.loc[:, 'openness']
 
-print(set(df_10.columns) & set(df_25.columns)) # make sure no covariates (canopy metrics) show up in this list!
+print(set(df_10.columns) & set(df_25.columns))  # make sure no covariates (canopy metrics) show up in this list!
 df_all = pd.concat([df_10, df_25])
 # dirty renames
 # df_all.loc[:, ['lai_rs', 'lai_hemi', 'hemi_75_deg_tx', 'hemi_15_deg_tx', 'ray_sampled_tx']] = df_all.loc[:, ['cn_mean_25', 'lai_s_cc', 'transmission', 'transmission_1', 'transmission_rs']].values
@@ -396,7 +396,7 @@ df_25.loc[:, "cn_from_tx_1"] = -np.log(df_25.loc[:, "transmission_s_1"])
 df_25.loc[:, "cn_from_tx_2"] = -np.log(df_25.loc[:, "transmission_s_2"])
 df_25.loc[:, "cn_from_tx_3"] = -np.log(df_25.loc[:, "transmission_s_3"])
 df_25.loc[:, "cn_from_tx_4"] = -np.log(df_25.loc[:, "transmission_s_4"])
-df_25.loc[:, "cn_from_tx_5"] = -np.log(df_25.loc[:, "transmission_s_5"])
+# df_25.loc[:, "cn_from_tx_5"] = -np.log(df_25.loc[:, "transmission_s_5"])
 
 x_dat = ["cn_from_tx_1",
          "cn_from_tx_2",
@@ -414,6 +414,10 @@ y_dat = ["lrs_cn_1",
          "lrs_cn_3",
          "lrs_cn_4"]
 
+# x_dat = ["lrs_cn_1_snow_off_thresh",
+#          "lrs_cn_2_snow_off_thresh",
+#          "lrs_cn_3_snow_off_thresh",
+#          "lrs_cn_4_snow_off_thresh"]
 
 
 titles = ["0$^{\circ}$-15$^{\circ}$",
@@ -423,15 +427,21 @@ titles = ["0$^{\circ}$-15$^{\circ}$",
 
 # x_weights = 1/np.cos((np.array([1, 2, 3, 4, 5]) * 15 - 15./2) * np.pi / 180)
 
-maxmin = [np.nanmin((df_25.loc[:, x_dat], df_25.loc[:, y_dat])) - .25,
-              np.nanmax((df_25.loc[:, x_dat], df_25.loc[:, y_dat])) + .25]
+# maxmin = [np.nanmin((df_25.loc[:, x_dat], df_25.loc[:, y_dat])) - .25,
+#               np.nanmax((df_25.loc[:, x_dat], df_25.loc[:, y_dat])) + .25]
+maxmin = [-0.2475003144958451, 4.503105854607043]
 
 fig, ax = plot_together(df_25, x_dat, y_dat, titles, lims=maxmin,
                         suptitle="Contact number comparison between methods over the forest plot",
                         y_lab=r"$\chi_{a-b}^{\blacktriangle}$ [-]",
-                        # y_lab=r"$\chi_{a-b}^{\bullet}$ (Poisson radius 0.15m) [-]",
+                        # x_lab=r"$\chi_{a-b}^{\dagger}$ [-]")
                         x_lab=r"$\chi_{a-b}^{\bullet}$ [-]")
 fig.savefig(plot_out_dir + "cn_comparison.png")
+# fig.savefig(plot_out_dir + "cn_comparison_threshold.png")
+# fig.savefig(plot_out_dir + "cn_comparison_threshold_lrs.png")
+
+# aa = np.array([110, 100, 160, 160, 200, 200, 200, 200, 120, 120, 120, 120, 120, 130, 140])
+# np.mean((aa / 255) ** (1/2.2))
 
 x_dat = ["transmission_s_1",
          "transmission_s_2",
@@ -443,6 +453,11 @@ y_dat = ["lrs_tx_1",
          "lrs_tx_3",
          "lrs_tx_4"]
 
+# x_dat = ["lrs_tx_1_snow_off_thresh",
+#          "lrs_tx_2_snow_off_thresh",
+#          "lrs_tx_3_snow_off_thresh",
+#          "lrs_tx_4_snow_off_thresh"]
+
 titles = ["0$^{\circ}$-15$^{\circ}$",
           "15$^{\circ}$-30$^{\circ}$",
           "30$^{\circ}$-45$^{\circ}$",
@@ -452,21 +467,27 @@ titles = ["0$^{\circ}$-15$^{\circ}$",
 fig, ax = plot_together(df_25, x_dat, y_dat, titles, lims=[0, 1],
                         suptitle="Light ransmittance comparison between methods over the forest plot",
                         y_lab=r"$T_{a-b}^{\blacktriangle}$ [-]",
+                        # x_lab=r"$T_{a-b}^{\dagger}$ [-]")
                         x_lab=r"$T_{a-b}^{\bullet}$ [-]")
 fig.savefig(plot_out_dir + "tx_comparison.png")
+# fig.savefig(plot_out_dir + "tx_comparison_threshold.png")
+# fig.savefig(plot_out_dir + "tx_comparison_threshold_lrs.png")
 
 fig, ax = plt.subplots(nrows=1, ncols=1, sharey=True, sharex=True, figsize=(8, 6), constrained_layout=True)
 x_dat = ["lai_s_cc"]
+x_dat = ["lrs_tx_1_deg"]
 # x_dat = ["lrs_lai_60_deg"]
 # x_dat = ["transmission_s_5"]
 # y_dat = ["lai_s_cc_pois"]
 # y_dat = ["lrs_lai_1_deg"]
 y_dat = ["lrs_lai_2000"]
+y_dat = ["dce"]
+# x_dat = ["lrs_lai_2000_snow_off_thresh"]
 # y_dat = ["lrs_lai_60_deg"]
 # x_dat = ["lrs_tx_5"]
 # y_dat = ["lrs_cn_5"]
 titles = ["LAI methods comparison over Upper Forest"]
-df = df_25
+df = df_all
 ii = 0
 x = [0, 100]
 y = [0, 100]
@@ -481,6 +502,7 @@ offset = 0
 xx = df.loc[:, x_dat]
 yy = df.loc[:, y_dat]
 maxmin=[np.nanmin((xx, yy)) - .25, np.nanmax((xx, yy)) + .25]
+# maxmin = [0.6906463987979972, 5.22]
 # ax.hist2d(df.loc[:, x_dat[ii]], df.loc[:, y_dat[ii]], range=squarerange,
 #           bins=(np.array([8, 8]) * 10).astype(int), cmap="Blues")
 ax.scatter(xx, yy, alpha=.25, s=25)
@@ -488,8 +510,11 @@ plt.ylim(maxmin)
 plt.xlim(maxmin)
 ax.title.set_text(titles[ii])
 ax.set_ylabel(r"$LAI_{2000}^{\blacktriangle}$ [-]")
+# ax.set_xlabel(r"$LAI_{2000}^{\dagger}$ [-]")
 ax.set_xlabel(r"$LAI_{2000}^{\bullet}$ [-]")
 fig.savefig(plot_out_dir + "lai_comparison.png")
+# fig.savefig(plot_out_dir + "lai_comparison_thresh.png")
+# fig.savefig(plot_out_dir + "lai_comparison_thresh_lrs.png")
 
 # x_dat = ["lai_no_cor",
 #          "lai_no_cor",
@@ -564,7 +589,31 @@ plt.imshow(map, interpolation="nearest", cmap="plasma", clim=(0, 4))
 plt.colorbar()
 
 
+### dce vs tx1
 
+ddict = {
+    'uf': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\hemi_grid_points\\mb_65_r.25m_snow_off_offset0\\uf_plot_r.10m.tif',
+    'lrs_id': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\hemi_grid_points\\mb_65_r.25m_snow_off_offset.25\\dem_r.25_point_ids.tif',
+}
+
+merge_data_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\outputs\\rshmetalog_footprint_products.csv'
+
+left_on = ['lrs_id']
+right_on = ['id']
+suffixes = ["_snow_off"]
+data = merge_data_products(ddict, file_out, merge_data_in=merge_data_in, left_on=left_on, right_on=right_on, suffixes=suffixes, mode='median')
+
+import rastools
+
+ddict = {'uf': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\hemi_grid_points\\mb_65_r.25m_snow_off_offset0\\uf_plot_r.10m.tif',
+         'dce': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\DCE\\19_149_spike_free_chm_r.10m_dce.tif',
+         'lrs_id': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\hemi_grid_points\\mb_65_r.25m_snow_off_offset.25\\dem_r.25_point_ids.tif'
+         }
+df_oof = rastools.pd_sample_raster_gdal(ddict, include_nans=False, mode="nearest")
+sup_data = pd.read_csv(merge_data_in)
+df_fun = df_oof.merge(sup_data, left_on="lrs_id", right_on="id")
+
+plt.scatter(df_fun.dce, df_fun.lrs_tx_1, alpha=.25)
 
 
 
