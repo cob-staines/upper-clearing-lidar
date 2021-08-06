@@ -24,7 +24,7 @@ df_all = pd.concat([df_10, df_25])
 
 
 # combined scatter plots
-x_vars = ['swe_19_045', 'swe_19_050', 'swe_19_052', 'dswe_19_045-19_050', 'dswe_19_050-19_052']
+x_vars = ['swe_fcon_19_045', 'swe_fcon_19_050', 'swe_fcon_19_052', 'dswe_fnsd_19_045-19_050', 'dswe_fnsd_19_050-19_052']
 y_vars = ['chm_1', 'dnt', 'dce']
 hmm = ['chm', 'chm', 'chm', 'chm', 'chm', 'dnt', 'dnt', 'dnt', 'dnt', 'dnt', 'dce', 'dce', 'dce', 'dce', 'dce']
 next_label = iter(hmm).__next__
@@ -118,11 +118,11 @@ plt.savefig(plot_out_dir + "scatter_combined_lpm.png")
 
 # individual scatter plots
 title_dict = {
-    'swe_19_045': '14 Feb. 2019 SWE',
-    'swe_19_050': '19 Feb. 2019 SWE',
-    'swe_19_052': '21 Feb. 2019 SWE',
-    'dswe_19_045-19_050': '14-19 Feb. 2019 $\Delta$SWE',
-    'dswe_19_050-19_052': '19-21 Feb. 2019 $\Delta$SWE',
+    'swe_fcon_19_045': '14 Feb. 2019 SWE',
+    'swe_fcon_19_050': '19 Feb. 2019 SWE',
+    'swe_fcon_19_052': '21 Feb. 2019 SWE',
+    'dswe_fnsd_19_045-19_050': '14-19 Feb. 2019 $\Delta$SWE',
+    'dswe_fnsd_19_050-19_052': '19-21 Feb. 2019 $\Delta$SWE',
     'chm': 'Canopy Height',
     'dnt': 'Distance to Nearest Tree',
     'dce': 'Distance to Canopy Edge',
@@ -135,11 +135,11 @@ title_dict = {
     'transmission_1': "15deg Hemi-photo light transmittance"}
 
 lab_dict = {
-    'swe_19_045': 'SWE [mm]',
-    'swe_19_050': 'SWE [mm]',
-    'swe_19_052': 'SWE [mm]',
-    'dswe_19_045-19_050': '$\Delta$SWE [mm]',
-    'dswe_19_050-19_052': '$\Delta$SWE [mm]',
+    'swe_fcon_19_045': 'SWE [mm]',
+    'swe_fcon_19_050': 'SWE [mm]',
+    'swe_fcon_19_052': 'SWE [mm]',
+    'dswe_fnsd_19_045-19_050': '$\Delta$SWE [mm]',
+    'dswe_fnsd_19_050-19_052': '$\Delta$SWE [mm]',
     'chm': 'Canopy height [m]',
     'dnt': 'Distance to Nearest Tree [m]',
     'dce': 'Distance to Canopy Edge [m]',
@@ -180,7 +180,7 @@ def plot_func(df, x_col, y_col):
     plt.title(title)
     fig.savefig(plot_out_dir + filename)
 
-x_vars = ['swe_19_045', 'swe_19_050', 'swe_19_052', 'dswe_19_045-19_050', 'dswe_19_050-19_052']
+x_vars = ['swe_fcon_19_045', 'swe_fcon_19_050', 'swe_fcon_19_052', 'dswe_fnsd_19_045-19_050', 'dswe_fnsd_19_050-19_052']
 y_vars = ['chm', 'dnt', 'cn_mean', 'lai_s_cc', 'cc', 'transmission', 'transmission_rs', 'contactnum_1', 'transmission_1', 'dce']
 
 
@@ -193,11 +193,13 @@ for xx in x_vars:
 
 # spearmans heatmap
 
+
 x_vars = ['swe_fcon_19_045', 'swe_fcon_19_050', 'swe_fcon_19_052', 'dswe_fnsd_19_045-19_050', 'dswe_fnsd_19_050-19_052']
 x_labs = ['SWE\nFeb 14', 'SWE\nFeb 19', 'SWE\nFeb 21', '$\Delta$SWE\nStorm 1', '$\Delta$SWE\nStorm 2']
 
 y_vars = ['chm', 'dnt', 'dce',
           'mCH_19_149_resampled', 'fcov', 'lpml15',
+          'mean_dist_to_canopy_1.25', 'mean_dist_to_canopy_10', 'total_gap_area_1.25',
           # 'lrs_cn_1_deg', 'lrs_cn_1_deg_snow_on',
           'lrs_tx_1_deg_snow_on', 'lrs_tx_1_deg',
           # 'lrs_cn_1', 'lrs_cn_1_snow_on', 'contactnum_1',
@@ -206,10 +208,11 @@ y_vars = ['chm', 'dnt', 'dce',
           'lrs_tx_2_snow_on', 'lrs_tx_2', 'transmission_s_2',
           'lrs_lai_60_deg_snow_on', 'lrs_lai_60_deg', 'lai_s_cc',
           'lrs_cc_snow_on', 'lrs_cc', 'cc',
-          'lrs_sky_view_snow_on', 'lrs_sky_view',
+          'lrs_sky_view_snow_on', 'lrs_sky_view'
           ]
 y_labs = ['$CHM$', '$DNT$', '$DCE$',
           r'$mCH$', '$fCov$', '$LPM$-$L$',
+          r'$MDC_{1.25}$', r'$MDC_{10}$', r'$TGA_{1.25}$',
           # r'$\chi_{1}^{\blacktriangle}$', r'$\chi_{1}^{\vartriangle}$',
           r'$T_{1}^{\vartriangle}$', r'$T_{1}^{\blacktriangle}$',
           # r'$\chi_{15}^{\blacktriangle}$', r'$\chi_{15}^{\vartriangle}$', r'$\chi_{15}^{\bullet}$',
@@ -217,18 +220,33 @@ y_labs = ['$CHM$', '$DNT$', '$DCE$',
           # r'$\chi_{60-75}^{\blacktriangle}$', r'$\chi_{60-75}^{\vartriangle}$', r'$\chi_{60-75}^{\bullet}$',
           r'$T_{15-30}^{\vartriangle}$', r'$T_{15-30}^{\blacktriangle}$', r'$T_{15-30}^{\bullet}$',
           r'$LAI_{60}^{\vartriangle}$', r'$LAI_{60}^{\blacktriangle}$', r'$LAI_{2000}^{\bullet}$',
-          r'$CC^{\vartriangle}$', r'$CC^{\blacktriangle}$', r'$CC^{\bullet}$',
-          r'$V_{S}^{\vartriangle}$', r'$V_{S}^{\blacktriangle}$',
+          r'$C_{c}^{\vartriangle}$', r'$C_{c}^{\blacktriangle}$', r'$C_{c}^{\bullet}$',
+          r'$V_{f}^{\vartriangle}$', r'$V_{f}^{\blacktriangle}$'
           ]
+
+# full lables
+# y_labs = [r'Canopy crown height - $CHM$ (m AGS)', r'Distance to nearest tree - $DNT$ (m)', r'Distance to canopy edge - $DCE$ (m)',
+#           r'Mean canopy height - $mCH$ (m AGS)', 'Fractional cover - $fCov$ (-)', 'Laser penetration metric $LPM$-$L$ (-)',
+#           r'Mean distance to canopy - $MDC$ (m)', r'Total gap area - $TGA$ ($m^2$)',
+#           r'Light transmittance ($1^\circ$, ray sampling, snow on) - $T_{1}^{\vartriangle}$ (-)', r'Light transmittance ($1^\circ$, ray sampling, snow off) - $T_{1}^{\blacktriangle}$ (-)',
+#           # r'$\chi_{15}^{\blacktriangle}$', r'$\chi_{15}^{\vartriangle}$', r'$\chi_{15}^{\bullet}$',
+#           r'Light transmittance ($15^\circ$, ray sampling, snow on) - $T_{15}^{\vartriangle}$ (-)', r'Light transmittance ($15^\circ$, ray sampling, snow off) - $T_{15}^{\blacktriangle}$ (-)', r'Light transmittance ($15^\circ$, reprojection, snow off) - $T_{15}^{\bullet}$ (-)',
+#           # r'$\chi_{60-75}^{\blacktriangle}$', r'$\chi_{60-75}^{\vartriangle}$', r'$\chi_{60-75}^{\bullet}$',
+#           r'Light transmittance ($15^\circ$ - $30^\circ$, ray sampling, snow on) - $T_{15-30}^{\vartriangle}$ (-)', r'Light transmittance ($15^\circ$ - $30^\circ$, ray sampling, snow off) - $T_{15-30}^{\blacktriangle}$ (-)', r'Light transmittance ($15^\circ$ - $30^\circ$, reprojection, snow off) - $T_{15-30}^{\bullet}$ (-)',
+#           r'Leaf area index ($60^\circ$, ray sampling, snow on) - $LAI_{60}^{\vartriangle}$ (-)', r'Leaf area index ($60^\circ$, ray sampling, snow off) - $LAI_{60}^{\blacktriangle}$ (-)', r'Leaf area index ($60^\circ$, reprojection, snow off) - $LAI_{2000}^{\bullet}$ (-)',
+#           r'Canopy closure ($60^\circ$, ray sampling, snow on) - $C_{c}^{\vartriangle}$ (-)', r'Canopy closure ($60^\circ$, ray sampling, snow off) - $C_{c}^{\blacktriangle}$ (-)', r'Canopy closure ($60^\circ$, reprojection, snow off) - $C_{c}^{\bullet}$ (-)',
+#           r'Sky view factor ($60^\circ$, ray sampling, snow on) - $V_{f}^{\vartriangle}$ (-)', r'Sky view factor ($60^\circ$, ray sampling, snow off) - $V_{f}^{\blacktriangle}$ (-)',
+#           ]
 
 y_res = [10, 10, 10,
          10, 10, 10,
-         25, 25,
-         25, 25, 25,
-         25, 25, 25,
-         25, 25, 25,
          25, 25, 25,
          25, 25,
+         25, 25, 25,
+         25, 25, 25,
+         25, 25, 25,
+         25, 25, 25,
+         25, 25
          ]
 
 # export stats
@@ -427,9 +445,9 @@ titles = ["0$^{\circ}$-15$^{\circ}$",
 
 # x_weights = 1/np.cos((np.array([1, 2, 3, 4, 5]) * 15 - 15./2) * np.pi / 180)
 
-# maxmin = [np.nanmin((df_25.loc[:, x_dat], df_25.loc[:, y_dat])) - .25,
-#               np.nanmax((df_25.loc[:, x_dat], df_25.loc[:, y_dat])) + .25]
-maxmin = [-0.2475003144958451, 4.503105854607043]
+maxmin = [np.nanmin((df_25.loc[:, x_dat], df_25.loc[:, y_dat])) - .25,
+          np.nanmax((df_25.loc[:, x_dat], df_25.loc[:, y_dat])) + .25]
+# maxmin = [-0.2411994287105065, 7.549130176945413]
 
 fig, ax = plot_together(df_25, x_dat, y_dat, titles, lims=maxmin,
                         suptitle="Contact number comparison between methods over the forest plot",
@@ -474,14 +492,19 @@ fig.savefig(plot_out_dir + "tx_comparison.png")
 # fig.savefig(plot_out_dir + "tx_comparison_threshold_lrs.png")
 
 fig, ax = plt.subplots(nrows=1, ncols=1, sharey=True, sharex=True, figsize=(8, 6), constrained_layout=True)
-x_dat = ["lai_s_cc"]
-x_dat = ["lrs_tx_1_deg"]
+# x_dat = ["lai_s_cc"]
+# x_dat = ["lrs_tx_1"]
+# x_dat = ["transmission_s_1"]
+x_dat = ["lrs_lai_15_deg_snow_on"]
+# x_dat = ["dce"]
 # x_dat = ["lrs_lai_60_deg"]
 # x_dat = ["transmission_s_5"]
 # y_dat = ["lai_s_cc_pois"]
 # y_dat = ["lrs_lai_1_deg"]
-y_dat = ["lrs_lai_2000"]
-y_dat = ["dce"]
+# y_dat = ["lrs_lai_2000"]
+# y_dat = ['dswe_fnsd_19_050-19_052']
+y_dat = ['swe_fcon_19_050']
+# y_dat = ["dce"]
 # x_dat = ["lrs_lai_2000_snow_off_thresh"]
 # y_dat = ["lrs_lai_60_deg"]
 # x_dat = ["lrs_tx_5"]
@@ -491,7 +514,7 @@ df = df_all
 ii = 0
 x = [0, 100]
 y = [0, 100]
-plt.plot(x, y, color="black", linewidth=0.5)
+# plt.plot(x, y, color="black", linewidth=0.5)
 offset = 0
 # plotrange = [[np.nanquantile(df.loc[:, x_dat], .0005) - offset, np.nanquantile(df.loc[:, x_dat], .995) + offset],
 #                  [np.nanquantile(df.loc[:, y_dat], .0005) - offset, np.nanquantile(df.loc[:, y_dat], .995) + offset]]
@@ -499,10 +522,12 @@ offset = 0
 #                [np.min(plotrange), np.max(plotrange)]]
 
 # xx = -np.log(df.loc[:, x_dat])
-xx = df.loc[:, x_dat]
-yy = df.loc[:, y_dat]
+# xx = df.loc[:, x_dat]
+# yy = df.loc[:, y_dat]
+xx = df_all.loc[:, x_dat]
+yy = df_all.loc[:, y_dat]
 maxmin=[np.nanmin((xx, yy)) - .25, np.nanmax((xx, yy)) + .25]
-# maxmin = [0.6906463987979972, 5.22]
+# maxmin = [1.88, 7.366133621664996]
 # ax.hist2d(df.loc[:, x_dat[ii]], df.loc[:, y_dat[ii]], range=squarerange,
 #           bins=(np.array([8, 8]) * 10).astype(int), cmap="Blues")
 ax.scatter(xx, yy, alpha=.25, s=25)

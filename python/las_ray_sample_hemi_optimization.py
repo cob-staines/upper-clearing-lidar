@@ -124,11 +124,12 @@ def load_lrs_img_cn(batch_dir, coef, ii):
     return img[:, :, 0] * coef
 
 
-ii = 0
+ii = 12
 
 # snow_off_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\"
 snow_off_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_off\\"
-snow_off_coef = 0.19216  # optimized for cn dropping 5th
+snow_off_coef = 0.38686933  # python tx dropping 5th
+# snow_off_coef = 0.19216  # optimized for cn dropping 5th
 # snow_off_coef = 0.191206
 # snow_off_coef = 0.155334
 # snow_off_coef = 0.1841582  # tx wls
@@ -142,7 +143,8 @@ tx_off = np.exp(-cn_off)
 # snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\"
 # snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_on\\"
 snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_on_at_snow_off\\"
-snow_on_coef = 0.136461  # optimized for cn dropping 5th
+snow_on_coef = 0.37181197  # python tx dropping 5th
+# snow_on_coef = 0.136461  # optimized for cn dropping 5th
 # snow_on_coef = 0.132154
 # snow_on_coef = 0.137942
 # snow_on_coef = 0.169215  # tx wls

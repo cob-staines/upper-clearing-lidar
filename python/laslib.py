@@ -220,7 +220,7 @@ def hemigen(hdf5_path, hemimeta, initial_index=0, final_index=None):
         start = time.time()
         # print("Generating " + hemimeta.file_name[ii] + " ...")
 
-        p1 = p0 - hemimeta.origin[ii]
+        p1 = (p0 - hemimeta.origin[ii]).astype(np.float32)
 
         # if no max_radius, set to +inf
         if hemimeta.max_distance is None:
@@ -247,7 +247,7 @@ def hemigen(hdf5_path, hemimeta, initial_index=0, final_index=None):
 
         # plot
         sp1.set_offsets(np.c_[np.flip(data.theta), np.flip(data.phi)])
-        sp1.set_sizes(data.area)
+        sp1.set_sizes(np.flip(data.area))
 
         # save figure to file
         fig.savefig(hemimeta.file_dir + hemimeta.file_name[ii], facecolor='white')

@@ -35,8 +35,8 @@ rsm_far$id = as.character(rsm_far$id)
 rsm_far = rsm_far[, c("id", "lrs_cn_1", "lrs_cn_2", "lrs_cn_3", "lrs_cn_4", "lrs_cn_5")]
 colnames(rsm_far) = c("id", "lrs_cn_far_1", "lrs_cn_far_2", "lrs_cn_far_3", "lrs_cn_far_4", "lrs_cn_far_5")
 
-rsm_bin_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_off/outputs/rshmetalog_footprint_products_threshold0.772.csv"
-# rsm_bin_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_on/outputs/rshmetalog_footprint_products_threshold0.772.csv"
+rsm_bin_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_off/outputs/rshmetalog_footprint_products_opt_thresh.csv"
+# rsm_bin_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_on/outputs/rshmetalog_footprint_products_opt_thresh.csv"
 rsm_bin = read.csv(rsm_bin_in, header=TRUE, na.strings = c("NA",""), sep=",")
 rsm_bin$id = as.character(rsm_bin$id)
 rsm_bin = rsm_bin[, c("id", "lrs_cn_1", "lrs_cn_2", "lrs_cn_3", "lrs_cn_4", "lrs_cn_5", "lrs_tx_1", "lrs_tx_2", "lrs_tx_3", "lrs_tx_4", "lrs_tx_5")]
@@ -47,37 +47,38 @@ rsm_raw_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/r
 rsm_raw = read.csv(rsm_raw_in, header=TRUE, na.strings = c("NA",""), sep=",")
 rsm_raw$id = as.character(rsm_raw$id)
 rsm_raw = rsm_raw[, c("id", "lrs_cn_1", "lrs_cn_2", "lrs_cn_3", "lrs_cn_4", "lrs_cn_5", "lrs_tx_1", "lrs_tx_2", "lrs_tx_3", "lrs_tx_4", "lrs_tx_5")]
+colnames(rsm_raw) = c("id", "lrs_cn_raw_1", "lrs_cn_raw_2", "lrs_cn_raw_3", "lrs_cn_raw_4", "lrs_cn_raw_5", "lrs_tx_raw_1", "lrs_tx_raw_2", "lrs_tx_raw_3", "lrs_tx_raw_4", "lrs_tx_raw_5")
 
-rsm_scl_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_off/outputs/rshmetalog_footprint_products_scaled.csv"
-# rsm_scl_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_on/outputs/rshmetalog_footprint_products_scaled.csv"
-rsm_scl = read.csv(rsm_scl_in, header=TRUE, na.strings = c("NA",""), sep=",")
-rsm_scl$id = as.character(rsm_scl$id)
-rsm_scl = rsm_scl[, c("id", "lrs_cn_1", "lrs_cn_2", "lrs_cn_3", "lrs_cn_4", "lrs_cn_5", "lrs_tx_1", "lrs_tx_2", "lrs_tx_3", "lrs_tx_4", "lrs_tx_5")]
-colnames(rsm_scl) = c("id", "lrs_cn_scl_1", "lrs_cn_scl_2", "lrs_cn_scl_3", "lrs_cn_scl_4", "lrs_cn_scl_5", "lrs_tx_scl_1", "lrs_tx_scl_2", "lrs_tx_scl_3", "lrs_tx_scl_4", "lrs_tx_scl_5")
+rsm_opt_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_off/outputs/rshmetalog_footprint_products_opt.csv"
+# rsm_opt_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/ray_sampling/batches/lrs_hemi_optimization_r.25_px181_snow_on/outputs/rshmetalog_footprint_products_opt.csv"
+rsm_opt = read.csv(rsm_opt_in, header=TRUE, na.strings = c("NA",""), sep=",")
+rsm_opt$id = as.character(rsm_opt$id)
+rsm_opt = rsm_opt[, c("id", "lrs_cn_1", "lrs_cn_2", "lrs_cn_3", "lrs_cn_4", "lrs_cn_5", "lrs_tx_1", "lrs_tx_2", "lrs_tx_3", "lrs_tx_4", "lrs_tx_5")]
+colnames(rsm_opt) = c("id", "lrs_cn_opt_1", "lrs_cn_opt_2", "lrs_cn_opt_3", "lrs_cn_opt_4", "lrs_cn_opt_5", "lrs_tx_opt_1", "lrs_tx_opt_2", "lrs_tx_opt_3", "lrs_tx_opt_4", "lrs_tx_opt_5")
 
 
 
 rsm_merge = merge(rsm_bin, rsm_far, by='id')
 rsm_merge = merge(rsm_big, rsm_merge, by='id')
 rsm_merge = merge(rsm_raw, rsm_merge, by='id')
-rsm_merge = merge(rsm_scl, rsm_merge, by='id')
+rsm_merge = merge(rsm_opt, rsm_merge, by='id')
 rsm_df = rsm_merge %>%
   gather(key, value, -id) %>%
   extract(key, c("val_type", "ring_number"), "(\\D+)_(\\d)") %>%
   spread(val_type, value) %>%
   mutate(angle_mean = (as.numeric(ring_number) * 15 - 15/2) * pi / 180)
 
-ggplot(rsm_df, aes(x=lrs_cn, y=lrs_cn_big, color=ring_number)) +
+ggplot(rsm_df, aes(x=lrs_cn_raw, y=lrs_cn_big, color=ring_number)) +
   geom_abline(intercept = 0, slope = 1) +
   geom_point() +
-  labs(title="Mean band-wise expected returns E[<u>] resolution sensitivity (snow-off)", x='E[<u>] (1-degree resolution)', y='E[<u>] (0.18-degree resolution)', color='Zenith angle\nband [deg]') +
+  labs(title="Mean band-wise expected returns E[<u>] resolution sensitivity (snow-on)", x='E[<u>] (1-degree resolution)', y='E[<u>] (0.18-degree resolution)', color='Zenith angle\nband [deg]') +
   scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
 # ggsave(paste0(plot_out_dir, "snow_off_cn_res_eval.png"), width=p_width, height=p_height, dpi=dpi)
 # ggsave(paste0(plot_out_dir, "snow_on_cn_res_eval.png"), width=p_width, height=p_height, dpi=dpi)
 size_lm = lm(lrs_cn_big ~ lrs_cn, data = rsm_df)
 summary(size_lm)
 
-ggplot(rsm_df, aes(x=lrs_cn, y=lrs_cn_far, color=ring_number)) +
+ggplot(rsm_df, aes(x=lrs_cn_raw, y=lrs_cn_far, color=ring_number)) +
   geom_abline(intercept = 0, slope = 1) +
   geom_point() +
   labs(title="Mean band-wise expected returns <u> max distance sensitivity (snow-on)", x='E[<u>] (max 50m)', y='E[<u>] (max 150m)', color='Zenith angle\nband [deg]') +
@@ -87,34 +88,37 @@ ggplot(rsm_df, aes(x=lrs_cn, y=lrs_cn_far, color=ring_number)) +
 max_lm = lm(lrs_cn_far ~ 0 + lrs_cn, data = rsm_df)
 summary(max_lm)
 
-ggplot(rsm_df, aes(x=-log(lrs_tx_scl), y=lrs_cn_scl, color=ring_number)) +
+ggplot(rsm_df, aes(x=-log(lrs_tx_opt), y=lrs_cn_opt, color=ring_number)) +
   geom_abline(intercept = 0, slope = 1) +
   geom_point() +
-  labs(title="Mean band-wise contact number E(X) commutation response (snow-off)", x='-ln(E[exp(-X)])', y='E[X]', color='Zenith angle\nband [deg]') +
+  labs(title="Mean band-wise contact number E(X) commutation response (snow-on)", x='-ln(E[exp(-X)])', y='E[X]', color='Zenith angle\nband [deg]') +
   scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
 # ggsave(paste0(plot_out_dir, "snow_off_cn_bin_eval.png"), width=p_width, height=p_height, dpi=dpi)
 # ggsave(paste0(plot_out_dir, "snow_on_cn_bin_eval.png"), width=p_width, height=p_height, dpi=dpi)
 bin_lm = lm(lrs_cn_far ~ 0 + lrs_cn, data = rsm_df)
 summary(bin_lm)
 
-ggplot(rsm_df, aes(x=-log(lrs_tx_bin), y=-log(lrs_tx_scl), color=ring_number)) +
+ggplot(rsm_df, aes(x=-log(lrs_tx_bin), y=-log(lrs_tx_opt), color=ring_number)) +
   geom_abline(intercept = 0, slope = 1) +
   geom_point() +
-  labs(title="Mean band-wise contact number -ln(E[T]) threshold response (snow-off)", x='-ln(E[H(T - 0.772)])', y='-ln(E[T])', color='Zenith angle\nband [deg]') +
+  labs(title="Mean band-wise contact number -ln(E[T]) threshold response (snow-off)", x='-ln(E[H(T - E[T])])', y='-ln(E[T])', color='Zenith angle\nband [deg]') +
   scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
 # ggsave(paste0(plot_out_dir, "snow_off_cn_thresh_eval.png"), width=p_width, height=p_height, dpi=dpi)
 # ggsave(paste0(plot_out_dir, "snow_on_cn_thresh_eval.png"), width=p_width, height=p_height, dpi=dpi)
 thresh_lm = lm(lrs_cn_far ~ 0 + lrs_cn, data = rsm_df)
 summary(thresh_lm)
 
-df = merge(rsm_raw, photos, by.x='id', by.y='original_file')
+# df = merge(rsm_raw, photos, by.x='id', by.y='original_file')
+df = merge(rsm_opt, photos, by.x='id', by.y='original_file')
 df = merge(rsm_bin, df, by='id', suffixes = c("_bin", ""))
 
 df = df %>%
   gather(key, value, -id) %>%
   extract(key, c("val_type", "ring_number"), "(\\D+)_(\\d)") %>%
   spread(val_type, value) %>%
-  mutate(angle_mean = (as.numeric(ring_number) * 15 - 15/2) * pi / 180)
+  mutate(angle_mean = (as.numeric(ring_number) * 15 - 15/2) * pi / 180) %>%
+  mutate(solid_angle = 2* pi * (cos((as.numeric(ring_number) - 1) * 15 * pi / 180) - cos(as.numeric(ring_number) * 15 * pi / 180)))
+df_drop = df[df$ring_number != "5",]
 
 # calculate error
 # ggplot(df, aes(x=lrs_cn, y=-log(transmission_s), color=ring_number)) +
@@ -123,33 +127,31 @@ df = df %>%
 # ggplot(df, aes(x=lrs_cn_bin, y=-log(transmission_s), color=ring_number)) +
 #   geom_point()
 
-
-# solid angle weights
-df = df %>%
-  mutate(solid_angle = 2* pi * (cos((as.numeric(ring_number) - 1) * 15 * pi / 180) - cos(as.numeric(ring_number) * 15 * pi / 180)))
-
 ## many models to choose from
 
 # least squares contact number
+
+# equal weight
 # lm_rsm_mean_cn = lm(-log(df$transmission_s) ~ 0 + df$lrs_cn)
 # summary(lm_rsm_mean_cn)
 # cn_lm = predict(lm_rsm_mean_cn, df)
-# 
+
+# solid angle weight
 # lmw_rsm_mean_cn = lm(-log(df$transmission_s) ~ 0 + df$lrs_cn, weights=df$solid_angle)
 # summary(lmw_rsm_mean_cn)
 # cn_lmw = predict(lmw_rsm_mean_cn, df)
-
-# drop ring 5
-df_drop = df[df$ring_number != "5",]
-lmw_rsm_mean_cn_drop = lm(-log(df_drop$transmission_s) ~ 0 + df_drop$lrs_cn, weights=df_drop$solid_angle)
-summary(lmw_rsm_mean_cn_drop)
-cn_lmw_drop = predict(lmw_rsm_mean_cn_drop, df_drop)
-
-# lmw_rsm_mean_cn_drop_bin = lm(-log(df_drop$transmission_s) ~ 0 + df_drop$lrs_cn_bin, weights=df_drop$solid_angle)
-lmw_rsm_mean_cn_drop_bin = lm(-log(df_drop$transmission_s[is.finite(df_drop$lrs_cn_bin)]) ~ 0 + df_drop$lrs_cn_bin[is.finite(df_drop$lrs_cn_bin)], weights=df_drop$solid_angle[is.finite(df_drop$lrs_cn_bin)])
-summary(lmw_rsm_mean_cn_drop_bin)
-# cn_lmw_drop_bin = predict(lmw_rsm_mean_cn_drop_bin, df_drop)
-cn_lmw_drop_bin = df_drop$lrs_cn_bin * summary(lmw_rsm_mean_cn_drop_bin)$coefficients[1]
+# 
+# # solid anlge weight drop ring 5
+# lmw_rsm_mean_cn_drop = lm(-log(df_drop$transmission_s) ~ 0 + df_drop$lrs_cn, weights=df_drop$solid_angle)
+# summary(lmw_rsm_mean_cn_drop)
+# cn_lmw_drop = predict(lmw_rsm_mean_cn_drop, df_drop)
+# 
+# # solid angle weight drop ring 5 thresholded
+# # lmw_rsm_mean_cn_drop_bin = lm(-log(df_drop$transmission_s) ~ 0 + df_drop$lrs_cn_bin, weights=df_drop$solid_angle)
+# lmw_rsm_mean_cn_drop_bin = lm(-log(df_drop$transmission_s[is.finite(df_drop$lrs_cn_bin)]) ~ 0 + df_drop$lrs_cn_bin[is.finite(df_drop$lrs_cn_bin)], weights=df_drop$solid_angle[is.finite(df_drop$lrs_cn_bin)])
+# summary(lmw_rsm_mean_cn_drop_bin)
+# # cn_lmw_drop_bin = predict(lmw_rsm_mean_cn_drop_bin, df_drop)
+# cn_lmw_drop_bin = df_drop$lrs_cn_bin * summary(lmw_rsm_mean_cn_drop_bin)$coefficients[1]
 
 # bin_lm = lm(-log(transmission_s) ~ lrs_cn_bin, data = df)
 # summary(bin_lm)
@@ -160,13 +162,19 @@ cn_lmw_drop_bin = df_drop$lrs_cn_bin * summary(lmw_rsm_mean_cn_drop_bin)$coeffic
 # nls_rsm_mean_cn = nls(transmission_s ~ exp(-a * lrs_cn), data=df, start=c(a=0.5))
 # summary(nls_rsm_mean_cn)
 # tx_nls = predict(nls_rsm_mean_cn, newdata=df)
-
-# solid angle weight
+# 
+# # solid angle weight
 # nlsw_rsm_mean_tx = nls(transmission_s ~ exp(-a * lrs_cn), data=df, start=c(a=0.5), weights=solid_angle)
 # summary(nlsw_rsm_mean_tx)
 # tx_nlsw = predict(nlsw_rsm_mean_tx, newdata=df)
 # summary(nlsw_rsm_mean_tx)$parameters[1]
 # 
+# # solid anlge weight drop ring 5
+# df_drop = df[df$ring_number != "5",]
+# lmw_rsm_mean_tx_drop = lm(df_drop$transmission_s ~ 0 + df_drop$lrs_cn, weights=df_drop$solid_angle)
+# summary(lmw_rsm_mean_tx_drop)
+# tx_lmw_drop = predict(lmw_rsm_mean_tx_drop, df_drop)
+# # 
 # # solid angle weight, quadratic cn -- both terms are significant... could be good!
 # nlsw2_rsm_mean_cn = nls(-log(transmission_s) ~ a * lrs_cn ^ 2 +  b * lrs_cn, data=df, start=c(a=0.5, b=0), weights=solid_angle)
 # summary(nlsw2_rsm_mean_cn)
@@ -232,19 +240,28 @@ cn_lmw_drop_bin = df_drop$lrs_cn_bin * summary(lmw_rsm_mean_cn_drop_bin)$coeffic
 #   geom_line(aes(y=tx_wmae), color="purple") +
 #   geom_line(aes(y=tx_nlsw2), color="brown")
 
-# # tx
-# ggplot(df_drop, aes(x=exp(-summary(lmw_rsm_mean_cn_drop)$coefficients[1] * lrs_cn), y=transmission_s, color=ring_number)) +
-#   geom_point() +
-#   geom_abline(intercept = 0, slope = 1) +
-#   xlim(0, 1) +
-#   ylim(0, 1) +
-#   labs(title="Light transmittance (T) error analysis", x='T (ray sampling snow-on)', y='T (hemispherical photography)', color='Zenith angle\nband [deg]') +
-#   scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
-# # ggsave(paste0(plot_out_dir, "snow_off_tx_error_eval.png"), width=p_width, height=p_height, dpi=dpi)
-# # ggsave(paste0(plot_out_dir, "snow_on_tx_error_eval.png"), width=p_width, height=p_height, dpi=dpi)
+# tx
+ggplot(df_drop, aes(x=lrs_tx_opt, y=transmission_s, color=ring_number)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) +
+  xlim(0, 1) +
+  ylim(0, 1) +
+  labs(title="Light transmittance (T) error analysis", x='T (ray sampling snow-on)', y='T (hemispherical photography)', color='Zenith angle\nband [deg]') +
+  scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
+# ggsave(paste0(plot_out_dir, "snow_off_tx_error_eval.png"), width=p_width, height=p_height, dpi=dpi)
+# ggsave(paste0(plot_out_dir, "snow_on_tx_error_eval.png"), width=p_width, height=p_height, dpi=dpi)
+
+# tx_bin
+ggplot(df_drop, aes(x=lrs_tx_bin, y=transmission_s, color=ring_number)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) +
+  xlim(0, 1) +
+  ylim(0, 1) +
+  labs(title="Light transmittance (T) error analysis", x='T (ray sampling snow-on)', y='T (hemispherical photography)', color='Zenith angle\nband [deg]') +
+  scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
 
 # cn
-ggplot(df_drop, aes(x=summary(lmw_rsm_mean_cn_drop)$coefficients[1] * lrs_cn, y=-log(transmission_s), color=ring_number)) +
+ggplot(df_drop, aes(x=lrs_cn_opt, y=-log(transmission_s), color=ring_number)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
   labs(title="Mean band-wise contact number E[X] methods comparison (snow-off)", x='E[X] (ray sampling)', y='E[X] (thresholded hemispherical photography)', color='Zenith angle\nband [deg]') +
@@ -271,21 +288,21 @@ ggplot(df_drop, aes(x=lrs_cn_bin, y=-log(transmission_s), color=ring_number)) +
 # nls_rsm_mean_cn = nls(transmission_s ~ exp(-a * lrs_cn), data=df_anal, start=c(a=0.5))
 # summary(nls_rsm_mean_cn)
 
-
-fo = paste0("hat(y) == ", sprintf("%.5f",summary(lmw_rsm_mean_cn_drop)$coefficients[1]), " * x")
-r2 = paste0("R^2 == ", sprintf("%.5f",summary(lmw_rsm_mean_cn_drop)$adj.r.squared))
-
-
-ggplot(df_drop, aes(x=lrs_cn, y=-log(transmission_s), color=ring_number)) +
-  geom_point() +
-  geom_abline(intercept = 0, slope = summary(lmw_rsm_mean_cn_drop)$coefficients[1]) +
-  annotate("text", x=5, y=2, label=fo, parse=TRUE) +
-  annotate("text", x=5, y=1.9, label=r2, parse=TRUE) +
-  labs(title="", x='Lidar returns', y='-log(transmission)', color='Ring')
-# ggsave(paste0(plot_out_dir, "snow_off_returns_to_tx_optimization.png"), width=p_width, height=p_height, dpi=dpi)
-# ggsave(paste0(plot_out_dir, "snow-on_returns_to_tx_optimization.png"), width=p_width, height=p_height, dpi=dpi)
-
-
+# 
+# fo = paste0("hat(y) == ", sprintf("%.5f",summary(lmw_rsm_mean_cn_drop)$coefficients[1]), " * x")
+# r2 = paste0("R^2 == ", sprintf("%.5f",summary(lmw_rsm_mean_cn_drop)$adj.r.squared))
+# 
+# 
+# ggplot(df_drop, aes(x=lrs_cn, y=-log(transmission_s), color=ring_number)) +
+#   geom_point() +
+#   geom_abline(intercept = 0, slope = summary(lmw_rsm_mean_cn_drop)$coefficients[1]) +
+#   annotate("text", x=5, y=2, label=fo, parse=TRUE) +
+#   annotate("text", x=5, y=1.9, label=r2, parse=TRUE) +
+#   labs(title="", x='Lidar returns', y='-log(transmission)', color='Ring')
+# # ggsave(paste0(plot_out_dir, "snow_off_returns_to_tx_optimization.png"), width=p_width, height=p_height, dpi=dpi)
+# # ggsave(paste0(plot_out_dir, "snow-on_returns_to_tx_optimization.png"), width=p_width, height=p_height, dpi=dpi)
+# 
+# 
 
 # stats
 
@@ -299,23 +316,23 @@ model_eval = function(nn = 0){
   }
   
   # cn model
-  tx = df_sub$transmission_s
-  cn = -log(tx)
-  lrs_cn = df_sub$lrs_cn * summary(lmw_rsm_mean_cn_drop)$coefficients[1]
-  # lrs_cn = df_sub$lrs_cn_bin * summary(lmw_rsm_mean_cn_drop_bin)$coefficients[1]
-  # lrs_cn = df_sub$lrs_cn * lmw_rsm_mean_cn$coefficients[1]
-  # lrs_cn = predict(nlsw2_rsm_mean_cn, newdata=df_sub)
-  lrs_tx = exp(-lrs_cn)
-  weights = df_sub$solid_angle
-  weights = weights / sum(weights)
-  
-  # # tx model
   # tx = df_sub$transmission_s
   # cn = -log(tx)
-  # lrs_tx = predict(nlsw_rsm_mean_tx, newdata=df_sub)
-  # lrs_cn = -log(lrs_tx)
+  # lrs_cn = df_sub$lrs_cn * summary(lmw_rsm_mean_cn_drop)$coefficients[1]
+  # # lrs_cn = df_sub$lrs_cn_bin * summary(lmw_rsm_mean_cn_drop_bin)$coefficients[1]
+  # # lrs_cn = df_sub$lrs_cn * lmw_rsm_mean_cn$coefficients[1]
+  # # lrs_cn = predict(nlsw2_rsm_mean_cn, newdata=df_sub)
+  # lrs_tx = exp(-lrs_cn)
   # weights = df_sub$solid_angle
   # weights = weights / sum(weights)
+  
+  # tx model
+  tx = df_sub$transmission_s
+  cn = -log(tx)
+  lrs_tx = df_sub$lrs_tx_opt
+  lrs_cn = df_sub$lrs_cn_opt
+  weights = df_sub$solid_angle
+  weights = weights / sum(weights)
   
   tx_error = lrs_tx - tx
   cn_error = lrs_cn - cn

@@ -342,7 +342,9 @@ def raster_to_pd(ras, colnames, include_nans=False):
     return pts
 
 
-def pd_to_raster(df, colname, ids_in, ras_out):
+def pd_to_raster(df, colname, ids_in, ras_out=None):
+    # take dataframe df with rows corresponding to raster coords, create raster from column colname, using ids_in as template
+
     import numpy as np
     import pandas as pd
 
@@ -352,7 +354,7 @@ def pd_to_raster(df, colname, ids_in, ras_out):
     elif not isinstance(df, pd.core.frame.DataFrame):
         raise Exception('df is not an instance of pd.core.frame.DataFrame or str(filepath), pd_to_raster() aborted.')
 
-    ids = raster_load(ids_in)
+    # ids = raster_load(ids_in)
     ras = raster_load(ids_in)  # use as template
 
     # ras to pd
@@ -366,8 +368,11 @@ def pd_to_raster(df, colname, ids_in, ras_out):
     # assign ras data
     ras.data[(merged.y_index.values, merged.x_index.values)] = merged.loc[:, colname]
 
-    # write to file
-    raster_save(ras, ras_out)
+    if ras_out is not None:
+        # write to file
+        raster_save(ras, ras_out)
+
+    return ras
 
 
 def gdal_raster_reproject(src, match, nodatavalue=np.nan, mode="nearest"):

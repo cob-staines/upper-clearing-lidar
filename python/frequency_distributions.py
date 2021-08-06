@@ -1,4 +1,5 @@
 import geotk as gt
+import rastools
 import matplotlib
 # matplotlib.use("Agg")
 matplotlib.use("Qt5Agg")
@@ -223,16 +224,23 @@ e_hs_045_uf.to_csv(rej_samp_out_file + 'resampled_hs_19_045_uf_r.10m_interp2x_by
 e_hs_050_uf.to_csv(rej_samp_out_file + 'resampled_hs_19_050_uf_r.10m_interp2x_by_lpml15.csv', index=False)
 e_hs_052_uf.to_csv(rej_samp_out_file + 'resampled_hs_19_052_uf_r.10m_interp2x_by_lpml15.csv', index=False)
 #
-# # # # Reload samples
+# # # # # Reload samples
 # hs_045_uf = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_045_uf_r.10m_interp2x_by_lpml15.csv')
 # hs_050_uf = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_050_uf_r.10m_interp2x_by_lpml15.csv')
 # hs_052_uf = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_052_uf_r.10m_interp2x_by_lpml15.csv')
-# # stats
-#
-# # acceptance rates
-# hs_045_uf.__len__() / data_uf.loc[:, "19_045_hs"].__len__()
-# hs_050_uf.__len__() / data_uf.loc[:, "19_050_hs"].__len__()
-# hs_052_uf.__len__() / data_uf.loc[:, "19_052_hs"].__len__()
+# stats
+
+# acceptance rates
+np.sum(~np.isnan(hs_045_uf.loc[:, "19_045_hs"])) / np.sum(~np.isnan(data_uf.loc[:, "19_045_hs"]))
+np.sum(~np.isnan(hs_050_uf.loc[:, "19_050_hs"])) / np.sum(~np.isnan(data_uf.loc[:, "19_050_hs"]))
+np.sum(~np.isnan(hs_052_uf.loc[:, "19_052_hs"])) / np.sum(~np.isnan(data_uf.loc[:, "19_052_hs"]))
+
+
+# limited interpolation coverage
+np.sum(~np.isnan(data_uf.loc[:, "19_045_hs"])) / np.sum(~np.isnan(data_uf.loc[:, "19_045_hs_0"]))
+np.sum(~np.isnan(data_uf.loc[:, "19_050_hs"])) / np.sum(~np.isnan(data_uf.loc[:, "19_050_hs_0"]))
+np.sum(~np.isnan(data_uf.loc[:, "19_052_hs"])) / np.sum(~np.isnan(data_uf.loc[:, "19_052_hs_0"]))
+
 #
 # mean
 np.nanmean(data_uf.loc[:, "19_045_hs"]) / np.nanmean(hs_045_uf.loc[:, "19_045_hs"])
@@ -342,6 +350,10 @@ e_045_uf.to_csv(rej_samp_out_file + 'resampled_swe_19_045_uf_fcon_r.05m_interp2x
 e_050_uf.to_csv(rej_samp_out_file + 'resampled_swe_19_050_uf_fcon_r.05m_interp2x_by_lpml15.csv', index=False)
 e_052_uf.to_csv(rej_samp_out_file + 'resampled_swe_19_052_uf_fcon_r.05m_interp2x_by_lpml15.csv', index=False)
 
+# reload rejection samples
+swe_045_uf = pd.read_csv(rej_samp_out_file + 'resampled_swe_19_045_uf_fcon_r.05m_interp2x_by_lpml15.csv')
+swe_050_uf = pd.read_csv(rej_samp_out_file + 'resampled_swe_19_050_uf_fcon_r.05m_interp2x_by_lpml15.csv')
+swe_052_uf = pd.read_csv(rej_samp_out_file + 'resampled_swe_19_052_uf_fcon_r.05m_interp2x_by_lpml15.csv')
 
 #### rejection sample dswe
 fig = plt.figure()
@@ -453,16 +465,23 @@ e_hs_052_uc.to_csv(rej_samp_out_file + 'resampled_hs_19_052_uc_r.10m_interp2x_by
 
 
 # # # Reload samples
-# hs_045_uc = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_045_uc_r.10m_interp2x_by_lpml15.csv')
-# hs_050_uc = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_050_uc_r.10m_interp2x_by_lpml15.csv')
-# hs_052_uc = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_052_uc_r.10m_interp2x_by_lpml15.csv')
+hs_045_uc = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_045_uc_r.10m_interp2x_by_lpml15.csv')
+hs_050_uc = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_050_uc_r.10m_interp2x_by_lpml15.csv')
+hs_052_uc = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_052_uc_r.10m_interp2x_by_lpml15.csv')
 
 # # stats
 #
-# # acceptance rates
-# hs_045_uc.__len__() / data_uc.loc[:, "19_045_hs"].__len__()
-# hs_050_uc.__len__() / data_uc.loc[:, "19_050_hs"].__len__()
-# hs_052_uc.__len__() / data_uc.loc[:, "19_052_hs"].__len__()
+
+# acceptance rates
+np.sum(~np.isnan(hs_045_uc.loc[:, "19_045_hs"])) / np.sum(~np.isnan(data_uc.loc[:, "19_045_hs"]))
+np.sum(~np.isnan(hs_050_uc.loc[:, "19_050_hs"])) / np.sum(~np.isnan(data_uc.loc[:, "19_050_hs"]))
+np.sum(~np.isnan(hs_052_uc.loc[:, "19_052_hs"])) / np.sum(~np.isnan(data_uc.loc[:, "19_052_hs"]))
+
+
+# limited interpolation coverage
+np.sum(~np.isnan(data_uc.loc[:, "19_045_hs"])) / np.sum(~np.isnan(data_uc.loc[:, "19_045_hs_0"]))
+np.sum(~np.isnan(data_uc.loc[:, "19_050_hs"])) / np.sum(~np.isnan(data_uc.loc[:, "19_050_hs_0"]))
+np.sum(~np.isnan(data_uc.loc[:, "19_052_hs"])) / np.sum(~np.isnan(data_uc.loc[:, "19_052_hs_0"]))
 #
 # mean
 np.nanmean(data_uc.loc[:, "19_045_hs"]) / np.nanmean(hs_045_uc.loc[:, "19_045_hs"])
@@ -758,3 +777,40 @@ handles = legend.legendHandles
 legend.remove()
 g.legend(handles, ["LPM-First", "LPM-Last", "LPM-Canopy"], loc="upper center")
 fig.savefig(plot_out_dir + "freq_dist_trans_uf.png")
+
+# plotting samples in space
+
+# need raster template of upper forest..
+uf_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\hemi_grid_points\\mb_65_r.25m_snow_off_offset0\\uf_plot_r.05m.tif'
+uf = rastools.raster_load(uf_in)
+
+min_p = np.min(np.where(uf.data), axis=1)
+max_p = np.max(np.where(uf.data), axis=1)
+
+full = uf.data.copy()
+
+limited = uf.data.copy()
+limited[:, :] = 0
+limited[data_uf.y_index[~np.isnan(data_uf.loc[:, "19_050_hs"])], data_uf.x_index[~np.isnan(data_uf.loc[:, "19_050_hs"])]] = 1
+
+resamp = uf.data.copy()
+resamp[:, :] = 0
+resamp[hs_050_uf.y_index, hs_050_uf.x_index] = 1
+
+
+lpm = np.full(np.shape(uf.data), np.nan)
+lpm[data_uf.y_index, data_uf.x_index] = data_uf.lpml15
+
+fig = plt.figure()
+plt.imshow(full[min_p[0]:max_p[0], min_p[1]:max_p[1]], cmap="Greens")
+
+
+fig = plt.figure()
+plt.imshow(limited[min_p[0]:max_p[0], min_p[1]:max_p[1]], cmap="Blues")
+
+fig = plt.figure()
+plt.imshow(resamp[min_p[0]:max_p[0], min_p[1]:max_p[1]], cmap="Oranges")
+
+fig = plt.figure()
+plt.imshow(lpm[min_p[0]:max_p[0], min_p[1]:max_p[1]], cmap="Reds")
+plt.colorbar()

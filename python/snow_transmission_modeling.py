@@ -4,6 +4,7 @@ import pandas as pd
 import tifffile as tif
 from tqdm import tqdm
 from scipy.optimize import fmin_bfgs
+from scipy.stats import pearsonr
 import scipy.odr as odr
 import matplotlib
 matplotlib.use('Qt5Agg')
@@ -15,12 +16,12 @@ import matplotlib.colors as colors
 plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\thesis_graphics\\modeling snow accumulation\\"
 
 # # ray tracing run
-# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\outputs\\'
-# scaling_coef = 0.1921595  # snow_off
+# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\'
+# scaling_coef = 0.38686933  # snow_off
 # canopy = "snow_off"
 
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\outputs\\'
-scaling_coef = 0.1364611  # snow_on
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\'
+scaling_coef = 0.37181197  # snow_on
 canopy = "snow_on"
 
 
@@ -47,9 +48,9 @@ ddict = {'uf': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\da
          # 'count_107': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_107\\19_107_las_proc\\OUTPUT_FILES\\RAS\\19_107_ground_point_density_r.25m.bil',
          # 'count_123': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_123\\19_123_las_proc\\OUTPUT_FILES\\RAS\\19_123_ground_point_density_r.25m.bil',
          'count_149': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\RAS\\19_149_ground_point_density_r.25m.bil',
-         # 'swe_fcon_19_045': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_045_r.05m_interp2x_masked.tif',
-         # 'swe_fcon_19_050': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_050_r.05m_interp2x_masked.tif',
-         # 'swe_fcon_19_052': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_052_r.05m_interp2x_masked.tif',
+         'swe_fcon_19_045': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_045_r.05m_interp2x_masked.tif',
+         'swe_fcon_19_050': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_050_r.05m_interp2x_masked.tif',
+         'swe_fcon_19_052': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_052_r.05m_interp2x_masked.tif',
          'dswe_fnsd_19_045-19_050': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_045-19_050\\masked\\dswe_fnsd_19_045-19_050_r.05m_interp2x_masked.tif',
          'dswe_fnsd_19_050-19_052': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_050-19_052\\masked\\dswe_fnsd_19_050-19_052_r.05m_interp2x_masked.tif'
          # 'covariant': var_in
@@ -78,14 +79,14 @@ var = rastools.pd_sample_raster_gdal(ddict, include_nans=False, mode="median")
 # var = var.loc[var.min_pc >= 25, :]
 
 # load img meta
-hemimeta = pd.read_csv(batch_dir + 'rshmetalog.csv')
+hemimeta = pd.read_csv(batch_dir + 'outputs\\rshmetalog.csv')
 imsize = hemimeta.img_size_px[0]
 
 # merge with image meta
 hemi_var = pd.merge(hemimeta, var, left_on=('x_utm11n', 'y_utm11n'), right_on=('x_coord', 'y_coord'), how='inner')
 
 # load image pixel angle lookup
-angle_lookup = pd.read_csv(batch_dir + "phi_theta_lookup.csv")
+angle_lookup = pd.read_csv(batch_dir + "outputs\\phi_theta_lookup.csv")
 # build phi image (in radians)
 phi = np.full((imsize, imsize), np.nan)
 phi[(np.array(angle_lookup.y_index), np.array(angle_lookup.x_index))] = angle_lookup.phi
@@ -101,11 +102,20 @@ imrange[phi <= max_phi] = True
 
 # # filter hemimeta to desired images
 # delineate training set (set_param < param_thresh) and test set (set_param >= param thresh)
-param_thresh = .25
+param_thresh = .50
 set_param = np.random.random(len(hemi_var))
 hemi_var.loc[:, 'training_set'] = set_param < param_thresh
+
+# save to file
+# hemi_var.to_csv(batch_dir + "hemi_var_lookup.csv", index=False)
+
+hemi_var = pd.read_csv(batch_dir + "hemi_var_lookup.csv")
+
 # build hemiList from training_set only
-hemiList = hemi_var.loc[hemi_var.training_set, :].reset_index()
+# hemiList = hemi_var.loc[hemi_var.training_set, :]  # training only
+# hemiList = hemi_var.loc[~hemi_var.training_set, :]  # testing only
+hemiList = hemi_var  # load all
+
 
 
 
@@ -113,26 +123,35 @@ hemiList = hemi_var.loc[hemi_var.training_set, :].reset_index()
 
 # date = "19_045"
 # covariant = hemiList.swe_fcon_19_045
+# covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_045"], hemiList.loc[:, "count_149"]], axis=0) / 16)
+# covariant_error = covariant_error * 0.1 * 165.05  # 10cm uncertainty * snow density
 
 # date = "19_050"
 # covariant = hemiList.swe_fcon_19_050
+# covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_050"], hemiList.loc[:, "count_149"]], axis=0) / 16)
+# covariant_error = covariant_error * 0.1 * 158.56  # 10cm uncertainty * snow density
 
-# date = "19_052"
-# covariant = hemiList.swe_fcon_19_052
+date = "19_052"
+covariant = hemiList.swe_fcon_19_052
+covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_052"], hemiList.loc[:, "count_149"]], axis=0) / 16)
+covariant_error = covariant_error * 0.1 * 134.48  # 10cm uncertainty * snow density
 
-date = "045-050"
-covariant = hemiList.loc[:, "dswe_fnsd_19_045-19_050"]
-# covariant_error = 1/np.sqrt(hemiList.loc[:, "count_045"]) + 1/np.sqrt(hemiList.loc[:, "count_050"]) + 2/np.sqrt(hemiList.loc[:, "count_149"])/4
-covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_045"], hemiList.loc[:, "count_050"], hemiList.loc[:, "count_149"]], axis=0) / 16)
-covariant_error = covariant_error * 0.1 * 85.1
+# date = "045-050"
+# covariant = hemiList.loc[:, "dswe_fnsd_19_045-19_050"]
+# # covariant_error = 1/np.sqrt(hemiList.loc[:, "count_045"]) + 1/np.sqrt(hemiList.loc[:, "count_050"]) + 2/np.sqrt(hemiList.loc[:, "count_149"])/4
+# covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_045"], hemiList.loc[:, "count_050"], hemiList.loc[:, "count_149"]], axis=0) / 16)
+# covariant_error = covariant_error * 0.1 * 85.1  # 10cm uncertainty * snow density
 
 # date = "050-052"
 # covariant = hemiList.loc[:, "dswe_fnsd_19_050-19_052"]
 # # covariant_error = (1/np.sqrt(hemiList.loc[:, "count_050"]/16) + 1/np.sqrt(hemiList.loc[:, "count_052"]/16) + 2/np.sqrt(hemiList.loc[:, "count_149"]/16))/4
 # covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_050"], hemiList.loc[:, "count_052"], hemiList.loc[:, "count_149"]], axis=0) / 16)
-# covariant_error = covariant_error * 0.1 * 72.2
+# covariant_error = covariant_error * 0.1 * 72.2  # 10cm uncertainty * snow density
 
-valid = ~np.isnan(covariant) & ~np.isnan(covariant_error)
+# valid = ~np.isnan(covariant) & ~np.isnan(covariant_error)
+training_valid = ~np.isnan(covariant) & ~np.isnan(covariant_error) & hemiList.training_set
+testing_valid = ~np.isnan(covariant) & ~np.isnan(covariant_error) & ~hemiList.training_set
+valid_all = ~np.isnan(covariant) & ~np.isnan(covariant_error)
 
 
 
@@ -140,9 +159,9 @@ valid = ~np.isnan(covariant) & ~np.isnan(covariant_error)
 imstack = np.full([imsize, imsize, len(hemiList)], np.nan)
 erstack = np.full([imsize, imsize, len(hemiList)], np.nan)
 for ii in tqdm(range(0, len(hemiList)), desc="loading images", ncols=100, leave=True):
-    img = tif.imread(batch_dir + hemiList.file_name[ii]) * scaling_coef
+    img = tif.imread(batch_dir + "outputs\\" + hemiList.file_name.iloc[ii]) * scaling_coef
     imstack[:, :, ii] = img[:, :, 0]
-    # erstack[:, :, ii] = img[:, :, 1]
+    erstack[:, :, ii] = img[:, :, 1]
     # print(str(ii + 1) + ' of ' + str(len(hemiList)))
 #
 # # preview of correlation coefficient
@@ -253,8 +272,12 @@ imrange_long = imrange.reshape(imrange.size)
 #     sstot = np.sum((dswe - np.mean(dswe)) ** 2)
 #     return 1 - ssres / sstot
 
-imstack_long_valid = imstack_long[valid, :]
 
+
+valid_set = training_valid
+# valid_set = testing_valid
+
+imstack_long_valid = imstack_long[valid_set, :]
 def dwst(p0):
     # unpack parameters
     phi_0 = p0[0]  # central phi in radians
@@ -280,6 +303,7 @@ def dwst(p0):
     gaus_weights[np.isnan(phi)] = 0
     gaus_weights = gaus_weights / np.sum(gaus_weights)
     # calculate weighted mean of contact number for each ground points
+    # gaus_stack = np.average(imstack_long_training, weights=gaus_weights.ravel(), axis=1)
     gaus_stack = np.average(imstack_long_valid, weights=gaus_weights.ravel(), axis=1)
 
     # unif_weights = (phi < 75 * np.pi / 180)
@@ -291,7 +315,7 @@ def dwst(p0):
 
     # snowacc = mm * np.exp(-intnum * w_stack) + bb
 
-    dswe = covariant[valid]
+    dswe = covariant[valid_set]
 
     # calculate sum of square residuals
     # ssres = np.sum((dswe - gaus_term - unif_term) ** 2)
@@ -303,7 +327,8 @@ def dwst(p0):
 def rsq(p0):
     ssres = dwst(p0)
 
-    dswe = covariant
+    # dswe = covariant
+    dswe = covariant[valid_set]
 
     sstot = np.sum((dswe - np.mean(dswe)) ** 2)
     return 1 - ssres / sstot
@@ -320,11 +345,16 @@ print('{0:4s}   {1:9s}   {2:9s}   {3:9s}   {4:9s}   {5:9s}   {6:9s}   {7:9s}'.fo
 
 
 if date == "045-050":
-    p0 = np.array([0.12443505, 2.41098088, 0.1261094, 3.30426545, 0.47887124])  # 19_045-19_050, snow_on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.096572
-    p0 = np.array([0.11151353, 2.48955825, 0.11688505, 3.31781129, 0.5085631 ])  # 19_045-19_050, snow_on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.119771
+    # p0 = np.array([0.12443505, 2.41098088, 0.1261094, 3.30426545, 0.47887124])  # 19_045-19_050, snow_on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.096572
+    # p0 = np.array([0.11151353, 2.48955825, 0.11688505, 3.31781129, 0.5085631 ])  # 19_045-19_050, snow_on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.119771
+    # p0 = np.array([0.12385786, 2.38254393, 0.11667303, 3.18628948, 0.17527798])  # 19_045-19_050, snow_on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.103081
+    p0 = np.array([0.12353415, 2.43594564, 0.1150714, 3.21952709, 0.17835703])  # 19_045-19_050, snow_on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.103363  :(
+    # p0 = np.array([0.11762048, 2.47027076, 0.11751837, 3.23006737, 0.17658073])  # 19_045-19_050, snow_on dem.25, min_ct >= 0, fnsd, no bb, 50% of data, r2_train = 0.101330, r2_test = 0.09519851733713969
 
 elif date == "050-052":
-    p0 = np.array([0.24059357, 2.45428547, 0.15926226, 6.82865305, 0.2289259 ]) # 19_050-19_052, snow-on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.103976
+    # p0 = np.array([0.24059357, 2.45428547, 0.15926226, 6.82865305, 0.2289259])  # 19_050-19_052, snow-on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.103976
+    # p0 = np.array([0.23297562, 2.44325242, 0.15726268, 6.79107571, 0.08814327])  # 19_050-19_052, snow-on dem.25, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.112306
+    p0 = np.array([0.2495463, 2.4190311, 0.16057527, 6.83973914, 0.08811104])  # 19_050-19_052, snow-on dem.25, min_ct >= 0, fnsd, no bb, 50% of data, r2_train = 0.101483, r2_test = 0.10605968002506105
 
 # elif date == "19_045":
 #     p0 = None
@@ -333,10 +363,8 @@ elif date == "050-052":
 #     # p0 = np.array([ 0.138614188,  0.690715658,  0.0936716022, 2.3379370836, 116.016191])  # 19_050, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.601032
 #     p0 = np.array([0.0936716022, 2.3379370836, 0.138614188, 116.016191, 0.690715658, 0, 1])  # 19_050, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.601032
 #     p0 = np.array([ 0.0920301084,  2.34857672,  0.164146886,  152.314633, 0.309102598, -162.167554,  0.404501947])  # 19_050, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.700743
-# elif date == "19_052":
-#     # p0 = np.array([0.14113609, 0.24675274, 0.21223623, 2.46673482, 6.93602817])  # 19_052, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = ??
-#     p0 = np.array([0.0920301084,  2.34857672,  0.164146886,  152.314633, 0.309102598, -162.167554,  0.404501947])  # 19_050, 045-050-052, min_ct >= 0, fnsd, no bb, 25% of data, r2 = 0.700743
-#     p0 = np.array([0.23405479, 2.51000856, -0.15646095, 31.59489217, 0.03522606, -29.17081887, 0.05226448])
+elif date == "19_052":
+    p0 = np.array([0.12088656, 2.33901554, 0.16420273, 105.06450584, 0.21069943])  # 19_052, snow-on dem.25, min_ct >= 0, fcon, no bb, 50% of data, r2_train = 0.713422, r2_test = 0.7073983382142033
 
 # run optimization
 [popt, fopt, gopt, Bopt, func_calls, grad_calls, warnflg] = \
@@ -346,6 +374,7 @@ u_out = (180 / np.pi, 180 / np.pi, 180 / np.pi, 1, 1)
 
 popt * u_out
 rsq(popt)
+rsq(p0)
 #
 # sig_out = xopt[0] * 180 / np.pi
 # intnum_out = 1/xopt[1]
@@ -386,7 +415,9 @@ gaus_weights = np.exp(- 0.5 * (radist / sig) ** 2)  # gaussian
 gaus_weights[np.isnan(phi)] = 0
 gaus_weights = gaus_weights / np.sum(gaus_weights)
 # calculate weighted mean of contact number for each ground points
-gaus_stack = np.average(imstack_long, weights=gaus_weights.ravel(), axis=1)
+
+
+gaus_stack = np.average(imstack_long_valid, weights=gaus_weights.ravel(), axis=1)
 
 # unif_weights = (phi < 75 * np.pi / 180)
 # unif_stack = np.average(imstack_long, weights=unif_weights.ravel(), axis=1)
@@ -501,19 +532,27 @@ fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
 ax1 = fig.add_subplot(111)
 if date == "045-050":
     ax1.set_title('Optimization of Gaussian weight function width $\sigma$\nUpper Forest, 14-19 Feb. 2019, 25cm resolution')
+    ax1.set_ylabel("$R^2$ for $\Delta$SWE vs. $T^{*}$")
+    plt.ylim(0, .12)
 elif date == "050-052":
     ax1.set_title('Optimization of Gaussian weight function width $\sigma$\nUpper Forest, 19-21 Feb. 2019, 25cm resolution')
-ax1.set_ylabel("$R^2$ for $\Delta$SWE vs. $T^{*}$")
+    ax1.set_ylabel("$R^2$ for $\Delta$SWE vs. $T^{*}$")
+    plt.ylim(0, .12)
+elif date == "19_052":
+    ax1.set_title('Optimization of Gaussian weight function width $\sigma$\nUpper Forest, 21 Feb. 2019, 25cm resolution')
+    ax1.set_ylabel("$R^2$ for SWE vs. $T^{*}$")
+    plt.ylim(0, .75)
+
 ax1.set_xlabel("Standard deviation of Gausian weight function $\sigma$ [$^{\circ}$]")
-plt.plot(w_data.sig * 180 / np.pi, w_data.r2)
+plt.plot(w_data.sig[1:] * 180 / np.pi, w_data.r2[1:])
 plt.xlim(0, 25)
-plt.ylim(0, .10)
+
 fig.savefig(plot_out_dir + "optimization_gaussian_width_sigma_" + date + "_" + canopy + ".png")
 
 #####
 # interaction scalar
 # sample optimization topography for w*
-v_list = np.linspace(0, 1, 100)  # w*
+v_list = np.linspace(0, .30, 100)  # w*
 w_data = pd.DataFrame(columns={"mu", "r2"})
 ii = 0
 px = p0.copy()
@@ -534,13 +573,20 @@ fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
 ax1 = fig.add_subplot(111)
 if date == "045-050":
     ax1.set_title('Optimization of snowfall absorbtion coefficient $\omega^*$\nUpper Forest, 14-19 Feb. 2019, 25cm resolution')
+    ax1.set_ylabel("$R^2$ for $\Delta$SWE vs. modeled snow accumulation")
+    plt.ylim(0, .12)
 elif date == "050-052":
     ax1.set_title('Optimization of snowfall absorbtion coefficient $\omega^*$\nUpper Forest, 19-21 Feb. 2019, 25cm resolution')
-ax1.set_ylabel("$R^2$ for $\Delta$SWE vs. modeled snow accumulation")
+    ax1.set_ylabel("$R^2$ for $\Delta$SWE vs. modeled snow accumulation")
+    plt.ylim(0, .12)
+elif date == "19_052":
+    ax1.set_title('Optimization of snowfall absorbtion coefficient $\omega^*$\nUpper Forest, 21 Feb. 2019, 25cm resolution')
+    ax1.set_ylabel("$R^2$ for SWE vs. modeled snow accumulation")
+    plt.ylim(0, .75)
+
 ax1.set_xlabel("snow contact absorbtion correction factor $\omega^*/\omega$ [-]")
 plt.plot(w_data.mu, w_data.r2)
-plt.xlim(0, 1)
-plt.ylim(0, .10)
+plt.xlim(0, .3)
 fig.savefig(plot_out_dir + "optimization_snow_absorption_w_star_" + date + "_" + canopy + ".png")
 
 
@@ -549,15 +595,18 @@ fig.savefig(plot_out_dir + "optimization_snow_absorption_w_star_" + date + "_" +
 
 ## plot hemispherical footprint
 
-# intnum = p0[4]
-intnum = 1
+intnum = p0[4]
+# intnum = 1
 
 # rerun corcoef_e with optimized transmission scalar
 corcoef_e = np.full((imsize, imsize), np.nan)
+pval_e = np.full((imsize, imsize), np.nan)
 for ii in range(0, imsize):
     for jj in range(0, imsize):
         if imrange[jj, ii]:
-            corcoef_e[jj, ii] = np.corrcoef(covariant[valid], np.exp(-intnum * imstack[jj, ii, valid]))[0, 1]
+            # corcoef_e[jj, ii] = np.corrcoef(covariant[valid_all], np.exp(-intnum * imstack[jj, ii, valid_all]))[0, 1]
+            corcoef_e[jj, ii], pval_e[jj, ii] = pearsonr(covariant[valid_all], np.exp(-intnum * imstack[jj, ii, valid_all]))
+
 
     print(ii)
 
@@ -592,24 +641,31 @@ class MidpointNormalize(colors.Normalize):
 
         return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
 
-
+if date == "045-050":
+    date_name = "14-19 Feb 2019"
+    var_name = "$\Delta$SWE"
+    scale = .25
+    cmap = matplotlib.cm.RdBu
+elif date == "050-052":
+    date_name = "19-21 Feb 2019"
+    var_name = "$\Delta$SWE"
+    scale = .25
+    cmap = matplotlib.cm.RdBu
+elif date == "19_052":
+    date_name = "21 Feb 2019"
+    var_name = "SWE"
+    scale = .55
+    cmap = matplotlib.cm.PiYG
 
 # colormap parameters
 set = corcoef_e  # this is what we are plotting
 # val_min = np.nanmin(set)
-scale = .25
 val_min = -scale
 val_mid = 0
 # val_max = np.nanmax(set)
 val_max = scale
 # abs_max = np.max(np.abs([val_min, val_max]))
 abs_max = scale
-cmap = matplotlib.cm.RdBu
-
-if date == "045-050":
-    date_name = "14-19 Feb 2019"
-elif date == "050-052":
-    date_name = "19-21 Feb 2019"
 
 if intnum == 1:
     trans_name = "light transmittance"
@@ -624,7 +680,7 @@ elif canopy == "snow_on":
 
 # plot with axes
 fig = plt.figure(figsize=(7, 7))
-fig.suptitle(r"Correlation of $\Delta$SWE with " + trans_name + " over upper hemisphere\nUpper Forest, " + date_name + ", " + canopy_name)
+fig.suptitle(r"Correlation of " + var_name + " with " + trans_name + " over upper hemisphere\nUpper Forest, " + date_name + ", " + canopy_name)
 #create axes in the background to show cartesian image
 ax0 = fig.add_subplot(111)
 im = ax0.imshow(set, cmap=cmap, clim=(val_min, val_max), norm=MidpointNormalize(vmin=-abs_max, midpoint=val_mid, vmax=abs_max))
@@ -643,15 +699,41 @@ ax.set_thetagrids(np.linspace(0, 360, 4, endpoint=False), labels=['N\n  0$^\circ
 fig.subplots_adjust(top=0.95, left=0.1, right=0.75, bottom=0.05)
 cbar_ax = fig.add_axes([0.85, 0.20, 0.03, 0.6])
 fig.colorbar(im, cax=cbar_ax)
-cbar_ax.set_ylabel("Pearson's correlation coefficient")
+cbar_ax.set_ylabel(r"Pearson's correlation coefficient $\rho_p$")
 
 fig.savefig(plot_out_dir + "footprint_corcoef_" + date + "_" + canopy + "_mu_" + str(intnum) + ".png")
+
+# plot p-values
+# plot with axes
+fig = plt.figure(figsize=(7, 7))
+fig.suptitle(r"Correlation of " + var_name + " with " + trans_name + " over upper hemisphere\nUpper Forest, " + date_name + ", " + canopy_name)
+#create axes in the background to show cartesian image
+ax0 = fig.add_subplot(111)
+im = ax0.imshow(pval_e, cmap="Greys", clim=(0, .05))
+ax0.axis("off")
+
+# create polar axes and labels
+ax = fig.add_subplot(111, polar=True, label="polar")
+ax.set_facecolor("None")
+ax.set_rmax(90)
+ax.set_rgrids(np.linspace(0, 90, 7), labels=['', '15$^\circ$', '30$^\circ$', '45$^\circ$', '60$^\circ$', '75$^\circ$', '90$^\circ$'], angle=315)
+ax.set_theta_zero_location("N")
+ax.set_theta_direction(-1)
+ax.set_thetagrids(np.linspace(0, 360, 4, endpoint=False), labels=['N\n  0$^\circ$', 'W\n  270$^\circ$', 'S\n  180$^\circ$', 'E\n  90$^\circ$'])
+
+# add colorbar
+fig.subplots_adjust(top=0.95, left=0.1, right=0.75, bottom=0.05)
+cbar_ax = fig.add_axes([0.85, 0.20, 0.03, 0.6])
+fig.colorbar(im, cax=cbar_ax)
+cbar_ax.set_ylabel("P-value for Pearson's correlation coefficient")
+
+fig.savefig(plot_out_dir + "footprint_pvalue_" + date + "_" + canopy + "_mu_" + str(intnum) + ".png")
 
 
 # plot with contours
 # plot with axes
 fig = plt.figure(figsize=(7, 7))
-fig.suptitle("Correlation of $\Delta$SWE with " + trans_name + " over upper hemisphere\nUpper Forest, " + date_name + ", " + canopy_name)
+fig.suptitle("Correlation of " + var_name + " with " + trans_name + " over upper hemisphere\nUpper Forest, " + date_name + ", " + canopy_name)
 #create axes in the background to show cartesian image
 ax0 = fig.add_subplot(111)
 im = ax0.imshow(set, cmap=cmap, clim=(val_min, val_max), norm=MidpointNormalize(vmin=-abs_max, midpoint=val_mid, vmax=abs_max))
@@ -670,7 +752,7 @@ ax.set_thetagrids(np.linspace(0, 360, 4, endpoint=False), labels=['N\n  0$^\circ
 fig.subplots_adjust(top=0.95, left=0.1, right=0.75, bottom=0.05)
 cbar_ax = fig.add_axes([0.85, 0.20, 0.03, 0.6])
 fig.colorbar(im, cax=cbar_ax)
-cbar_ax.set_ylabel("Pearson's correlation coefficient")
+cbar_ax.set_ylabel(r"Pearson's correlation coefficient $\rho_p$")
 
 # contours
 # ax.set_rgrids([])  # no rgrids
@@ -681,6 +763,46 @@ CS = ax0.contour(set, np.linspace(-.4, .4, 9), colors="k")
 plt.clabel(CS, inline=1, fontsize=8)
 
 fig.savefig(plot_out_dir + "footprint_corcoef_" + date + "_" + canopy + "_mu_" + str(intnum) + "_contours.png")
+
+
+# plot with significance contours
+# plot with axes
+fig = plt.figure(figsize=(7, 7))
+fig.suptitle("Correlation of " + var_name + " with " + trans_name + " over upper hemisphere\nUpper Forest, " + date_name + ", " + canopy_name)
+#create axes in the background to show cartesian image
+ax0 = fig.add_subplot(111)
+im = ax0.imshow(set, cmap=cmap, clim=(val_min, val_max), norm=MidpointNormalize(vmin=-abs_max, midpoint=val_mid, vmax=abs_max))
+ax0.axis("off")
+
+# create polar axes and labels
+ax = fig.add_subplot(111, polar=True, label="polar")
+ax.set_facecolor("None")
+ax.set_rmax(90)
+ax.set_rgrids(np.linspace(0, 90, 7), labels=['', '15$^\circ$', '30$^\circ$', '45$^\circ$', '60$^\circ$', '75$^\circ$', '90$^\circ$'], angle=315)
+ax.set_theta_zero_location("N")
+ax.set_theta_direction(-1)
+ax.set_thetagrids(np.linspace(0, 360, 4, endpoint=False), labels=['N\n  0$^\circ$', 'W\n  270$^\circ$', 'S\n  180$^\circ$', 'E\n  90$^\circ$'])
+
+# add colorbar
+fig.subplots_adjust(top=0.95, left=0.1, right=0.75, bottom=0.05)
+cbar_ax = fig.add_axes([0.85, 0.20, 0.03, 0.6])
+fig.colorbar(im, cax=cbar_ax)
+cbar_ax.set_ylabel(r"Pearson's correlation coefficient $\rho_p$")
+
+# contours
+# ax.set_rgrids([])  # no rgrids
+# ax.grid(False)  # no grid
+matplotlib.rcParams['contour.negative_linestyle'] = 'solid'
+matplotlib.rcParams["lines.linewidth"] = 1
+# CS = ax0.contour(pval_e, [0.05, 0.25, 0.45, 0.65, 0.85], colors="k")
+CS = ax0.contourf(pval_e, [0.05, 1], colors=[(0, 0, 0, 0.2)])
+CS = ax0.contour(pval_e, [0.05], colors="k")
+# plt.clabel(CS, inline=1, fontsize=8)
+# not_sig = pval_e > 0.05
+# not_sig[not_sig == 0] = np.nan
+# im = ax0.imshow(not_sig, cmap="Greys", clim=[0, 1])
+
+fig.savefig(plot_out_dir + "footprint_corcoef_pvalue" + date + "_" + canopy + "_mu_" + str(intnum) + "_contours.png")
 
 
 # locate peak coords and values
@@ -798,7 +920,7 @@ ax0.axis("off")
 
 # lets restructure data to drop unused data
 
-max_phi = 90
+max_phi = 75
 
 valid_angles = (phi * 180 / np.pi) <= max_phi
 phi_valid = phi[valid_angles]
@@ -807,10 +929,10 @@ angles_valid = pd.DataFrame({"phi": phi_valid,
                              "theta": theta_valid})
 angles_valid = pd.merge(angles_valid, angle_lookup, on=("phi", "theta"), how="left")
 
-imstack_valid = imstack[valid_angles][:, valid]
-erstack_valid = erstack[valid_angles][:, valid]
-covariant_valid = covariant[valid]
-covariant_error_valid = covariant_error[valid]
+imstack_valid = imstack[valid_angles][:, training_valid]
+erstack_valid = erstack[valid_angles][:, training_valid]
+covariant_valid = covariant[training_valid]
+covariant_error_valid = covariant_error[training_valid]
 
 n_angle, n_xvar = np.shape(imstack_valid)
 
@@ -818,7 +940,8 @@ def w_opt(w0):
 
     # model to fix on per-angle basis
     def f_exp(p, x):
-        return p[0] * np.exp(-w0[0] * x) + p[1]
+        return p[0] * np.exp(-w0 * x) + p[1]
+        # return p[0] * np.exp(-p[2] * x) + p[1]
 
     # null hypothesis function
     def f_h0(p, x):
@@ -842,6 +965,7 @@ def w_opt(w0):
         nlm_data = odr.RealData(imstack_valid[kk, :], covariant_valid, sx=np.sqrt(erstack_valid[kk, :]), sy=covariant_error_valid)  # errors as standard deviation
         # nlm_data = odr.Data(imstack_valid[kk, :], covariant_valid, wd=1. / (erstack_valid[kk, :]), we=1. / (covariant_error_valid ** 2))  # errors as weights
         nlm_odr = odr.ODR(nlm_data, nlm, beta0=[0., 4.])
+        # nlm_odr = odr.ODR(nlm_data, nlm, beta0=[0., 4., 0.15])
         nlm_odr.set_job(fit_type=0)
         nlm_output = nlm_odr.run()
 
@@ -861,6 +985,8 @@ def w_opt(w0):
 
     # unpack outputs
     beta = np.full((imsize, imsize, 2), np.nan)
+    beta_0 = np.full(n_angle, np.nan)
+    beta_1 = np.full(n_angle, np.nan)
     beta_sd = np.full((imsize, imsize, 2), np.nan)
     convergence = np.full((imsize, imsize), False)
     res_var = np.full((imsize, imsize), np.nan)
@@ -872,6 +998,8 @@ def w_opt(w0):
         jj = angles_valid.y_index[kk]
         ii = angles_valid.x_index[kk]
         beta[jj, ii, :] = beta_list[kk]
+        beta_0[kk] = beta_list[kk][0]
+        beta_1[kk] = beta_list[kk][1]
         beta_sd[jj, ii, :] = sd_beta_list[kk]
         convergence[jj, ii] = (stopreason_list[kk] == ['Sum of squares convergence'])
         res_var[jj, ii] = res_var_list[kk]
@@ -880,13 +1008,35 @@ def w_opt(w0):
         r2[jj, ii] = 1 - res_var_list[kk] / h0_res_var_list[kk]
         # print(kk)
 
-    # # aic = sum(valid) * np.log(res_var) + 2 * 2
-    # aic = sum(valid) * np.log(np.array(res_var_list)) + 2
-    # # aic = sum(valid) * np.log(np.array(sum_square_list) / sum(valid)) + 2
-    #
-    # delta = aic - np.nanmin(aic)
-    # weights = np.exp(-delta / 2)
-    # weights = weights / np.nansum(weights)
+    # # res_var_ma = np.ma.array(res_var, mask=~valid_angles)
+    # beta_0_ma = np.ma.array(beta[:, :, 0], mask=~valid_angles)
+    # beta_1_ma = np.ma.array(beta[:, :, 1], mask=~valid_angles)
+
+    aic_flat = sum(training_valid) * np.log(res_var) + 2 * 2
+    aic = sum(training_valid) * np.log(np.array(res_var_list)) + 2 * 2
+    # aic = sum(valid) * np.log(np.array(sum_square_list) / sum(valid)) + 2 * 2
+
+    delta_flat = aic_flat - np.nanmin(aic_flat)
+    delta = aic - np.nanmin(aic)
+
+
+    def aic_weight(h0):
+        weights = np.exp(-h0[0] * delta / 2)
+        weights = weights / np.nansum(weights)
+
+        dswe = beta_1[:, np.newaxis] + beta_0[:,  np.newaxis] * np.exp(-w0 * imstack_valid)
+        w_dswe = np.average(dswe, axis=0, weights=weights)
+
+        wse = np.mean((w_dswe - covariant_valid) ** 2)
+        print(wse)
+        return wse
+
+    h0 = [1]
+    [popt, fopt, gopt, Bopt, func_calls, grad_calls, warnflg] = fmin_bfgs(aic_weight, h0, maxiter=50, full_output=True, retall=False)
+
+
+    weights_flat = np.exp(-h0[0] * delta_flat / 2)
+
 
     res_var_sum = np.sum(res_var_list)
     global res_var_sum_global
@@ -949,6 +1099,7 @@ ax0 = fig.add_subplot(111)
 poof = np.nan
 im = ax0.imshow(beta[:, :, 0], cmap='RdBu', clim=(-4, 4))
 ax0.axis("off")
+fig.colorbar(im)
 
 fig = plt.figure(figsize=(7, 7))
 #create axes in the background to show cartesian image
@@ -956,13 +1107,15 @@ ax0 = fig.add_subplot(111)
 poof = np.nan
 im = ax0.imshow(beta[:, :, 1], cmap='Greys')
 ax0.axis("off")
+fig.colorbar(im)
 #
 fig = plt.figure(figsize=(7, 7))
 #create axes in the background to show cartesian image
 ax0 = fig.add_subplot(111)
 poof = np.nan
-im = ax0.imshow(beta[:, :, 0] + beta[:, :, 1], cmap='Greys', clim=(0, 10))
+im = ax0.imshow(beta[:, :, 0] + beta[:, :, 1], cmap='Greys')
 ax0.axis("off")
+fig.colorbar(im)
 #
 fig = plt.figure(figsize=(7, 7))
 #create axes in the background to show cartesian image
@@ -970,6 +1123,15 @@ ax0 = fig.add_subplot(111)
 poof = np.nan
 im = ax0.imshow(r2, cmap='Greys')
 ax0.axis("off")
+fig.colorbar(im)
+
+fig = plt.figure(figsize=(7, 7))
+#create axes in the background to show cartesian image
+ax0 = fig.add_subplot(111)
+poof = np.nan
+im = ax0.imshow(weights_flat, cmap='Greys')
+ax0.axis("off")
+fig.colorbar(im)
 
 
 # nlm_output.pprint()
@@ -983,8 +1145,11 @@ ii = 62
 ii = 87
 jj = 94
 
-x = imstack[jj, ii, valid]
-y = covariant[valid]
+kk = 9000
+
+# x = imstack[jj, ii, valid]
+x = np.exp(-w0 * imstack_valid[kk, :])
+y = covariant_valid
 fig = plt.figure()
 fig.subplots_adjust(top=0.90, bottom=0.12, left=0.12)
 ax1 = fig.add_subplot(111)

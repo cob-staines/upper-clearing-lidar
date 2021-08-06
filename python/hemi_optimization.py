@@ -79,7 +79,8 @@ import os
 
 
 # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\opt\\hemi_optimization_pr.15_os10\\'
-batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\optimized_full\\'
+batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\flip_rerun_full\\'
+# batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\poisson\\'
 las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_las_proc_classified_merged.las"
 
 
@@ -110,6 +111,7 @@ if not os.path.exists(hemimeta.file_dir):
 hemimeta.max_distance = 50  # meters
 hemimeta.min_distance = 0  # meters
 hemimeta.max_phi = 90 * np.pi / 180  # radians
+# hemimeta.max_phi = 65 * np.pi / 180  # radians
 # hemi_m_above_ground = 0  # meters
 
 # image size
@@ -152,7 +154,7 @@ hemimeta.origin = np.array([lookup.xcoordUTM1,
                             lookup.elevation + lookup.height_m]).swapaxes(0, 1)
 
 # point size
-os_list = [0.53]
+os_list = [0.063]
 
 for os in os_list:
     print(os)

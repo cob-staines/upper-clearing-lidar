@@ -101,6 +101,26 @@ stats_hemi_lai, samps_hemi_lai = spatial_stats_on_col(uf_25, 'lai_s_cc', d_bound
 stats_hemi_lai.to_csv(plot_out_dir + "semivar_stats_lai_hemi_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
 samps_hemi_lai.to_csv(plot_out_dir + "semivar_samps_lai_hemi_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
 
+# lai
+
+stats_lrs_lai_1deg, samps_lrs_lai_1deg = spatial_stats_on_col(uf_25, 'lrs_lai_1_deg', d_bounds, iterations=10000, replicates=120, nbins=60)
+stats_lrs_lai_1deg.to_csv(plot_out_dir + "semivar_stats_lrs_lai_1_deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_lrs_lai_1deg.to_csv(plot_out_dir + "semivar_samps_lrs_lai_1_deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+
+stats_lrs_lai_15deg, samps_lrs_lai_15deg = spatial_stats_on_col(uf_25, 'lrs_lai_15_deg', d_bounds, iterations=10000, replicates=120, nbins=60)
+stats_lrs_lai_15deg.to_csv(plot_out_dir + "semivar_stats_lrs_lai_15_deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_lrs_lai_15deg.to_csv(plot_out_dir + "semivar_samps_lrs_lai_15_deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+
+stats_lrs_lai_60deg, samps_lrs_lai_60deg = spatial_stats_on_col(uf_25, 'lrs_lai_60_deg', d_bounds, iterations=10000, replicates=120, nbins=60)
+stats_lrs_lai_60deg.to_csv(plot_out_dir + "semivar_stats_lrs_lai_60_deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_lrs_lai_60deg.to_csv(plot_out_dir + "semivar_samps_lrs_lai_60_deg_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+
+stats_lrs_lai_2000, samps_lrs_lai_2000 = spatial_stats_on_col(uf_25, 'lrs_lai_2000', d_bounds, iterations=10000, replicates=120, nbins=60)
+stats_lrs_lai_2000.to_csv(plot_out_dir + "semivar_stats_lrs_lai_2000_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+samps_lrs_lai_2000.to_csv(plot_out_dir + "semivar_samps_lrs_lai_2000_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
+
+##
+
 stats_re_dswe_045_050, samps_re_dswe_045_050 = spatial_stats_on_col(uf_25, 'dswe_fnsd_19_045-19_050', d_bounds, iterations=10000, replicates=120, nbins=60)
 stats_re_dswe_045_050.to_csv(plot_out_dir + "semivar_stats_dswe_fnsd_045_050_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
 samps_re_dswe_045_050.to_csv(plot_out_dir + "semivar_samps_dswe_fnsd_045_050_r.25_max" + str(d_bounds[1]) + ".csv", index=False)
@@ -122,7 +142,7 @@ samps_mch = pd.read_csv(plot_out_dir + "semivar_samps_mCH_resamp_r.10_max" + str
 # samps_hemi_lai = pd.read_csv(plot_out_dir + "semivar_samps_lai_hemi_r.25_max" + str(d_bounds[1]) + ".csv")
 samps_lrs_lai_1deg = pd.read_csv(plot_out_dir + "semivar_samps_lrs_lai_1_deg_r.25_max" + str(d_bounds[1]) + ".csv")
 samps_lrs_lai_15deg = pd.read_csv(plot_out_dir + "semivar_samps_lrs_lai_15_deg_r.25_max" + str(d_bounds[1]) + ".csv")
-samps_lrs_lai_75deg = pd.read_csv(plot_out_dir + "semivar_samps_lrs_lai_75_deg_r.25_max" + str(d_bounds[1]) + ".csv")
+samps_lrs_lai_60deg = pd.read_csv(plot_out_dir + "semivar_samps_lrs_lai_60_deg_r.25_max" + str(d_bounds[1]) + ".csv")
 samps_lrs_lai_2000 = pd.read_csv(plot_out_dir + "semivar_samps_lrs_lai_2000_r.25_max" + str(d_bounds[1]) + ".csv")
 samps_re_dswe_045_050 = pd.read_csv(plot_out_dir + "semivar_samps_dswe_fnsd_045_050_r.25_max" + str(d_bounds[1]) + ".csv")
 samps_re_dswe_050_052 = pd.read_csv(plot_out_dir + "semivar_samps_dswe_fnsd_050_052_r.25_max" + str(d_bounds[1]) + ".csv")
@@ -155,7 +175,7 @@ stats_mch = geotk.bin_summarize(samps_mch, n_bins, d_bounds=d_bounds, symmetric=
 # stats_hemi_lai = geotk.bin_summarize(samps_hemi_lai, n_bins, d_bounds=d_bounds)
 stats_lrs_lai_1deg = geotk.bin_summarize(samps_lrs_lai_1deg, n_bins, d_bounds=d_bounds, symmetric=True)
 stats_lrs_lai_15deg = geotk.bin_summarize(samps_lrs_lai_15deg, n_bins, d_bounds=d_bounds, symmetric=True)
-stats_lrs_lai_75deg = geotk.bin_summarize(samps_lrs_lai_75deg, n_bins, d_bounds=d_bounds, symmetric=True)
+stats_lrs_lai_60deg = geotk.bin_summarize(samps_lrs_lai_60deg, n_bins, d_bounds=d_bounds, symmetric=True)
 stats_lrs_lai_2000 = geotk.bin_summarize(samps_lrs_lai_2000, n_bins, d_bounds=d_bounds, symmetric=True)
 stats_re_dswe_045_050 = geotk.bin_summarize(samps_re_dswe_045_050, n_bins, d_bounds=d_bounds, symmetric=True)
 stats_re_dswe_050_052 = geotk.bin_summarize(samps_re_dswe_050_052, n_bins, d_bounds=d_bounds, symmetric=True)
@@ -408,7 +428,7 @@ norm_mch = stats_mch.variance.values[-1]
 # norm_hemi_lai = stats_hemi_lai.variance.values[-1]
 norm_lrs_lai_1deg = stats_lrs_lai_1deg.variance.values[-1]
 norm_lrs_lai_15deg = stats_lrs_lai_15deg.variance.values[-1]
-norm_lrs_lai_75deg = stats_lrs_lai_75deg.variance.values[-1]
+norm_lrs_lai_60deg = stats_lrs_lai_60deg.variance.values[-1]
 norm_lrs_lai_2000 = stats_lrs_lai_2000.variance.values[-1]
 norm_re_dswe_045_050 = stats_re_dswe_045_050.variance.values[-1]
 norm_re_dswe_050_052 = stats_re_dswe_050_052.variance.values[-1]
@@ -434,7 +454,7 @@ axes.plot(stats_mch.mean_dist, .5 * stats_mch.variance / norm_mch, label="mean c
 # axes.plot(stats_hemi_lai.mean_dist, .5 * stats_hemi_lai.variance / norm_hemi_lai, label="$LAI_{hemi}$")
 axes.plot(stats_lrs_lai_1deg.mean_dist, .5 * stats_lrs_lai_1deg.variance / norm_lrs_lai_1deg, label="$LAI_{1}$")
 axes.plot(stats_lrs_lai_15deg.mean_dist, .5 * stats_lrs_lai_15deg.variance / norm_lrs_lai_15deg, label="$LAI_{15}$")
-axes.plot(stats_lrs_lai_75deg.mean_dist, .5 * stats_lrs_lai_75deg.variance / norm_lrs_lai_75deg, label="$LAI_{75}$")
+axes.plot(stats_lrs_lai_60deg.mean_dist, .5 * stats_lrs_lai_60deg.variance / norm_lrs_lai_60deg, label="$LAI_{75}$")
 axes.plot(stats_lrs_lai_2000.mean_dist, .5 * stats_lrs_lai_2000.variance / norm_lrs_lai_2000, label="$LAI_{2000}$")
 
 axes.legend(loc='center left', bbox_to_anchor=(1.01, .5), ncol=1,
@@ -473,10 +493,10 @@ plt.title('Relative variance of canopy metrics with distance\n Upper Forest, 25c
 # axes.plot(stats_lrs_cn_75deg.mean_dist, .5 * stats_lrs_cn_75deg.variance / var_lrs_cn_75deg, label="$CN_{75}$")
 axes.plot(stats_lrs_lai_1deg.mean_dist, stats_lrs_lai_1deg.variance / norm_lrs_lai_1deg, label=r"$LAI_{1}^{\blacktriangle}$")
 axes.plot(stats_lrs_lai_15deg.mean_dist, stats_lrs_lai_15deg.variance / norm_lrs_lai_15deg, label=r"$LAI_{15}^{\blacktriangle}$")
-axes.plot(stats_lrs_lai_75deg.mean_dist, stats_lrs_lai_75deg.variance / norm_lrs_lai_75deg, label=r"$LAI_{75}^{\blacktriangle}$")
+axes.plot(stats_lrs_lai_60deg.mean_dist, stats_lrs_lai_60deg.variance / norm_lrs_lai_60deg, label=r"$LAI_{60}^{\blacktriangle}$")
 axes.plot(stats_lrs_lai_2000.mean_dist, stats_lrs_lai_2000.variance / norm_lrs_lai_2000, label=r"$LAI_{2000}^{\blacktriangle}$")
 axes.legend(loc='center left', bbox_to_anchor=(1.01, .5), ncol=1,  borderaxespad=0, frameon=False)
-fig.savefig(plot_out_dir + "semivar_all_canopy_30m.png")
+fig.savefig(plot_out_dir + "semivar_lai_30m.png")
 
 # calculate subpixel fractional variance
 

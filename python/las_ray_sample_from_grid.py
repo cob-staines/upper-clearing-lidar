@@ -12,7 +12,7 @@ def main():
 
     batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_mb_15_dem_.25m_snow_off_single_runs\\'
     dem_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\DEM\\interpolated\\19_149_dem_interpolated_r.25m.tif"
-    mask_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_1m\\mb_15_plot_r.25m.tif"
+    mask_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\hemi_grid_points\\mb_65_r.25m_snow_off_offset.25\\mb_15_plot_r.25m.tif"
 
     # batch_dir = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\\\batches\\lrs_mb_15_dem_.25m_61px_mp15.25\\'
     # dem_in = "C:\\Users\\jas600\\workzone\\data\\ray_sampling\\19_149_dem_interpolated_r.25m.tif"
@@ -101,6 +101,7 @@ def main():
 
     # calculate hemisphere of phi and theta values
     rsgmeta.phi = np.pi / 8
+    # rsgmeta.phi = 0
     rsgmeta.theta = 3 * np.pi / 4
     rsgmeta.id = 0
     rsgmeta.file_name = ["las_19_149_rs_mb_15_r.25_p{:.4f}_t{:.4f}.tif".format(rsgmeta.phi, rsgmeta.theta)]

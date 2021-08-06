@@ -185,14 +185,15 @@ def parse_file(file_in, file_out, hemimeta_in=None):
 # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_050\\clean\\sized\\thresholded\\LAI.dat"
 # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_052\\clean\\sized\\thresholded\\LAI.dat"
 # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\poisson\\LAI.dat"
-# file_out = file_in.replace('.dat', '_parsed.dat')
-# lai_parsed = parse_file(file_in, file_out)
+file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\flip_rerun\\LAI.dat"
+file_out = file_in.replace('.dat', '_parsed.dat')
+lai_parsed = parse_file(file_in, file_out)
 
 # # # outputs
-file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr0_os0.53_snow_off_dem_offset.25\\outputs\\LAI.dat"
-# # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr.15_os14.5_snow_off_dem_offset.25\\outputs\\LAI.dat"
-file_out = file_in.replace('.dat', '_parsed.dat')
-lai_parsed = parse_file(file_in, file_out, hemimeta_in=True)
+# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr0_os1.01_snow_off_dem_offset.25\\outputs\\LAI.dat"
+# # # # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr.15_os14.5_snow_off_dem_offset.25\\outputs\\LAI.dat"
+# file_out = file_in.replace('.dat', '_parsed.dat')
+# lai_parsed = parse_file(file_in, file_out, hemimeta_in=True)
 
 
 

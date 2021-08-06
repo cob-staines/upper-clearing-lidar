@@ -81,11 +81,11 @@ plt.legend()
 #####
 # # compare with same from ray sampling
 # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\outputs\\'
-# scaling_coef = 0.1921595  # snow_off
+# scaling_coef = 0.38686933  # snow_off
 # canopy = "snow_off"
 
 batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\outputs\\'
-scaling_coef = 0.1364611  # snow_on
+scaling_coef = 0.37181197  # snow_on
 canopy = "snow_on"
 
 # load canopy stats
@@ -406,7 +406,6 @@ fig.savefig(plot_out_dir + "uf_g.png")
 
 
 
-plt.plot(tx_all.phi, tx_all.tx_mean_all_snow_on, label="snow on")
 
 fig = plt.figure()
 fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
