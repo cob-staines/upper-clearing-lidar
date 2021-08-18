@@ -107,7 +107,7 @@ ddict = {
     'total_gap_area_1.25': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\moeser\\uf_total_gap_area_1.25m.tif',
 }
 
-merge_data_in = ["C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr0_os1.01_snow_off_dem_offset.25\\outputs\\LAI_parsed.dat",
+merge_data_in = ["C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr0_os0.063_snow_off_dem_offset.25_set_0\\outputs\\LAI_parsed.dat",
                  'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\outputs\\rshmetalog_footprint_products.csv',
                  'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\outputs\\rshmetalog_footprint_products.csv',
                  'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\outputs\\rshmetalog_footprint_products_threshold0.38438069.csv']

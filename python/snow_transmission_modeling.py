@@ -4,7 +4,7 @@ import pandas as pd
 import tifffile as tif
 from tqdm import tqdm
 from scipy.optimize import fmin_bfgs
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, spearmanr
 import scipy.odr as odr
 import matplotlib
 matplotlib.use('Qt5Agg')
@@ -113,8 +113,8 @@ hemi_var = pd.read_csv(batch_dir + "hemi_var_lookup.csv")
 
 # build hemiList from training_set only
 # hemiList = hemi_var.loc[hemi_var.training_set, :]  # training only
-# hemiList = hemi_var.loc[~hemi_var.training_set, :]  # testing only
-hemiList = hemi_var  # load all
+hemiList = hemi_var.loc[~hemi_var.training_set, :]  # testing only
+#hemiList = hemi_var  # load all
 
 
 
@@ -131,22 +131,22 @@ hemiList = hemi_var  # load all
 # covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_050"], hemiList.loc[:, "count_149"]], axis=0) / 16)
 # covariant_error = covariant_error * 0.1 * 158.56  # 10cm uncertainty * snow density
 
-date = "19_052"
-covariant = hemiList.swe_fcon_19_052
-covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_052"], hemiList.loc[:, "count_149"]], axis=0) / 16)
-covariant_error = covariant_error * 0.1 * 134.48  # 10cm uncertainty * snow density
-
+# date = "19_052"
+# covariant = hemiList.swe_fcon_19_052
+# covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_052"], hemiList.loc[:, "count_149"]], axis=0) / 16)
+# covariant_error = covariant_error * 0.1 * 134.48  # 10cm uncertainty * snow density
+#
 # date = "045-050"
 # covariant = hemiList.loc[:, "dswe_fnsd_19_045-19_050"]
 # # covariant_error = 1/np.sqrt(hemiList.loc[:, "count_045"]) + 1/np.sqrt(hemiList.loc[:, "count_050"]) + 2/np.sqrt(hemiList.loc[:, "count_149"])/4
 # covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_045"], hemiList.loc[:, "count_050"], hemiList.loc[:, "count_149"]], axis=0) / 16)
 # covariant_error = covariant_error * 0.1 * 85.1  # 10cm uncertainty * snow density
 
-# date = "050-052"
-# covariant = hemiList.loc[:, "dswe_fnsd_19_050-19_052"]
-# # covariant_error = (1/np.sqrt(hemiList.loc[:, "count_050"]/16) + 1/np.sqrt(hemiList.loc[:, "count_052"]/16) + 2/np.sqrt(hemiList.loc[:, "count_149"]/16))/4
-# covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_050"], hemiList.loc[:, "count_052"], hemiList.loc[:, "count_149"]], axis=0) / 16)
-# covariant_error = covariant_error * 0.1 * 72.2  # 10cm uncertainty * snow density
+date = "050-052"
+covariant = hemiList.loc[:, "dswe_fnsd_19_050-19_052"]
+# covariant_error = (1/np.sqrt(hemiList.loc[:, "count_050"]/16) + 1/np.sqrt(hemiList.loc[:, "count_052"]/16) + 2/np.sqrt(hemiList.loc[:, "count_149"]/16))/4
+covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_050"], hemiList.loc[:, "count_052"], hemiList.loc[:, "count_149"]], axis=0) / 16)
+covariant_error = covariant_error * 0.1 * 72.2  # 10cm uncertainty * snow density
 
 # valid = ~np.isnan(covariant) & ~np.isnan(covariant_error)
 training_valid = ~np.isnan(covariant) & ~np.isnan(covariant_error) & hemiList.training_set
@@ -274,8 +274,8 @@ imrange_long = imrange.reshape(imrange.size)
 
 
 
-valid_set = training_valid
-# valid_set = testing_valid
+# valid_set = training_valid
+valid_set = testing_valid
 
 imstack_long_valid = imstack_long[valid_set, :]
 def dwst(p0):
@@ -425,18 +425,31 @@ gaus_stack = np.average(imstack_long_valid, weights=gaus_weights.ravel(), axis=1
 # model snow accumulation with snowfall transmittance over all ground points
 # transmittance = np.exp(-gaus_intnum * gaus_stack)
 gaus_term = np.exp(-gaus_intnum * gaus_stack)
+
+gaus_swe = mm * gaus_term
 # unif_term = np.exp(-unif_intnum * unif_stack)
+
+spearman = spearmanr(covariant[valid_set], gaus_term)
 
 fig = plt.figure()
 fig.subplots_adjust(top=0.90, bottom=0.12, left=0.12)
 ax1 = fig.add_subplot(111)
 if date == "045-050":
-    ax1.set_title('$\Delta$SWE vs. directionally weighted snowfall transmission $T^{*}_{(x, y)}$\n Upper Forest, 14-19 Feb. 2019, 25cm resolution')
+    # ax1.set_title('$\Delta$SWE vs. directionally weighted snowfall transmission $T^{*}_{(x, y)}$\n Forest, 14-19 Feb. 2019')
+    ax1.set_title('$\Delta$SWE vs. gaussian snowfall modeled throughfall $F_{j}$\n Forest, 14-19 Feb. 2019')
+    ax1.set_xlabel("$\Delta$SWE [mm]")
 elif date == "050-052":
-    ax1.set_title('$\Delta$SWE vs. directionally weighted snowfall transmission $T^{*}_{(x, y)}$\n Upper Forest, 19-21 Feb. 2019, 25cm resolution')
-ax1.set_xlabel("$\Delta$SWE [mm]")
-ax1.set_ylabel("$T^{*}_{(x, y)}$ [-]")
-plt.scatter(covariant, gaus_term, s=2, alpha=.05)
+    # ax1.set_title('$\Delta$SWE vs. directionally weighted snowfall transmission $T^{*}_{(x, y)}$\n Forest, 19-21 Feb. 2019')
+    ax1.set_title('$\Delta$SWE vs. gaussian snowfall modeled throughfall $F_{j}$\n Forest, 19-21 Feb. 2019')
+    ax1.set_xlabel("$\Delta$SWE [mm]")
+elif date == "19_052":
+    # ax1.set_title('SWE vs. directionally weighted snowfall transmission $T^{*}_{(x, y)}$\n Forest, 21 Feb. 2019')
+    ax1.set_title('SWE vs. gaussian snowfall modeled throughfall $F_{G}$\n Forest, 21 Feb. 2019')
+    ax1.set_xlabel("SWE [mm]")
+
+# ax1.set_ylabel("$T^{*}_{(x, y)}$ [-]")
+ax1.set_ylabel("$F_{j}$ [mm]")
+plt.scatter(covariant[valid_set], gaus_swe, s=2, alpha=.15)
 #
 # rbins = (np.array([8, 5.7]) * 20).astype(int)
 # plotrange = [[np.nanquantile(covariant, .05), np.nanquantile(covariant, .95)],
@@ -444,14 +457,23 @@ plt.scatter(covariant, gaus_term, s=2, alpha=.05)
 #
 # plt.hist2d(covariant, gaus_term, range=plotrange, bins=rbins, cmap="Blues")
 
-mm_mod = np.array([np.nanmin(gaus_term), np.nanmax(gaus_term)])
-plt.plot(mm_mod * mm + bb, mm_mod, c='Black', linestyle='dashed', linewidth=1.5)
-plt.ylim(0, 1)
-plt.xlim(-5, 10)
+mm_mod = np.array([np.nanmin(gaus_swe), np.nanmax(gaus_swe)])
+# plt.plot(mm_mod * mm + bb, mm_mod, c='Black', linestyle='dashed', linewidth=1.5)
+# plt.plot(mm_mod, mm_mod, c='Black', linewidth=1)
+# plt.ylim(0, 1)
+# plt.xlim(-5, 0)
+plt.ylim(np.nanquantile(gaus_swe, .005), np.nanquantile(gaus_swe, .995))
+plt.xlim(np.nanquantile(covariant, .005), np.nanquantile(covariant, .995))
+
 if date == "045-050":
-    fig.savefig(plot_out_dir + "dSWE vs DWST 045-050.png")
+    # fig.savefig(plot_out_dir + "dSWE vs DWST 045-050.png")
+    fig.savefig(plot_out_dir + "dSWE vs dSWE 045-050.png")
 elif date == "050-052":
-    fig.savefig(plot_out_dir + "dSWE vs DWST 050-052.png")
+    # fig.savefig(plot_out_dir + "dSWE vs DWST 050-052.png")
+    fig.savefig(plot_out_dir + "dSWE vs dSWE 050-052.png")
+elif date == "19_052":
+    # fig.savefig(plot_out_dir + "SWE vs DWST 19_052_model.png")
+    fig.savefig(plot_out_dir + "SWE vs SWE 19_052_model.png")
 
 
 # ####### calculate interaction scalar across hemisphere #######

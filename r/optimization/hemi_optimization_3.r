@@ -113,10 +113,10 @@ df_agg %>%
 ggplot(., aes(x=optimization_scalar, y=cn_wmb)) +
   geom_point() +
   geom_line() +
-  xlim(0.2, NA) +
-  ylim(-0.15, NA) +
+  # xlim(0.2, NA) +
+  # ylim(-0.15, NA) +
   labs(x="point size scalar [-]", y="contact number mean bias weighted by solid angle [-]")
-#ggsave(paste0(plot_out_dir, "point_size_optimization_cn_weighted_mean_bian.png"), width=p_width, height=p_height, dpi=dpi)
+# ggsave(paste0(plot_out_dir, "point_size_optimization_cn_weighted_mean_bian.png"), width=p_width, height=p_height, dpi=dpi)
 
 
 # rmse tx
@@ -158,7 +158,7 @@ ggplot(df_agg, aes(x=optimization_scalar, y=tx_mae, color=poisson_radius_m)) +
 
 # cn plot
 df_drop %>%
-  filter(poisson_radius_m == 0, optimization_scalar == 1.01) %>%
+  filter(poisson_radius_m == 0, optimization_scalar == 0.064) %>%
 ggplot(., aes(x=-log(synth_transmission), y=-log(transmission), color=ring_number)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
@@ -217,7 +217,7 @@ approx(x=df_sub$tx_mean_bias, y=df_sub$optimization_scalar, xout=0)
 model_eval = function(nn = 0){
   
   df_sub = df_drop %>%
-    filter(poisson_radius_m == 0, optimization_scalar == 1.01)
+    filter(poisson_radius_m == 0, optimization_scalar == 0.063)
   
   if(nn > 0){
     df_sub = df_sub %>%

@@ -1295,10 +1295,10 @@ def point_to_hemi_rays(origin, vox, img_size, max_phi=np.pi/2, max_dist=50, min_
     return rays
 
 
-def point_to_photo_rays(origin, vox, img_size, max_phi=np.pi/2, max_dist=50, min_dist=0):
+def point_to_photo_rays(origin, vox, phi_range, phi_count, theta_range, theta_count, max_dist=50, min_dist=0):
     # needs reworking
 
-    rays = photo_vectors(img_size, max_phi)
+    rays = photo_vectors(phi_range, phi_count, theta_range, theta_count)
 
     # calculate utm coords of point at r = max_dist along ray
     rr0 = min_dist
@@ -1822,12 +1822,12 @@ def rs_photogen(rspmeta, vox, initial_index=0):
     # handle case with only one output
     if rspmeta.origin.shape.__len__() == 1:
         rspmeta.origin = np.array([rspmeta.origin])
-    if rspmeta.phi_range.shape.__len__() == 1:
-        rspmeta.phi_range = np.array([rspmeta.phi_range])
+    # if rspmeta.phi_range.shape.__len__() == 1:
+    #     rspmeta.phi_range = np.array([rspmeta.phi_range])
     # if rspmeta.phi_count.shape.__len__() == 1:
     #     rspmeta.phi_count = np.array([rspmeta.phi_count])
-    if rspmeta.theta_range.shape.__len__() == 1:
-        rspmeta.theta_range = np.array([rspmeta.theta_range])
+    # if rspmeta.theta_range.shape.__len__() == 1:
+    #     rspmeta.theta_range = np.array([rspmeta.theta_range])
     # if rspmeta.theta_count.shape.__len__() == 1:
     #     rspmeta.theta_count = np.array([rspmeta.theta_count])
     if type(rspmeta.file_name) == str:
@@ -1836,14 +1836,14 @@ def rs_photogen(rspmeta, vox, initial_index=0):
     # QC: ensure origins and file_names have same length
     if rspmeta.origin.shape[0] != rspmeta.file_name.__len__():
         raise Exception('origin and file_name have different lengths, execution halted.')
-    if rspmeta.phi_range.shape[0] != rspmeta.file_name.__len__():
-        raise Exception('phi_range and file_name have different lengths, execution halted.')
-    if rspmeta.phi_count.shape[0] != rspmeta.file_name.__len__():
-        raise Exception('phi_count and file_name have different lengths, execution halted.')
-    if rspmeta.theta_range.shape[0] != rspmeta.file_name.__len__():
-        raise Exception('theta_range and file_name have different lengths, execution halted.')
-    if rspmeta.theta_count.shape[0] != rspmeta.file_name.__len__():
-        raise Exception('theta_count and file_name have different lengths, execution halted.')
+    # if rspmeta.phi_range.shape[0] != rspmeta.file_name.__len__():
+    #     raise Exception('phi_range and file_name have different lengths, execution halted.')
+    # # if rspmeta.phi_count.shape[0] != rspmeta.file_name.__len__():
+    # #     raise Exception('phi_count and file_name have different lengths, execution halted.')
+    # if rspmeta.theta_range.shape[0] != rspmeta.file_name.__len__():
+    #     raise Exception('theta_range and file_name have different lengths, execution halted.')
+    # if rspmeta.theta_count.shape[0] != rspmeta.file_name.__len__():
+    #     raise Exception('theta_count and file_name have different lengths, execution halted.')
 
     rspm = pd.DataFrame({"id": rspmeta.id,
                         "file_name": rspmeta.file_name,
@@ -1859,11 +1859,11 @@ def rs_photogen(rspmeta, vox, initial_index=0):
                         "agg_sample_length": rspmeta.agg_sample_length,
                         "min_distance_m": rspmeta.min_distance,
                         "max_distance_m": rspmeta.max_distance,
-                        "phi_min_rad": rspmeta.phi_range[:, 0],
-                        "phi_max_rad": rspmeta.phi_range[:, 1],
+                        "phi_min_rad": rspmeta.phi_range[0],
+                        "phi_max_rad": rspmeta.phi_range[1],
                         "phi_count": rspmeta.phi_count,
-                        "theta_min_rad": rspmeta.theta_range[:, 0],
-                        "theta_max_rad": rspmeta.theta_range[:, 1],
+                        "theta_min_rad": rspmeta.theta_range[0],
+                        "theta_max_rad": rspmeta.theta_range[1],
                         "theta_count": rspmeta.theta_count,
                         "lookup_db": rspmeta.lookup_db,
                         "config_id": rspmeta.config_id,
@@ -1876,14 +1876,14 @@ def rs_photogen(rspmeta, vox, initial_index=0):
     rspm = rspm.reset_index(drop=True)
 
     # preallocate log file
-    log_path = rspmeta.file_dir + "rsgmetalog.csv"
+    log_path = rspmeta.file_dir + "rspmetalog.csv"
     if not os.path.exists(log_path):
         with open(log_path, mode='w', encoding='utf-8') as log:
             log.write(",".join(rspm.columns) + '\n')
         log.close()
 
     # export phi_theta_lookup of vectors in grid
-    vector_set = photo_vectors(rspmeta.phi_range, rspmeta.phi_count[0], rspmeta.theta_range, rspmeta.theta_count[0])
+    vector_set = photo_vectors(rspmeta.phi_range, rspmeta.phi_count, rspmeta.theta_range, rspmeta.theta_count)
     vector_set.to_csv(rspm.file_dir[0] + "phi_theta_lookup.csv", index=False)
 
     vox_sub = subset_vox(rspm.loc[:, ['x_utm11n', 'y_utm11n', 'elevation_m']].values, vox, rspmeta.max_distance, rspmeta.lookup_db)
@@ -1897,7 +1897,7 @@ def rs_photogen(rspmeta, vox, initial_index=0):
 
         if rspmeta.agg_method == "single_ray_agg":
             # calculate rays
-            rays_in = point_to_hemi_rays(origin, vox_sub, rshmeta.img_size, rshmeta.max_phi_rad, max_dist=rshmeta.max_distance, min_dist=rshmeta.min_distance)
+            rays_in = point_to_photo_rays(origin, vox_sub, rspmeta.phi_range, rspmeta.phi_count, rspmeta.theta_range, rspmeta.theta_count, max_dist=rspmeta.max_distance, min_dist=rspmeta.min_distance)
 
             # # sample rays
             # vox_old = vox
@@ -1905,7 +1905,7 @@ def rs_photogen(rspmeta, vox, initial_index=0):
             # rays = rays_in
             # agg_sample_length = rshmeta.agg_sample_length
             # lookup_db = rshmeta.lookup_db
-            rays_out = single_ray_agg(vox_sub, rays_in, rshmeta.agg_sample_length, lookup_db=rshmeta.lookup_db)
+            rays_out = single_ray_agg(vox_sub, rays_in, rspmeta.agg_sample_length, lookup_db=rspmeta.lookup_db)
         elif rspmeta.agg_method == "vox_agg":
 
             # vox_bu = vox
@@ -1914,24 +1914,25 @@ def rs_photogen(rspmeta, vox, initial_index=0):
             # max_phi = rshmeta.max_phi_rad
             # max_dist = rshmeta.max_distance
             # min_dist = rshmeta.min_distance
-            rays_out = vox_agg(origin, vox_sub, rshmeta.img_size, rshmeta.max_phi_rad, rshmeta.max_distance, rshmeta.min_distance)
+            raise Exception("vox_agg has not been fully developed. I beg your pardon.")
+            # rays_out = vox_agg(origin, vox_sub, rspmeta.img_size, rspmeta.max_phi_rad, rspmeta.max_distance, rspmeta.min_distance)
         else:
-            raise Exception("Unknown agg_method: " + rshmeta.agg_method)
+            raise Exception("Unknown agg_method: " + rspmeta.agg_method)
 
 
         # format to image
-        template = np.full((rshmeta.img_size, rshmeta.img_size, 2), np.nan)
+        template = np.full((rspmeta.phi_count, rspmeta.theta_count, 2), np.nan)
         template[(rays_out.y_index.values, rays_out.x_index.values, 0)] = rays_out.returns_mean
         template[(rays_out.y_index.values, rays_out.x_index.values, 1)] = rays_out.returns_std
         # write image
-        tiff.imsave(rshm.file_dir.iloc[ii] + rshm.file_name.iloc[ii], template)
+        tiff.imsave(rspm.file_dir.iloc[ii] + rspm.file_name.iloc[ii], template)
 
         # log meta
 
-        rshm.loc[iid, "created_datetime"] = time.strftime('%Y-%m-%d %H:%M:%S')
-        rshm.loc[iid, "computation_time_s"] = int(time.time() - it_time)
+        rspm.loc[iid, "created_datetime"] = time.strftime('%Y-%m-%d %H:%M:%S')
+        rspm.loc[iid, "computation_time_s"] = int(time.time() - it_time)
 
         # write to log file
-        rshm.iloc[ii:ii + 1].to_csv(log_path, encoding='utf-8', mode='a', header=False, index=False)
+        rspm.iloc[ii:ii + 1].to_csv(log_path, encoding='utf-8', mode='a', header=False, index=False)
 
     return rspm

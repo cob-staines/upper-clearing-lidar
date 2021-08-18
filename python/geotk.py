@@ -1,12 +1,29 @@
-# toolkit for geographical analysis
+# toolkit for geographical analysis:
+#   semivar analysis
+#   binwise statistics
+#   rejection sampling
 
-# histograms
 import laslib
 import numpy as np
 import pandas as pd
 
 
 def pnt_sample_semivar(pts_1, vals_1, dist_inv_func, n_samples, n_iters=1, pts_2=None, vals_2=None, report_samp_vals=False, self_ref=False):
+    """
+    Samples difference of vals_1 with vals_2 for points at various lag distances.
+    If vals_2 (and pts_2) are not provided, differences are calculated between samples of vals_1.
+
+    :param pts_1: coordinates cooresponding to vals_1
+    :param vals_1: values to calculate variance
+    :param dist_inv_func: function mapping uniform samples of the interval [0, 1) to the desired distribution of distances for samples
+    :param n_samples: number of samples to draw from vals_1
+    :param n_iters: number of vals_2 values to compare with each drawn sample of vals_1
+    :param pts_2: coordinates corresponding to vals_2.
+    :param vals_2: values to be compared with vals_1. if left as none, vals-1 will be used (and compared with itself)
+    :param report_samp_vals: return sampled values?
+    :param self_ref: include samples with distance of 0?
+    :return: (pandas dataframe of differences and distances, bounds of uniform sample values)
+    """
     if pts_2 is None:
         pts_2 = pts_1
 
@@ -59,15 +76,25 @@ def pnt_sample_semivar(pts_1, vals_1, dist_inv_func, n_samples, n_iters=1, pts_2
 
 def bin_summarize(df, bin_count, dist_inv_func=None, unif_bounds=None, d_bounds=None, symmetric=False):
     """
+    calculates binwise statistics of values (df[:, 0]) binned by bin_var (df[:, 1]):
+        bin_low: lower bin bounds (inclusive)
+        bin_mid: bin middles
+        bin_high: upper bin bounds (exclusive)
+        n: number of samples in each bin
+        mean_dist: mean bin_var of samples within each bin
+        mean bias: mean values for each bin
+        variance: variance of values for each bin
+        stdev: standard deviation of values for each bin
 
     :param df: pandas data frame of samples (output[0] from pnt_sample_semivar)
     :param bin_count: Number of bins
-    :param d_bounds: manual option for setting range of valid distances between points. Leave as None to use all samples.
     :param dist_inv_func: function mapping [0, 1) to the range of samples for binning accoring to samplig distribution.
-            If not provided, defailt is to equal quantile binning.
+        If not provided, default is to equal quantile binning.
     :param unif_bounds: uniform sampling bounds (output[1] from pnt_sample_semivar).
             If not provided, default is to equal quantile binning
-    :return:
+    :param d_bounds: manual option for setting range of valid distances between points. Leave as None to use all samples.
+    :param symmetric: should the absolute value of values df[:, 0] be taken?
+    :return: pandas dataframe of binwise statistics
     """
 
     if d_bounds is not None:
@@ -133,14 +160,16 @@ def bin_summarize(df, bin_count, dist_inv_func=None, unif_bounds=None, d_bounds=
 def rejection_sample(data, proposal, sample, nbins, nsamps=None, original_df=True):
     """
     Rejection samples data from proposal according to distribution of samples.
-    :param data: data frame containing proposal and sample data
-    :param proposal: observed data (with NAs) from which samples will be drawn
-    :param sample: data will be sampled from the proposal set according to the sample distribution
+
+    :param data: pandas dataframe containing proposal and sample data as columns
+    :param proposal: name of proposal column (observed data (with NAs) from which samples will be drawn)
+    :param sample: name of sample column (data will be sampled from the proposal set according to this target distribution)
     :param nbins: number of quantile bins to use in piecewise rejection sampling
     :param nsamps: number of samples to draw from proposal. If None, will sample according to global acceptance rate
-    :param original_df: Return results with original df (inclusive of any unused columns)?
+    :param original_df: Return results with original dataframe (inclusive of any unused columns)?
     :return d_samp: data frame of samples from proposal
     :return stats: descriptive statistics including acceptance rates, counts, etc.
+    :return bins: list of bin boundaries
     """
 
     valid_samp = ~np.isnan(data.loc[:, sample])

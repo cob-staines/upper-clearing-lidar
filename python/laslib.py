@@ -1,3 +1,5 @@
+# library of functions to assist with working with las/point cloud data
+
 def las_to_hdf5(las_in, hdf5_out, keep_columns=None, drop_columns=None, sort_by=None):
     """
     Loads xyz data from .las (point cloud) file "las_in" dropping classes in "drop_class"

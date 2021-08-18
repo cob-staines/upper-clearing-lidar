@@ -1,21 +1,30 @@
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
+def main():
+    """
+    Plotting of UAV trajectories
+    :return:
+    """
 
-import pandas as pd
+    import matplotlib
+    matplotlib.use('TkAgg')
+    import matplotlib.pyplot as plt
 
-traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_all_trajectories_WGS84_utm11N.txt'
-traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_all_trajectories_WGS84_utm11N.txt'
-traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_all_trajectories_WGS84_utm11N.txt'
-traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_107\\19_107_all_trajectories_WGS84_utm11N.txt'
-traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_123\\19_123_all_trajectories_WGS84_utm11N.txt'
-traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
+    import pandas as pd
 
-traj = pd.read_csv(traj_in)
-traj.columns = ['gpstime_s', 'roll_deg', 'pitch_deg', 'yaw_deg', 'x_m', 'y_m', 'z_m']
-plt.plot(traj.gpstime_s, traj.yaw_deg)
-plt.plot(traj.gpstime_s, traj.pitch_deg)
-plt.plot(traj.gpstime_s, traj.roll_deg)
-plt.plot(traj.gpstime_s, traj.z_m)
-plt.plot(traj.gpstime_s, traj.x_m)
-plt.plot(traj.gpstime_s, traj.y_m)
+    # traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_all_trajectories_WGS84_utm11N.txt'
+    # traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_all_trajectories_WGS84_utm11N.txt'
+    # traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_all_trajectories_WGS84_utm11N.txt'
+    # traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_107\\19_107_all_trajectories_WGS84_utm11N.txt'
+    # traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_123\\19_123_all_trajectories_WGS84_utm11N.txt'
+    traj_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_all_traj.txt'
+
+    traj = pd.read_csv(traj_in)
+    traj.columns = ['gpstime_s', 'roll_deg', 'pitch_deg', 'yaw_deg', 'x_m', 'y_m', 'z_m']
+    plt.plot(traj.gpstime_s, traj.yaw_deg)
+    plt.plot(traj.gpstime_s, traj.pitch_deg)
+    plt.plot(traj.gpstime_s, traj.roll_deg)
+    plt.plot(traj.gpstime_s, traj.z_m)
+    plt.plot(traj.gpstime_s, traj.x_m)
+    plt.plot(traj.gpstime_s, traj.y_m)
+
+if __name__ == "__main__":
+    main()

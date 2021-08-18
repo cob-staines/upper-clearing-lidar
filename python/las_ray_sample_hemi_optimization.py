@@ -1,12 +1,22 @@
 def main():
+    """
+    Configuration file for generating synthetic hemispheres corresponding to georeferenced hemispherical photography,
+    for subsequent validation/determination of contact number scaling coefficient
+        batch_dir: directory for all batch outputs
+        img_lookup_in: file of processed hemispherical photographs
+        pts_in: coordinates and elevations at which to calculate hemispheres
+
+    :return:
+    """
+
     import las_ray_sampling as lrs
     import numpy as np
     import pandas as pd
     import os
 
     # call voxel config
-    # import vox_045_050_052_config as vc
-    import vox_19_149_config as vc
+    # import vox_045_050_052_config as vc  # snow on canopy
+    import vox_19_149_config as vc  # snow off canopy
     vox = vc.vox
 
     batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_off\\'
@@ -16,6 +26,8 @@ def main():
 
     img_lookup_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\hemi_lookup_cleaned.csv"
     # img_lookup_in = 'C:\\Users\\jas600\\workzone\\data\\las\\hemi_lookup_cleaned.csv'
+
+    # filter imges based on quality control codes/day, etc.
     max_quality = 4
     # las_day = ["19_045", "19_050", "19_052"]
     las_day = ["19_149"]
@@ -105,74 +117,73 @@ def main():
 
     rshm = lrs.rs_hemigen(rshmeta, vox, initial_index=6)
 
-
 if __name__ == "__main__":
     main()
 
+# # preliminary visualization
+# import numpy as np
+# import pandas as pd
+# import matplotlib
+# matplotlib.use('Qt5Agg')
+# import matplotlib.pyplot as plt
+# import tifffile as tif
 #
-import numpy as np
-import pandas as pd
-import matplotlib
-matplotlib.use('Qt5Agg')
-import matplotlib.pyplot as plt
-import tifffile as tif
-
-
-def load_lrs_img_cn(batch_dir, coef, ii):
-    rshmeta = pd.read_csv(batch_dir + "outputs\\rshmetalog.csv")
-    img = tif.imread(batch_dir + "outputs\\" + rshmeta.file_name[ii])
-    return img[:, :, 0] * coef
-
-
-ii = 12
-
-# snow_off_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\"
-snow_off_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_off\\"
-snow_off_coef = 0.38686933  # python tx dropping 5th
-# snow_off_coef = 0.19216  # optimized for cn dropping 5th
-# snow_off_coef = 0.191206
-# snow_off_coef = 0.155334
-# snow_off_coef = 0.1841582  # tx wls
-# snow_off_coef = 0.220319  # cn wls
-# snow_off_coef = 0.1857892  # tx wmae
-# snow_off_coef = 0.2137436  # cn wmae
-
-cn_off = load_lrs_img_cn(snow_off_dir, snow_off_coef, ii)
-tx_off = np.exp(-cn_off)
-
-# snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\"
-# snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_on\\"
-snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_on_at_snow_off\\"
-snow_on_coef = 0.37181197  # python tx dropping 5th
-# snow_on_coef = 0.136461  # optimized for cn dropping 5th
-# snow_on_coef = 0.132154
-# snow_on_coef = 0.137942
-# snow_on_coef = 0.169215  # tx wls
-# snow_on_coef = 0.141832  # cn wls
-# snow_on_coef = 0.1736879  # tx wmae
-# snow_on_coef = 0.1487048  # cn wmae
-cn_on = load_lrs_img_cn(snow_on_dir, snow_on_coef, ii)
-tx_on = np.exp(-cn_on)
-
-
-##
-plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\thesis_graphics\\hemispheres\\"
-
-
-fig, ax = plt.subplots(figsize=(10, 10), dpi=100)
-# fig, ax = plt.subplots(figsize=(1.81, 1.81), dpi=100)
-# img = ax.imshow(tx_off, interpolation='nearest', cmap='Greys_r', clim=[0, 1])
-fim = plt.figimage(tx_off, cmap='Greys_r', clim=[0, 1])
-ax.set_axis_off()
-# fig.savefig(plot_out_dir + 'lrs_snow_on_tx_id' + str(ii) + '.png', bbox_inches='tight', pad_inches=0)
-fig.savefig(plot_out_dir + 'lrs_snow_off_tx_id' + str(ii) + '.png')
-
-fig, ax = plt.subplots(figsize=(10, 10), dpi=100)
-# fig, ax = plt.subplots(figsize=(1.81, 1.81), dpi=100)
-# img = ax.imshow(tx_on, interpolation='nearest', cmap='Greys_r', clim=[0, 1])
-fim = plt.figimage(tx_on, cmap='Greys_r', clim=[0, 1])
-ax.set_axis_off()
-# fig.savefig(plot_out_dir + 'lrs_snow_on_tx_id' + str(ii) + '.png', bbox_inches='tight', pad_inches=0)
-fig.savefig(plot_out_dir + 'lrs_snow_on_tx_id' + str(ii) + '.png')
-
-
+#
+# def load_lrs_img_cn(batch_dir, coef, ii):
+#     rshmeta = pd.read_csv(batch_dir + "outputs\\rshmetalog.csv")
+#     img = tif.imread(batch_dir + "outputs\\" + rshmeta.file_name[ii])
+#     return img[:, :, 0] * coef
+#
+#
+# ii = 12
+#
+# # snow_off_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\"
+# snow_off_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_off\\"
+# snow_off_coef = 0.38686933  # optimized for tx dropping 5th ring
+# # snow_off_coef = 0.19216  # optimized for cn dropping 5th
+# # snow_off_coef = 0.191206
+# # snow_off_coef = 0.155334
+# # snow_off_coef = 0.1841582  # tx wls
+# # snow_off_coef = 0.220319  # cn wls
+# # snow_off_coef = 0.1857892  # tx wmae
+# # snow_off_coef = 0.2137436  # cn wmae
+#
+# cn_off = load_lrs_img_cn(snow_off_dir, snow_off_coef, ii)
+# tx_off = np.exp(-cn_off)
+#
+# # snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\"
+# # snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_on\\"
+# snow_on_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_on_at_snow_off\\"
+# snow_on_coef = 0.37181197  # python tx dropping 5th
+# # snow_on_coef = 0.136461  # optimized for cn dropping 5th
+# # snow_on_coef = 0.132154
+# # snow_on_coef = 0.137942
+# # snow_on_coef = 0.169215  # tx wls
+# # snow_on_coef = 0.141832  # cn wls
+# # snow_on_coef = 0.1736879  # tx wmae
+# # snow_on_coef = 0.1487048  # cn wmae
+# cn_on = load_lrs_img_cn(snow_on_dir, snow_on_coef, ii)
+# tx_on = np.exp(-cn_on)
+#
+#
+# ##
+# plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\thesis_graphics\\hemispheres\\"
+#
+#
+# fig, ax = plt.subplots(figsize=(10, 10), dpi=100)
+# # fig, ax = plt.subplots(figsize=(1.81, 1.81), dpi=100)
+# # img = ax.imshow(tx_off, interpolation='nearest', cmap='Greys_r', clim=[0, 1])
+# fim = plt.figimage(tx_off, cmap='Greys_r', clim=[0, 1])
+# ax.set_axis_off()
+# # fig.savefig(plot_out_dir + 'lrs_snow_on_tx_id' + str(ii) + '.png', bbox_inches='tight', pad_inches=0)
+# fig.savefig(plot_out_dir + 'lrs_snow_off_tx_id' + str(ii) + '.png')
+#
+# fig, ax = plt.subplots(figsize=(10, 10), dpi=100)
+# # fig, ax = plt.subplots(figsize=(1.81, 1.81), dpi=100)
+# # img = ax.imshow(tx_on, interpolation='nearest', cmap='Greys_r', clim=[0, 1])
+# fim = plt.figimage(tx_on, cmap='Greys_r', clim=[0, 1])
+# ax.set_axis_off()
+# # fig.savefig(plot_out_dir + 'lrs_snow_on_tx_id' + str(ii) + '.png', bbox_inches='tight', pad_inches=0)
+# fig.savefig(plot_out_dir + 'lrs_snow_on_tx_id' + str(ii) + '.png')
+#
+#

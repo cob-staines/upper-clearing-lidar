@@ -1,3 +1,6 @@
+# plots of frequency distributions of snow depth, SWE, dSWE products over upper forest and upper clearing plots
+# includes rejection sampling methods for areal statistics and distributions
+
 import geotk as gt
 import rastools
 import matplotlib

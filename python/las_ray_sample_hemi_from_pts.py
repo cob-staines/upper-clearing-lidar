@@ -1,12 +1,21 @@
 def main():
+    """
+    Configuration file for generating synthetic hemispheres of expected lidar returns by voxel ray samping of lidar
+    (eg. to estimate light transmittance across the hemisphere at a given point, Staines thesis figure 3.3).
+        batch_dir: directory for all batch outputs
+        pts_in: coordinates and elevations at which to calculate hemispheres
+
+    :return:
+    """
+
     import las_ray_sampling as lrs
     import numpy as np
     import pandas as pd
     import os
 
     # call voxel config
-    # import vox_045_050_052_config as vc
-    import vox_19_149_config as vc
+    # import vox_045_050_052_config as vc  # snow on canopy
+    import vox_19_149_config as vc  # snow off canopy
     vox = vc.vox
 
 
@@ -31,16 +40,16 @@ def main():
 
     # ray geometry
     # phi_step = (np.pi / 2) / (180 * 2)
-    rshmeta.img_size = 181  # square, in pixels/ray samples
+    rshmeta.img_size = 181  # angular resolution (square) ~ samples / pi
     # rshmeta.max_phi_rad = phi_step * rshmeta.img_size
-    rshmeta.max_phi_rad = np.pi/2
-    hemi_m_above_ground = 0  # meters
-    rshmeta.max_distance = 50  # meters
-    rshmeta.min_distance = 0  # vox.step[0] * np.sqrt(3)  # meters
+    rshmeta.max_phi_rad = np.pi/2  # mazimum zenith angle to sample
+    hemi_m_above_ground = 0  # height above ground of synthetic hemisphere in meters
+    rshmeta.max_distance = 50  # maximum distance to sample ray in meters
+    rshmeta.min_distance = 0  # minimum distance to sample ray in meters
 
     # create batch dir (with error handling)
-    # if batch file dir exists
     if os.path.exists(batch_dir):
+        # if batch file dir exists
         input_needed = True
         while input_needed:
             batch_exist_action = input("Batch file directory already exists. Would you like to: (P)roceed, (E)rase and proceed, or (A)bort? ")
@@ -82,15 +91,16 @@ def main():
 
     rshm = lrs.rs_hemigen(rshmeta, vox, tile_count_1d=5, n_cores=3)
 
-    ###
-    #
-    # import matplotlib
-    # matplotlib.use('TkAgg')
-    # import matplotlib.pyplot as plt
-    # import tifffile as tif
-    # ii = 0
-    # peace = tif.imread(rshm.file_dir[ii] + rshm.file_name[ii])
-    # plt.imshow(peace[:, :, 2], interpolation='nearest')
 
 if __name__ == "__main__":
     main()
+
+# # preliminary visualization
+#
+# import matplotlib
+# matplotlib.use('TkAgg')
+# import matplotlib.pyplot as plt
+# import tifffile as tif
+# ii = 0
+# peace = tif.imread(rshm.file_dir[ii] + rshm.file_name[ii])
+# plt.imshow(peace[:, :, 2], interpolation='nearest')

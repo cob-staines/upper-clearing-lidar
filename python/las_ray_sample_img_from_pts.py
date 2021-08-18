@@ -1,14 +1,23 @@
 def main():
+    """
+    ### NOT FULLY DEBUGGED (output appears to have some issues...) ###
+    Configuration file for generating synthetic images mimicking photography, using mercator projection
+        batch_dir: directory for all batch outputs
+
+    :return:
+    """
+
     import las_ray_sampling as lrs
     import numpy as np
     import pandas as pd
     import os
 
     # call voxel config
-    # import vox_045_050_052_config as vc
-    import vox_19_149_config as vc
+    # import vox_045_050_052_config as vc  # snow on canopy
+    import vox_19_149_config as vc  # snow off canopy
     vox = vc.vox
 
+    raise Warning("las_ray_sample_img_from_pts.py is not fully debugged!")
 
     batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_photo_initial_test\\'
     # pts_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\hemi_grid_points\\mb_65_r.25m\\dem_r.25_points_uf.csv"
@@ -37,13 +46,13 @@ def main():
     rspmeta.max_distance = 50  # meters
     rspmeta.min_distance = 0  # vox.step[0] * np.sqrt(3)  # meters
     rspmeta.phi_range = np.array([75, 90]) * np.pi / 180
-    rspmeta.phi_count = np.array([100])
-    rspmeta.theta_count = np.array([160])
+    rspmeta.phi_count = 100
+    rspmeta.theta_count = 160
     # maintain square aspect ratio
     # this is not totally accurate, more error further from horizon... can adress with spherical rotation prior to mercator projeciton, then rerotate.
     theta_delta = np.diff(rspmeta.phi_range) * rspmeta.theta_count / rspmeta.phi_count
     theta_mid = 0
-    rspmeta.theta_range = np.array([theta_mid - theta_delta / 2, theta_mid + theta_delta / 2]).swapaxes(0, 1)
+    rspmeta.theta_range = np.array([theta_mid - theta_delta / 2, theta_mid + theta_delta / 2]).swapaxes(0, 1)[0]
 
 
 
@@ -103,3 +112,42 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# visualize
+
+
+#
+import numpy as np
+import pandas as pd
+import matplotlib
+matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
+import tifffile as tif
+
+
+def load_lrs_img_cn(batch_dir, coef, ii):
+    rspmeta = pd.read_csv(batch_dir + "outputs\\rspmetalog.csv")
+    img = tif.imread(batch_dir + "outputs\\" + rspmeta.file_name[ii])
+    return img[:, :, 0] * coef
+
+
+ii = 0
+
+snow_off_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_photo_initial_test\\"
+snow_off_coef = 0.38686933  # python tx dropping 5th
+
+cn_off = load_lrs_img_cn(snow_off_dir, snow_off_coef, ii)
+tx_off = np.exp(-cn_off)
+
+##
+plot_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\graphics\\thesis_graphics\\hemispheres\\"
+
+
+fig, ax = plt.subplots(figsize=(100/70, 160/70), dpi=70)
+#fig, ax = plt.subplots(figsize=(1.81, 1.81), dpi=100)
+img = ax.imshow(tx_off, interpolation='nearest', cmap='Greys')
+# fim = plt.figimage(tx_off, cmap='Greys_r', clim=[0, 1])
+ax.set_axis_off()
+# fig.savefig(plot_out_dir + 'lrs_snow_on_tx_id' + str(ii) + '.png', bbox_inches='tight', pad_inches=0)
+fig.savefig(plot_out_dir + 'lrs_snow_off_tx_id' + str(ii) + '.png')
+

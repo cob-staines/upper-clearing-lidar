@@ -1,6 +1,6 @@
-
-
 if __name__ == "__main__":
+    # plots beta distributions used for bayesian voxel ray sampling model, for visual validation
+
     import numpy as np
     from scipy.stats import beta
     import matplotlib.pyplot as plt

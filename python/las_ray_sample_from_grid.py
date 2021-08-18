@@ -1,12 +1,24 @@
 def main():
+    """
+    Configuration file for generating raster of expected lidar returns by voxel ray samping of lidar over a set of grid
+    points and for a specified angle (or sets of angles) of the hemisphere (eg. to estimate contact number across the
+    site at a given angle, Staines thesis figure 4.5). Use this when only specific angles are needed. If angles across
+    the hemisphere are needed, use las_ray_sample_hemi_from_pts.py instead.
+        batch_dir: directory for all batch outputs
+        dem_in: raster template and elevations to be used for grid
+        mask_in: binary raster (from grid_points.py) of points to be used
+
+    :return:
+    """
+
     import las_ray_sampling as lrs
     import numpy as np
     import pandas as pd
     import os
 
     # call voxel config
-    import vox_19_149_config as vc
-    # import vox_045_050_052_config as vc
+    import vox_19_149_config as vc  # snow off canopy
+    # import vox_045_050_052_config as vc  # snow on canopy
     vox = vc.vox
 
 
@@ -21,49 +33,20 @@ def main():
 
     rsgmeta = lrs.RaySampleGridMetaObj()
 
-     # rshmeta.lookup_db = 'count'
-    rsgmeta.lookup_db = 'posterior'
+     # rshmeta.lookup_db = 'count'  # troubleshooting only
+    rsgmeta.lookup_db = 'posterior'  # explicitly sample from bayesian posterior
     rsgmeta.config_id = vc.config_id
 
     rsgmeta.agg_sample_length = vox.sample_length
-    rsgmeta.agg_method = 'single_ray_agg'
-
-    # print('Calculating prior... ', end='')
-    # if rsgmeta.agg_method == 'nb_lookup':
-    #     mean_path_length = 2 * np.pi / (6 + np.pi) * voxel_length  # mean path length through a voxel cube across angles (m)
-    #     prior_weight = 5  # in units of scans (1 <=> equivalent weight to 1 expected voxel scan)
-    #     prior_b = mean_path_length * prior_weight
-    #     prior_a = prior_b * 0.01
-    #     rsgmeta.prior = [prior_a, prior_b]
-    #     rsgmeta.ray_iterations = 100  # model runs for each ray, from which median and std of returns is calculated
-    # elif rsgmeta.agg_method == 'linear':
-    #     samps = (vox.sample_data > 0)
-    #     trans = vox.return_data[samps] // (vox.sample_data[samps] * vox.sample_length)
-    #     rsgmeta.prior = np.var(trans)
-    # elif rsgmeta.agg_method == 'beta':
-    #     val = (vox.sample_data > 0)  # roughly 50% at .25m
-    #     rate = vox.return_data[val] / vox.sample_data[val]
-    #     mu = np.mean(rate)
-    #     sig2 = np.var(rate)
-    #
-    #     alpha = ((1 - mu)/sig2 - 1/mu) * (mu ** 2)
-    #     beta = alpha * (1/mu - 1)
-    #     rsgmeta.prior = [alpha, beta]
-    # elif rsgmeta.agg_method == 'beta_lookup':
-    #     # lrs.beta_lookup_prior_calc(vox, rshmeta.ray_sample_length)
-    #     pass
-    # else:
-    #     raise Exception('Aggregation method ' + rsgmeta.agg_method + ' unknown.')
-    # print('done')
+    rsgmeta.agg_method = 'single_ray_agg'  # always use this (other options were never fully developed)
 
     # define input files
     rsgmeta.src_ras_file = dem_in
     rsgmeta.mask_file = mask_in
 
-
     # create batch dir
-    # if batch file dir exists
     if os.path.exists(batch_dir):
+        # if batch file dir exists
         input_needed = True
         while input_needed:
             batch_exist_action = input("Batch file directory already exists. Would you like to: (P)roceed, (E)rase and proceed, or (A)bort?")
@@ -100,9 +83,8 @@ def main():
     rsgmeta.min_distance = vox.step[0] * np.sqrt(3)  # meters
 
     # calculate hemisphere of phi and theta values
-    rsgmeta.phi = np.pi / 8
-    # rsgmeta.phi = 0
-    rsgmeta.theta = 3 * np.pi / 4
+    rsgmeta.phi = np.pi / 8  # zenith angle of rays (radians)
+    rsgmeta.theta = 3 * np.pi / 4  # azimuth angle of rays (clockwise from north, from above looking down, in radians)
     rsgmeta.id = 0
     rsgmeta.file_name = ["las_19_149_rs_mb_15_r.25_p{:.4f}_t{:.4f}.tif".format(rsgmeta.phi, rsgmeta.theta)]
 
@@ -131,17 +113,12 @@ if __name__ == "__main__":
 ##
 
 
-# min_dist = rsgmeta.min_distance
-# max_dist = rsgmeta.max_distance
-
-
-
-# ###
-# #
-# # import matplotlib
-# # matplotlib.use('TkAgg')
-# # import matplotlib.pyplot as plt
-# # import tifffile as tif
-# # ii = 0
-# # peace = tif.imread(rshm.file_dir[ii] + rshm.file_name[ii])
-# # plt.imshow(peace[:, :, 2], interpolation='nearest')
+# # preliminary visualization
+#
+# import matplotlib
+# matplotlib.use('TkAgg')
+# import matplotlib.pyplot as plt
+# import tifffile as tif
+# ii = 0
+# peace = tif.imread(rshm.file_dir[ii] + rshm.file_name[ii])
+# plt.imshow(peace[:, :, 2], interpolation='nearest')

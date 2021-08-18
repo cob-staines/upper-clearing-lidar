@@ -1,3 +1,5 @@
+# parses hemisfer "full output" csv files to extract (select) values to a flat data file
+
 import re
 import numpy as np
 import pandas as pd
@@ -49,19 +51,14 @@ def _parse_line(line):
 
 def parse_file(file_in, file_out, hemimeta_in=None):
     """
-    Parse text at given filepath
-
-    Parameters
-    ----------
-    filepath : str
-        Filepath for file_object to be parsed
-
-    Returns
-    -------
-    data : pd.DataFrame
-        Parsed data
-
+    parses hemisfer "full output" files, returning select values as flat dataframes (csv)
+    :param file_in: hemisfer "LAI.dat" file (make sure exported as "full output" in hemisphere options
+    :param file_out: output csv file to be create
+    :param hemimeta_in: optional metadata file for synthetic hemispheres. If included, output will include hemimeta ids
+        from hemimeta.csv file in same directory
+    :return: data : pd.DataFrame of parsed data
     """
+
     data = []  # create an empty list to collect the data
     # open the file and read through it line by line
     # file_object = open(file_in, 'r')
@@ -178,22 +175,24 @@ def parse_file(file_in, file_out, hemimeta_in=None):
 
     return data
 
-# optimization
-# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_149\\clean\\sized\\thresholded\\LAI.dat"
-# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\045_052_050\\LAI_045_050_052_test.dat"
-# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_045\\clean\\sized\\thresholded\\LAI.dat"
-# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_050\\clean\\sized\\thresholded\\LAI.dat"
-# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_052\\clean\\sized\\thresholded\\LAI.dat"
-# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\poisson\\LAI.dat"
-file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\flip_rerun\\LAI.dat"
-file_out = file_in.replace('.dat', '_parsed.dat')
-lai_parsed = parse_file(file_in, file_out)
+def main():
+    # optimization sets
+    # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_149\\clean\\sized\\thresholded\\LAI.dat"
+    # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\045_052_050\\LAI_045_050_052_test.dat"
+    # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_045\\clean\\sized\\thresholded\\LAI.dat"
+    # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_050\\clean\\sized\\thresholded\\LAI.dat"
+    # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\hemispheres\\19_052\\clean\\sized\\thresholded\\LAI.dat"
+    # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\poisson\\LAI.dat"
+    # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\flip_rerun\\LAI.dat"
+    # file_out = file_in.replace('.dat', '_parsed.dat')
+    # lai_parsed = parse_file(file_in, file_out)
 
-# # # outputs
-# file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr0_os1.01_snow_off_dem_offset.25\\outputs\\LAI.dat"
-# # # # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr.15_os14.5_snow_off_dem_offset.25\\outputs\\LAI.dat"
-# file_out = file_in.replace('.dat', '_parsed.dat')
-# lai_parsed = parse_file(file_in, file_out, hemimeta_in=True)
+    # analysis sets
+    # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr0_os1.01_snow_off_dem_offset.25\\outputs\\LAI.dat"
+    file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr0_os0.063_snow_off_dem_offset.25_set_0\\outputs\\LAI.dat"
+    # # # file_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\batches\\uf_1m_pr.15_os14.5_snow_off_dem_offset.25\\outputs\\LAI.dat"
+    file_out = file_in.replace('.dat', '_parsed.dat')
+    lai_parsed = parse_file(file_in, file_out, hemimeta_in=True)
 
-
-
+if __name__ == "__main__":
+    main()
