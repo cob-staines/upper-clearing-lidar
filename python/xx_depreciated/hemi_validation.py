@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import laslib
+from libraries import laslib
 
 las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_all_200311_628000_5646525_vegetation.las"
 hemi_out_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\synthetic_hemis\\opt\\os_0.25\\"

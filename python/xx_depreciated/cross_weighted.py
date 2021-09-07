@@ -1,4 +1,4 @@
-import rastools
+from libraries import raslib
 import numpy as np
 import pandas as pd
 import tifffile as tif
@@ -30,7 +30,7 @@ imsize = hemimeta.img_size_px[0]
 
 # merge with covariant
 var_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\19_045-19_050\\dswe_19_045-19_050_r.25m.tif'
-var = rastools.raster_to_pd(var_in, 'covariant')
+var = raslib.raster_to_pd(var_in, 'covariant')
 hemi_var = pd.merge(hemimeta, var, left_on=('x_utm11n', 'y_utm11n'), right_on=('x_coord', 'y_coord'), how='inner')
 
 # load angle template

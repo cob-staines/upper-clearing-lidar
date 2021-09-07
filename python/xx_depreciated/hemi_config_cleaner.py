@@ -1,5 +1,6 @@
 import pandas as pd
-import laslib
+from libraries import laslib
+
 # config
 
 las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\LAS\\19_149_snow_off_classified_merged.las"

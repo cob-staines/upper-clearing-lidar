@@ -1,9 +1,7 @@
-import rastools
+from libraries import raslib
 import matplotlib
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
-from matplotlib import colors
-import pandas as pd
 import numpy as np
 # import seaborn as sns
 from scipy.stats import pearsonr
@@ -16,7 +14,7 @@ ddict = {'uf': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\da
          '19_149_lpml15': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LPM\\19_149_LPM-last_a15_r0.10m.tif',
          "19_045_hs": "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\HS\\interp_2x\\clean\\19_045_hs_r.05m_interp2x_clean.tif"}
 
-df = rastools.pd_sample_raster_gdal(ddict, include_nans=False, mode="median")
+df = raslib.pd_sample_raster_gdal(ddict, include_nans=False, mode="median")
 # sns.scatterplot(data=df, x="19_045_pdens", y="19_045_hs")
 x = df.loc[:, "19_045_pdens"] * 0.1 ** 2
 y = df.loc[:, "19_045_hs"]

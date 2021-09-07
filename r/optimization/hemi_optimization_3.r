@@ -158,18 +158,18 @@ ggplot(df_agg, aes(x=optimization_scalar, y=tx_mae, color=poisson_radius_m)) +
 
 # cn plot
 df_drop %>%
-  filter(poisson_radius_m == 0, optimization_scalar == 0.064) %>%
+  filter(poisson_radius_m == 0, optimization_scalar == 0.063) %>%
 ggplot(., aes(x=-log(synth_transmission), y=-log(transmission), color=ring_number)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
   labs(title="Reprojection ontact number (X) validation", x='X (point cloud reprojection)', y='X (thresholded hemispherical photography)', color='Zenith angle\nband [deg]') +
   scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
-# ggsave(paste0(plot_out_dir, "point_reprojection_cn_error_eval_os1.01.png"), width=p_width, height=p_height, dpi=dpi)
+# ggsave(paste0(plot_out_dir, "point_reprojection_cn_error_eval_os0.063.png"), width=p_width, height=p_height, dpi=dpi)
 
 
 # tx plot
 df_drop %>%
-  filter(poisson_radius_m == 0, optimization_scalar == 0.064) %>%
+  filter(poisson_radius_m == 0, optimization_scalar == 0.063) %>%
 ggplot(., aes(x=synth_transmission, y=transmission, color=ring_number)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
@@ -177,7 +177,7 @@ ggplot(., aes(x=synth_transmission, y=transmission, color=ring_number)) +
   xlim(0, 1) +
   labs(title="Reprojection light transmittance (T) validation", x='T (point cloud reprojection)', y='T (hemispherical photography)', color='Zenith angle\nband [deg]') +
   scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
-# ggsave(paste0(plot_out_dir, "point_reprojection_tx_error_eval_os1.01.png"), width=p_width, height=p_height, dpi=dpi)
+# ggsave(paste0(plot_out_dir, "point_reprojection_tx_error_eval_os0.063.png"), width=p_width, height=p_height, dpi=dpi)
 
 # df %>%
 #   filter(poisson_radius_m == 0, optimization_scalar == 1.3) %>%

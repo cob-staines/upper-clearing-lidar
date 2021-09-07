@@ -150,3 +150,7 @@ SET RAS_RESOLUTION=.10
 :: call %DIR_BAT%\las_07_raster_ground_point_density.bat
 SET RAS_RESOLUTION=.25
 :: call %DIR_BAT%\las_07_raster_ground_point_density.bat
+
+SET RAS_RESOLUTION=.25
+SET RAS_MAX_ANGLE=90
+call %DIR_BAT%\las_07_raster_products.bat

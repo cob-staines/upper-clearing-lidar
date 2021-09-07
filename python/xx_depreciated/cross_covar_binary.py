@@ -1,5 +1,4 @@
-import rastools
-import os
+from libraries import raslib
 import numpy as np
 from PIL import Image
 import pandas as pd
@@ -15,7 +14,7 @@ hemimeta = pd.read_csv(batch_dir + 'hemimetalog.csv')
 
 # merge with swe
 swe_in = 'C:\\Users\\jas600\\workzone\\data\\cross_covar\\swe_19_045_r1.00m_q0.25.tif'
-swe = rastools.raster_to_pd(swe_in, 'swe')
+swe = raslib.raster_to_pd(swe_in, 'swe')
 hemi_swe = pd.merge(hemimeta, swe, left_on=('x_utm11n', 'y_utm11n'), right_on=('x_coord', 'y_coord'), how='inner')
 
 # filter to desited images

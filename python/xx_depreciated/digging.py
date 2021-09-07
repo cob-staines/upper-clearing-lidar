@@ -1,9 +1,9 @@
-import rastools
+from libraries import raslib
 import numpy as np
 import pandas as pd
 
 ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\hs\\19_107\\hs_19_107_res_.04m.tif"
-ras = rastools.raster_load(ras_in)
+ras = raslib.raster_load(ras_in)
 
 row_map = np.full_like(ras.data, 0).astype(int)
 for ii in range(0, ras.rows):

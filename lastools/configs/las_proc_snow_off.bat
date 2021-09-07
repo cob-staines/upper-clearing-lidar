@@ -108,6 +108,10 @@ SET RAS_RESOLUTION=.25
 
 SET RAS_RESOLUTION=.10
 SET RAS_MAX_ANGLE=15
+::call %DIR_BAT%\las_07_raster_products.bat
+
+SET RAS_RESOLUTION=.25
+SET RAS_MAX_ANGLE=90
 call %DIR_BAT%\las_07_raster_products.bat
 
 

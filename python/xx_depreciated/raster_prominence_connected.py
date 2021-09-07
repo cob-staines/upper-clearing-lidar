@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import rastools
+from libraries import raslib
 from scipy.ndimage.measurements import label, maximum_position
 
 import time
@@ -27,7 +27,7 @@ prominence_max_parent_id = -2222  # parent_id used when no parent found within p
 
 ##
 # load raster
-ras = rastools.raster_load(elev_in)
+ras = raslib.raster_load(elev_in)
 elev = ras.data.copy()  # rename for legible coding
 
 # define mask of valid data above  z_min
@@ -226,12 +226,12 @@ for ii in range(0, ras.cols):
 # export parent_map to raster file
 ras_nearest = ras
 ras_nearest.data = nearest_map
-rastools.raster_save(ras_nearest, nearest_out, data_format="int")
+raslib.raster_save(ras_nearest, nearest_out, data_format="int")
 
 # export distance_map to raster file
 ras_distance = ras
 ras_distance.data = distance_map
-rastools.raster_save(ras_distance, distance_out, data_format="float")
+raslib.raster_save(ras_distance, distance_out, data_format="float")
 
 end = time.time()
 print(end - start)

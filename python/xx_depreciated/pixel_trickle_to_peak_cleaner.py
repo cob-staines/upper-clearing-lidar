@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import rastools
+from libraries import raslib
 
 # config
 ras_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_snow_off\\OUTPUT_FILES\\CHM\\19_149_all_200311_628000_564652_spike_free_chm_.10m.bil"
@@ -19,7 +19,7 @@ min_vegetation_height = 2  # in meters
 min_radius = 0  # in meters
 
 # load raster
-ras = rastools.raster_load(ras_in)
+ras = raslib.raster_load(ras_in)
 
 # calculate min_pixel threshold
 pixel_area = np.array(ras.T1*(0, 0)) - np.array(ras.T1*(1, 1))
@@ -113,15 +113,15 @@ for ii in range(0, ras.cols):
 
 ras_parent = ras
 ras_parent.data = parent_map.copy()
-rastools.raster_save(ras_parent, parent_out, data_format="int")
+raslib.raster_save(ras_parent, parent_out, data_format="int")
 
 ras_nearest = ras
 ras_nearest.data = nearest_map
-rastools.raster_save(ras_nearest, nearest_out, data_format="int")
+raslib.raster_save(ras_nearest, nearest_out, data_format="int")
 
 ras_distance = ras
 ras_distance.data = distance_map
-rastools.raster_save(ras_distance, distance_out, data_format="int")
+raslib.raster_save(ras_distance, distance_out, data_format="int")
 
 # import matplotlib.pyplot as plt
 # plt.imshow(parent_map, interpolation='nearest')

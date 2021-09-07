@@ -1,4 +1,3 @@
-import laslib
 import numpy as np
 import pandas as pd
 import h5py
@@ -191,7 +190,6 @@ plt.scatter(fin_data.angle_from_nadir_deg_traj[cw_dif], fin_data.angle_from_nadi
 ##############
 # dask las_traj
 
-import laslib
 import numpy as np
 import pandas as pd
 

@@ -1,8 +1,7 @@
 import numpy as np
 import pandas as pd
 import tifffile as tif
-import rastools
-
+from libraries import raslib
 
 # objective: determine a weight for cn values as a function of phi and theta
 
@@ -45,7 +44,7 @@ metalog.loc[:, 'phi_deg'] = metalog.phi * 180 / np.pi
 metalog.loc[:, 'weight'] = phi_weight.covar_15_norm[metalog.phi_deg.astype(int)].values
 
 
-template = rastools.raster_load(batch_dir + metalog.file_name[0])
+template = raslib.raster_load(batch_dir + metalog.file_name[0])
 template.data = template.data[0]
 template.data[template.data == template.no_data] = np.nan
 
@@ -66,7 +65,7 @@ lncnw[np.isnan(template.data)] = np.nan
 # export to file
 template.data = lncnw
 template.band_count = 1
-rastools.raster_save(template, batch_dir + 'weighted_cn.tif')
+raslib.raster_save(template, batch_dir + 'weighted_cn.tif')
 
 
 import matplotlib
