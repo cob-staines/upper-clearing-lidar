@@ -545,7 +545,7 @@ def las_quantile_dem(las_in, ras_template, q, q_out=None, n_out=None, las_ground
     :return: quantile product, count product
     """
 
-    import raslib
+    from libraries import raslib
     import scipy.stats
     import numpy as np
 

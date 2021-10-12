@@ -224,7 +224,7 @@ y_labs = ['$CHM$', '$DNT$', '$DCE$',
           r'$V_{f}^{\vartriangle}$', r'$V_{f}^{\blacktriangle}$'
           ]
 
-# full lables
+# # full lables
 # y_labs = [r'Canopy crown height - $CHM$ (m AGS)', r'Distance to nearest tree - $DNT$ (m)', r'Distance to canopy edge - $DCE$ (m)',
 #           r'Mean canopy height - $mCH$ (m AGS)', 'Fractional cover - $fCov$ (-)', 'Laser penetration metric $LPM$-$L$ (-)',
 #           r'Mean distance to canopy - $MDC$ (m)', r'Total gap area - $TGA$ ($m^2$)',
@@ -363,7 +363,7 @@ def plot_together(df, x_dat, y_dat, titles, lims, suptitle="", x_lab=None, y_lab
     n_plots = len(y_dat)
     fig, ax = plt.subplots(nrows=1, ncols=n_plots, sharey=True, sharex=True, figsize=(3 * n_plots, 3.8), constrained_layout=True)
 
-
+    mb = []
     minmax = [np.min(lims), np.max(lims)]
 
     for ii in range(0, n_plots):
@@ -394,6 +394,11 @@ def plot_together(df, x_dat, y_dat, titles, lims, suptitle="", x_lab=None, y_lab
         if ii == 2:
             ax[ii].set_xlabel(x_lab)
 
+        is_valid = ~np.isnan(xx) & ~np.isnan(yy)
+        # cov.append(np.cov(xx[is_valid], yy[is_valid]))
+        # rmsd.append(np.sqrt(np.nanmean((xx - yy) ** 2)))
+        mb.append(np.nanmean(xx - yy))
+
     fig.add_subplot(111, frameon=False)
     if suptitle is not "":
         plt.suptitle(suptitle)
@@ -401,7 +406,7 @@ def plot_together(df, x_dat, y_dat, titles, lims, suptitle="", x_lab=None, y_lab
     # plt.xlabel("Lidar point reprojection")
     # plt.ylabel("Lidar ray sampling")
 
-    return fig, ax
+    return fig, ax, mb
 
 ## don't use contact number here!!!
 # x_dat = ["contactnum_1",
@@ -432,10 +437,10 @@ y_dat = ["lrs_cn_1",
          "lrs_cn_3",
          "lrs_cn_4"]
 
-y_dat = ["lrs_cn_1_snow_off_thresh",
-         "lrs_cn_2_snow_off_thresh",
-         "lrs_cn_3_snow_off_thresh",
-         "lrs_cn_4_snow_off_thresh"]
+# y_dat = ["lrs_cn_1_snow_off_thresh",
+#          "lrs_cn_2_snow_off_thresh",
+#          "lrs_cn_3_snow_off_thresh",
+#          "lrs_cn_4_snow_off_thresh"]
 
 
 titles = ["0$^{\circ}$-15$^{\circ}$",
@@ -449,7 +454,7 @@ titles = ["0$^{\circ}$-15$^{\circ}$",
 #           np.nanmax((df_25.loc[:, x_dat], df_25.loc[:, y_dat])) + .25]
 maxmin = [-0.2411994287105065, 7.549130176945413]
 
-fig, ax = plot_together(df_25, x_dat, y_dat, titles, lims=maxmin,
+fig, ax, mb = plot_together(df_25, x_dat, y_dat, titles, lims=maxmin,
                         suptitle="Contact number comparison between methods over the forest plot",
                         y_lab=r"$\chi_{a-b}^{\blacktriangle}$ [-]",
                         # x_lab=r"$\chi_{a-b}^{\dagger}$ [-]")
@@ -471,10 +476,10 @@ y_dat = ["lrs_tx_1",
          "lrs_tx_3",
          "lrs_tx_4"]
 
-x_dat = ["lrs_tx_1_snow_off_thresh",
-         "lrs_tx_2_snow_off_thresh",
-         "lrs_tx_3_snow_off_thresh",
-         "lrs_tx_4_snow_off_thresh"]
+# x_dat = ["lrs_tx_1_snow_off_thresh",
+#          "lrs_tx_2_snow_off_thresh",
+#          "lrs_tx_3_snow_off_thresh",
+#          "lrs_tx_4_snow_off_thresh"]
 
 titles = ["0$^{\circ}$-15$^{\circ}$",
           "15$^{\circ}$-30$^{\circ}$",
@@ -482,11 +487,11 @@ titles = ["0$^{\circ}$-15$^{\circ}$",
           "45$^{\circ}$-60$^{\circ}$"]
 
 
-fig, ax = plot_together(df_25, x_dat, y_dat, titles, lims=[0, 1],
+fig, ax, mb = plot_together(df_25, x_dat, y_dat, titles, lims=[0, 1],
                         suptitle="Light transmittance comparison between methods over the forest plot",
                         y_lab=r"$T_{a-b}^{\blacktriangle}$ [-]",
-                        x_lab=r"$T_{a-b}^{\dagger}$ [-]")
-                        # x_lab=r"$T_{a-b}^{\bullet}$ [-]")
+                        # x_lab=r"$T_{a-b}^{\dagger}$ [-]")
+                        x_lab=r"$T_{a-b}^{\bullet}$ [-]")
 # fig.savefig(plot_out_dir + "tx_comparison.png")
 # fig.savefig(plot_out_dir + "tx_comparison_threshold.png")
 fig.savefig(plot_out_dir + "tx_comparison_threshold_lrs.png")

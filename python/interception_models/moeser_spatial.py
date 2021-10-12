@@ -53,7 +53,8 @@ mm_mod = np.array([np.nanmin(swevar), np.nanmax(swevar)])
 fig.savefig(plot_out_dir + "SWE vs moeser 19_052.png")
 
 
-precip = 3
+# precip = 3  # old
+precip = 9.03
 swevar = df.loc[:, "dswe_fnsd_19_045-19_050"]
 interception = imax / (1 + np.exp(-k * (precip - p0)))
 throughfall = precip - interception
@@ -73,7 +74,8 @@ mm_mod = np.array([np.nanmin(swevar), np.nanmax(swevar)])
 # plt.plot(mm_mod, mm_mod, c='Black', linewidth=1)
 fig.savefig(plot_out_dir + "SWE vs moeser 045-050.png")
 
-precip = 8.6
+# precip = 8.6  # old
+precip = 6.85
 swevar = df.loc[:, "dswe_fnsd_19_050-19_052"]
 interception = imax / (1 + np.exp(-k * (precip - p0)))
 throughfall = precip - interception
@@ -112,22 +114,24 @@ spr_from_mo()
 
 # optimization
 
-# optimization
 from scipy.optimize import fmin_bfgs, minimize
 
 # valid = ~np.isnan(interception) & ~np.isnan(df.loc[:, "dswe_fnsd_19_050-19_052"])
-# swevar = df.loc[:, "swe_fcon_19_052"]
-swevar = df.loc[:, "dswe_fnsd_19_045-19_050"]
+swevar = df.loc[:, "swe_fcon_19_052"]
+precip = 105.06450584
+
+# swevar = df.loc[:, "dswe_fnsd_19_045-19_050"]
+# precip = 9.03
+
 # swevar = df.loc[:, "dswe_fnsd_19_050-19_052"]
+# precip = 6.85
 valid = ~np.isnan(swevar)
 
-
+k = 0.3
+p0 = 13.3
 def mo_accum(x0):
-    # s_bar, h_bar, l_0, snow_dens, precip = x0
-    k = 0.3
-    p0 = 13.3
 
-    v0, v1, v2, v3, v4, v5, v6, precip = x0
+    v0, v1, v2, v3, v4, v5, v6 = x0
 
     x1 = np.log10(mdc)
     x2 = np.log(cc)
@@ -154,10 +158,8 @@ def rsq(x0):
 
 def mo_accum_data(x0):
     # s_bar, h_bar, l_0, snow_dens, precip = x0
-    k = 0.3
-    p0 = 13.3
 
-    v0, v1, v2, v3, v4, v5, v6, precip = x0
+    v0, v1, v2, v3, v4, v5, v6 = x0
 
     x1 = np.log10(mdc)
     x2 = np.log(cc)
@@ -172,10 +174,14 @@ def mo_accum_data(x0):
 
     return accumulation
 
+x0 = np.array([ -30.63362723, 22.79966982, 9.71420853, -197.25336491, 4.02806702, 0.85775479, 126.01717906])  # 19_052 , p_s = 0.599390890905355
+x0 = np.array([-74.01782945, -19.14164369, 9.33915791, 3.21992909, -7.88632607, -0.3427642, 59.16903417])  # storm 1 , p_s = 0.2590593393981892
+x0 = np.array([102.09990454,   42.84472146, -21.7541577, -125.07498835, 14.17425099, 0.95957025, 8.94397249])  # storm 2 , p_s = 0.21996477019477148
 
-res = minimize(mo_accum, (2.167, 3.410, 55.761, 181.858, 2.493,  0.499, 20.819, 100), method='Nelder-Mead', options={'maxiter': 2000})
+res = minimize(mo_accum, x0, method='Nelder-Mead', options={'maxiter': 20000})
 
 
 throughfall = mo_accum_data(res.x)
 
 plt.scatter(swevar, throughfall, s=2, alpha=0.05)
+spearmanr(swevar[valid], throughfall[valid])

@@ -9,8 +9,8 @@
 
 import numpy as np
 import pandas as pd
-import laslib
-import raslib
+from libraries import laslib
+from libraries import raslib
 import time
 import h5py
 import os

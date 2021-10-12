@@ -1,8 +1,8 @@
 # plots of frequency distributions of snow depth, SWE, dSWE products over upper forest and upper clearing plots
 # includes rejection sampling methods for areal statistics and distributions
 
-import libraries.geotk as gt
-import libraries.raslib
+from libraries import geotk as gt
+from libraries import raslib
 import matplotlib
 # matplotlib.use("Agg")
 matplotlib.use("Qt5Agg")
@@ -341,6 +341,7 @@ ax1 = fig.add_subplot(111)
 ax1.set_title('Frequency distributions of SWE for all days\n Forest plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
+# ax1.set_xlim((0, 240))
 plot = sns.histplot(all_swe_uf, x="swe", hue="date", stat="density", common_norm=False, element="step")
 fig.savefig(plot_out_dir + "freq_dist_resampled_all_swe_uf_lpml15.png")
 
@@ -353,10 +354,10 @@ e_045_uf.to_csv(rej_samp_out_file + 'resampled_swe_19_045_uf_fcon_r.05m_interp2x
 e_050_uf.to_csv(rej_samp_out_file + 'resampled_swe_19_050_uf_fcon_r.05m_interp2x_by_lpml15.csv', index=False)
 e_052_uf.to_csv(rej_samp_out_file + 'resampled_swe_19_052_uf_fcon_r.05m_interp2x_by_lpml15.csv', index=False)
 
-# reload rejection samples
-swe_045_uf = pd.read_csv(rej_samp_out_file + 'resampled_swe_19_045_uf_fcon_r.05m_interp2x_by_lpml15.csv')
-swe_050_uf = pd.read_csv(rej_samp_out_file + 'resampled_swe_19_050_uf_fcon_r.05m_interp2x_by_lpml15.csv')
-swe_052_uf = pd.read_csv(rej_samp_out_file + 'resampled_swe_19_052_uf_fcon_r.05m_interp2x_by_lpml15.csv')
+# # reload rejection samples
+# d_045_uf = pd.read_csv(rej_samp_out_file + 'resampled_swe_19_045_uf_fcon_r.05m_interp2x_by_lpml15.csv')
+# d_050_uf = pd.read_csv(rej_samp_out_file + 'resampled_swe_19_050_uf_fcon_r.05m_interp2x_by_lpml15.csv')
+# d_052_uf = pd.read_csv(rej_samp_out_file + 'resampled_swe_19_052_uf_fcon_r.05m_interp2x_by_lpml15.csv')
 
 #### rejection sample dswe
 fig = plt.figure()
@@ -364,6 +365,7 @@ ax1 = fig.add_subplot(111)
 ax1.set_title('Frequency distribution of $\Delta$SWE for 14-19 Feb. 2019\n Forest plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
+ax1.set_xlim(-10, 20)
 g, d_045_050_uf = resampling_histoplot(data_uf, 'dswe_fnsd_19_045-19_050', 'lpml15', 50, plotbins=250)
 g.legend_.set_title(None)
 fig.savefig(plot_out_dir + "freq_dist_resampled_dswe_045-050_uf_lpml15.png")
@@ -373,6 +375,7 @@ ax1 = fig.add_subplot(111)
 ax1.set_title('Frequency distribution of $\Delta$SWE for 19-21 Feb. 2019\n Forest plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
+ax1.set_xlim(-10, 20)
 g, d_050_052_uf = resampling_histoplot(data_uf, 'dswe_fnsd_19_050-19_052', 'lpml15', 50, plotbins=200)
 g.legend_.set_title(None)
 fig.savefig(plot_out_dir + "freq_dist_resampled_dswe_050-052_uf_lpml15.png")
@@ -387,6 +390,7 @@ ax1 = fig.add_subplot(111)
 ax1.set_title('Frequency distributions of $\Delta$SWE for all days\n Forest plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("$\Delta$SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
+ax1.set_xlim(-10, 20)
 sns.histplot(all_dswe_uf, x="dswe", hue="interval", stat="density", common_norm=False, element="step", bins=200)
 fig.savefig(plot_out_dir + "freq_dist_resampled_all_dswe_uf_lpml15.png")
 
@@ -397,6 +401,9 @@ e_050_052_uf = d_050_052_uf.loc[:, ["x_coord", "y_coord", "dswe_fnsd_19_050-19_0
 e_045_050_uf.to_csv(rej_samp_out_file + 'resampled_dswe_19_045-19_050_uf_fnsd_r.05m_interp2x_by_lpml15.csv', index=False)
 e_050_052_uf.to_csv(rej_samp_out_file + 'resampled_dswe_19_050-19_052_uf_fnsd_r.05m_interp2x_by_lpml15.csv', index=False)
 
+# # reload rejection samples
+# d_045_050_uf = pd.read_csv(rej_samp_out_file + 'resampled_dswe_19_045-19_050_uf_fnsd_r.05m_interp2x_by_lpml15.csv')
+# d_050_052_uf = pd.read_csv(rej_samp_out_file + 'resampled_dswe_19_050-19_052_uf_fnsd_r.05m_interp2x_by_lpml15.csv')
 
 ### uc ###
 
@@ -574,6 +581,7 @@ ax1 = fig.add_subplot(111)
 ax1.set_title('Frequency distributions of SWE for all days\n Clearing plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
+# ax1.set_xlim((0, 240))
 plot = sns.histplot(all_swe_uc, x="swe", hue="date", stat="density", common_norm=False, element="step")
 fig.savefig(plot_out_dir + "freq_dist_resampled_all_swe_uc_lpml15.png")
 
@@ -586,6 +594,10 @@ e_045_uc.to_csv(rej_samp_out_file + 'resampled_swe_19_045_uc_clin_r.05m_interp2x
 e_050_uc.to_csv(rej_samp_out_file + 'resampled_swe_19_050_uc_clin_r.05m_interp2x_by_lpml15.csv', index=False)
 e_052_uc.to_csv(rej_samp_out_file + 'resampled_swe_19_052_uc_clin_r.05m_interp2x_by_lpml15.csv', index=False)
 
+# # reload rejection samples
+# d_045_uc = pd.read_csv(rej_samp_out_file + 'resampled_swe_19_045_uc_clin_r.05m_interp2x_by_lpml15.csv')
+# d_050_uc = pd.read_csv(rej_samp_out_file + 'resampled_swe_19_050_uc_clin_r.05m_interp2x_by_lpml15.csv')
+# d_052_uc = pd.read_csv(rej_samp_out_file + 'resampled_swe_19_052_uc_clin_r.05m_interp2x_by_lpml15.csv')
 
 #### rejection sample dswe
 fig = plt.figure()
@@ -593,6 +605,7 @@ ax1 = fig.add_subplot(111)
 ax1.set_title('Frequency distribution of $\Delta$SWE for 14-19 Feb. 2019\n Clearing plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
+ax1.set_xlim(-10, 20)
 g, d_045_050_uc = resampling_histoplot(data_uc, 'dswe_cnsd_19_045-19_050', 'lpml15', 50, plotbins=250)
 g.legend_.set_title(None)
 fig.savefig(plot_out_dir + "freq_dist_resampled_dswe_045-050_uc_lpml15.png")
@@ -602,6 +615,7 @@ ax1 = fig.add_subplot(111)
 ax1.set_title('Frequency distribution of $\Delta$SWE for 19-21 Feb. 2019\n Clearing plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
+ax1.set_xlim(-10, 20)
 g, d_050_052_uc = resampling_histoplot(data_uc, 'dswe_cnsd_19_050-19_052', 'lpml15', 50, plotbins=250)
 g.legend_.set_title(None)
 fig.savefig(plot_out_dir + "freq_dist_resampled_dswe_050-052_uc_lpml15.png")
@@ -616,6 +630,7 @@ ax1 = fig.add_subplot(111)
 ax1.set_title('Frequency distributions of $\Delta$SWE for all days\n Clearing plot, 5cm resolution, rejection sampled with LPM-L')
 ax1.set_xlabel("$\Delta$SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
+ax1.set_xlim(-10, 20)
 sns.histplot(all_dswe_uc, x="dswe", hue="interval", stat="density", common_norm=False, element="step", bins=250)
 fig.savefig(plot_out_dir + "freq_dist_resampled_all_dswe_uc_lpml15.png")
 
@@ -625,6 +640,10 @@ e_050_052_uc = d_050_052_uc.loc[:, ["x_coord", "y_coord", "dswe_cnsd_19_050-19_0
 
 e_045_050_uc.to_csv(rej_samp_out_file + 'resampled_dswe_19_045-19_050_uc_cnsd_r.05m_interp2x_by_lpml15.csv', index=False)
 e_050_052_uc.to_csv(rej_samp_out_file + 'resampled_dswe_19_050-19_052_uc_cnsd_r.05m_interp2x_by_lpml15.csv', index=False)
+
+# # reload rejection samples
+# d_045_050_uc = pd.read_csv(rej_samp_out_file + 'resampled_dswe_19_045-19_050_uc_cnsd_r.05m_interp2x_by_lpml15.csv')
+# d_050_052_uc = pd.read_csv(rej_samp_out_file + 'resampled_dswe_19_050-19_052_uc_cnsd_r.05m_interp2x_by_lpml15.csv')
 
 # combined plot plots
 # plot 045-050 all together
