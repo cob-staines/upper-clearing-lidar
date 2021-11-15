@@ -51,7 +51,7 @@ survey$vegetation[survey$vegetation == "edge"] = "forest"
 survey$vegetation[survey$vegetation == "newtrees"] = "clearing"
 
 # filter to first 3 days only
-# survey = filter(survey, doy %in% c(45, 50, 52))
+survey = filter(survey, doy %in% c(45, 50, 52))
 
 
 # merge along uid
@@ -128,7 +128,7 @@ swe_merge %>%
   geom_point() +
   scale_shape_manual(values=c(1, 16)) +
   geom_hline(yintercept=1, linetype='dashed') +
-  labs(title="Lidar SWE fractional validation", x="manual SWE (mm)", y="lidar SWE (mm)", color="Density model") +
+  labs(title="Lidar SWE fractional validation", x="manual SWE (mm)", y="lidar SWE / manual SWE (-)", color="Density model") +
   ylim(0, 2)
 ggsave(paste0(plot_out_dir, "swe_fractional_validation_intnum2.png"), width=p_width, height=p_height, dpi=dpi)
 
@@ -190,7 +190,7 @@ ggplot(hs_group_veg, aes(x=lidar_res, y=hs_mb, shape=vegetation, linetype=vegeta
   scale_shape_manual(values=c(1, 16)) +
   geom_line() +
   scale_linetype_manual(values=c("dashed", "solid")) +
-  labs(title="Snow depth (HS) mean bias", x="lidar resolution", y="HS mean bias (m)")
+  labs(title="Snow depth (HS) mean bias", x="lidar resolution (m)", y="HS mean bias (m)")
 ggsave(paste0(plot_out_dir, "hs_mb_intnum2.png"), width=4, height=p_height, dpi=dpi)
 
 ggplot(hs_group_veg, aes(x=lidar_res, y=hs_rmse, shape=vegetation, linetype=vegetation)) +
@@ -199,7 +199,7 @@ ggplot(hs_group_veg, aes(x=lidar_res, y=hs_rmse, shape=vegetation, linetype=vege
   scale_shape_manual(values=c(1, 16)) +
   geom_line() +
   scale_linetype_manual(values=c("dashed", "solid")) +
-  labs(title="Snow depth (HS) RMSE", x="lidar resolution", y="HS RMSE (m)")
+  labs(title="Snow depth (HS) RMSE", x="lidar resolution (m)", y="HS RMSE (m)")
 ggsave(paste0(plot_out_dir, "hs_rmse_intnum2.png"), width=4, height=p_height, dpi=dpi)
 
 
@@ -209,7 +209,7 @@ ggplot(swe_group_veg, aes(x=lidar_res, y=swe_mb, shape=vegetation, linetype=vege
   scale_shape_manual(values=c(1, 16)) +
   geom_line() +
   scale_linetype_manual(values=c("dashed", "solid")) +
-  labs(title="SWE mean bias", x="lidar resolution", y="SWE mean bias (mm)")
+  labs(title="SWE mean bias", x="lidar resolution (m)", y="SWE mean bias (mm)")
 ggsave(paste0(plot_out_dir, "swe_mb_intnum2.png"), width=4, height=p_height, dpi=dpi)
 
 
@@ -219,5 +219,5 @@ ggplot(swe_group_veg, aes(x=lidar_res, y=swe_rmse, shape=vegetation, linetype=ve
     scale_shape_manual(values=c(1, 16)) +
     geom_line() +
     scale_linetype_manual(values=c("dashed", "solid")) +
-    labs(title="SWE RMSE", x="lidar resolution", y="SWE RMSE (mm)")
+    labs(title="SWE RMSE", x="lidar resolution (m)", y="SWE RMSE (mm)")
 ggsave(paste0(plot_out_dir, "swe_rmse_intnum2.png"), width=4, height=p_height, dpi=dpi)

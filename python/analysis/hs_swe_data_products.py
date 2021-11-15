@@ -4,7 +4,7 @@ def main():
     :return:
     """
 
-    import libraries.raslib
+    from libraries import raslib
     import numpy as np
     import pandas as pd
     import os
@@ -24,7 +24,8 @@ def main():
     resolution = [".05", ".10", ".25", "1.00"]
     resamp_resolution = [".10", ".25", "1.00"]
 
-    interpolation_lengths = ["0", "1", "2", "3"]
+    # interpolation_lengths = ["0", "1", "2", "3"]
+    interpolation_lengths = ["2"]
 
     # dict of density assumption (key) and corresponding parameters (values)
     swe_dens_ass = {}
@@ -50,6 +51,7 @@ def main():
     depth_to_density_slope = dict(zip(snow_on, np.array([0, 0, 0, 0, 0])))
     swe_dens_ass["fcon"] = (depth_to_density_intercept, depth_to_density_slope)
 
+
     # # clearing only, each day, constant density
     # depth_to_density_intercept = dict(zip(snow_on, np.array([189.022, 193.585, 181.896, 304.722, 303.800])))
     # depth_to_density_slope = dict(zip(snow_on, np.array([0, 0, 0, 0, 0])))
@@ -68,8 +70,9 @@ def main():
 
 
     dswe_dens_ass = {}
-    dswe_dens_ass["fnsd"] = [85.08949, 72.235068, None, None]  # new snow density from forest SR50
-    dswe_dens_ass["cnsd"] = [96.886757, 83.370217, None, None]  # new snow density from clearing SR50
+    # dswe_dens_ass["fnsd"] = [85.08949, 72.235068, None, None]  # new snow density from forest SR50
+    # dswe_dens_ass["cnsd"] = [96.886757, 83.370217, None, None]  # new snow density from clearing SR50
+    dswe_dens_ass["ucgo"] = [196.406605, 91.346775, None, None]  # new snow density from clearing SR50
 
     # templates for file naming and management
     dem_in_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\TEMP_FILES\\12_dem\\res_<RES>\\'
@@ -94,25 +97,31 @@ def main():
     hs_bc_dir_template = hs_merged_dir_template + 'bias_corrected\\'
     hs_bc_file_template = hs_merged_file_template.replace('.tif', '_bias_corrected.tif')
 
-    hs_clean_dir_template = hs_merged_dir_template + 'clean\\'
+    # hs_clean_dir_template = hs_merged_dir_template + 'clean\\'  # bias corrected
+    hs_clean_dir_template = hs_merged_dir_template + 'clean_no_bias\\'
     hs_clean_file_template = hs_merged_file_template.replace('.tif', '_clean.tif')
 
     hs_resamp_dir_template = hs_merged_dir_template + 'resamp\\'
     hs_resamp_file_template = hs_clean_file_template.replace('.tif', '_resamp.tif')
 
-    dhs_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dHS\\interp_<INTLEN>x\\<DDI>-<DDJ>\\'
+    # dhs_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dHS\\interp_<INTLEN>x\\<DDI>-<DDJ>\\'
+    dhs_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dHS_no_bias\\interp_<INTLEN>x\\<DDI>-<DDJ>\\'
     dhs_file_template = 'dhs_<DDI>-<DDJ>_r<RES>m_interp<INTLEN>x.tif'
 
-    swe_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\SWE\\<ASS>\\interp_<INTLEN>x\\'
+    # swe_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\SWE\\<ASS>\\interp_<INTLEN>x\\'
+    swe_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\SWE_no_bias\\<ASS>\\interp_<INTLEN>x\\'
     swe_file_template = 'swe_<ASS>_<DATE>_r<RES>m_interp<INTLEN>x.tif'
 
-    swe_masked_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\SWE\\<ASS>\\interp_<INTLEN>x\\masked\\'
+    # swe_masked_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\SWE\\<ASS>\\interp_<INTLEN>x\\masked\\'
+    swe_masked_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\SWE_no_bias\\<ASS>\\interp_<INTLEN>x\\masked\\'
     swe_masked_file_template = 'swe_<ASS>_<DATE>_r<RES>m_interp<INTLEN>x_masked.tif'
 
-    dswe_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\<ASS>\\interp_<INTLEN>x\\<DDI>-<DDJ>\\'
+    # dswe_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\<ASS>\\interp_<INTLEN>x\\<DDI>-<DDJ>\\'
+    dswe_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE_no_bias\\<ASS>\\interp_<INTLEN>x\\<DDI>-<DDJ>\\'
     dswe_file_template = 'dswe_<ASS>_<DDI>-<DDJ>_r<RES>m_interp<INTLEN>x.tif'
 
-    dswe_masked_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\<ASS>\\interp_<INTLEN>x\\<DDI>-<DDJ>\\masked\\'
+    # dswe_masked_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\<ASS>\\interp_<INTLEN>x\\<DDI>-<DDJ>\\masked\\'
+    dswe_masked_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE_no_bias\\<ASS>\\interp_<INTLEN>x\\<DDI>-<DDJ>\\masked\\'
     dswe_masked_file_template = 'dswe_<ASS>_<DDI>-<DDJ>_r<RES>m_interp<INTLEN>x_masked.tif'
 
     point_dens_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\OUTPUT_FILES\\RAS\\'
@@ -229,42 +238,42 @@ def main():
 
     # run r script "snow_depth_bias_correction.r"
 
-    # bias-correct snow depths
-    hs_bias = pd.read_csv(hs_bias_file_in).loc[:, ["day", "lidar_res", "interp_len", "hs_mb"]]
-    hs_bias.loc[:, "q_999"] = np.nan
-    hs_bias_cor_res = 0.05
-    hs_bias_cor_intlen = 2
-    for dd in snow_on:
-        for intlen in interpolation_lengths:
-            # update file paths with date
-            hs_in_dir = path_sub(hs_merged_dir_template, dd=dd, intlen=intlen)
-            hs_bc_dir = path_sub(hs_bc_dir_template, dd=dd, intlen=intlen)
-
-            # create DEM directory if does not exist
-            if not os.path.exists(hs_bc_dir):
-                os.makedirs(hs_bc_dir)
-
-            # read mean bias value
-            mb = hs_bias.hs_mb[(hs_bias.day == dd) &
-                               (hs_bias.lidar_res == hs_bias_cor_res) &
-                               (hs_bias.interp_len == hs_bias_cor_intlen)]
-            if len(mb) != 1:
-                raise Exception("More than one (or no) match for snow depth bias, bias correction aborted.")
-            mb = mb.values[0]
-            # mb = 0  # no bias correction!
-
-            for rr in resolution:
-                hs_in_file = path_sub(hs_merged_file_template, dd=dd, rr=rr, intlen=intlen)
-
-                # load file
-                hs_bc_file = path_sub(hs_bc_file_template, dd=dd, rr=rr, intlen=intlen)
-
-                # bias correct valid hs values
-                ras = raslib.raster_load(hs_in_dir + hs_in_file)
-                ras.data[ras.data != ras.no_data] += -mb
-
-                # save
-                raslib.raster_save(ras, hs_bc_dir + hs_bc_file)
+    # # bias-correct snow depths
+    # hs_bias = pd.read_csv(hs_bias_file_in).loc[:, ["day", "lidar_res", "interp_len", "hs_mb"]]
+    # hs_bias.loc[:, "q_999"] = np.nan
+    # hs_bias_cor_res = 0.05
+    # hs_bias_cor_intlen = 2
+    # for dd in snow_on:
+    #     for intlen in interpolation_lengths:
+    #         # update file paths with date
+    #         hs_in_dir = path_sub(hs_merged_dir_template, dd=dd, intlen=intlen)
+    #         hs_bc_dir = path_sub(hs_bc_dir_template, dd=dd, intlen=intlen)
+    #
+    #         # create DEM directory if does not exist
+    #         if not os.path.exists(hs_bc_dir):
+    #             os.makedirs(hs_bc_dir)
+    #
+    #         # read mean bias value
+    #         mb = hs_bias.hs_mb[(hs_bias.day == dd) &
+    #                            (hs_bias.lidar_res == hs_bias_cor_res) &
+    #                            (hs_bias.interp_len == hs_bias_cor_intlen)]
+    #         if len(mb) != 1:
+    #             raise Exception("More than one (or no) match for snow depth bias, bias correction aborted.")
+    #         # mb = mb.values[0]
+    #         mb = 0  # no bias correction!
+    #
+    #         for rr in resolution:
+    #             hs_in_file = path_sub(hs_merged_file_template, dd=dd, rr=rr, intlen=intlen)
+    #
+    #             # load file
+    #             hs_bc_file = path_sub(hs_bc_file_template, dd=dd, rr=rr, intlen=intlen)
+    #
+    #             # bias correct valid hs values
+    #             ras = raslib.raster_load(hs_in_dir + hs_in_file)
+    #             ras.data[ras.data != ras.no_data] += -mb
+    #
+    #             # save
+    #             raslib.raster_save(ras, hs_bc_dir + hs_bc_file)
 
 
     hs_clean_ceiling_res = '.05'
@@ -278,7 +287,8 @@ def main():
     for dd in snow_on:
         for intlen in interpolation_lengths:
             # update file paths with date
-            hs_in_dir = path_sub(hs_bc_dir_template, dd=dd, intlen=intlen)
+            # hs_in_dir = path_sub(hs_bc_dir_template, dd=dd, intlen=intlen)  # uses bias corrected
+            hs_in_dir = path_sub(hs_merged_dir_template, dd=dd, intlen=intlen)  # not bias corrected
             hs_clean_dir = path_sub(hs_clean_dir_template, dd=dd, intlen=intlen)
 
             # create DEM directory if does not exist
@@ -286,7 +296,8 @@ def main():
                 os.makedirs(hs_clean_dir)
 
             # load file
-            hs_ceil_path = path_sub(hs_bc_dir_template + hs_bc_file_template, dd=dd, rr=hs_clean_ceiling_res, intlen=hs_clean_ceiling_intlen)
+            # hs_ceil_path = path_sub(hs_bc_dir_template + hs_bc_file_template, dd=dd, rr=hs_clean_ceiling_res, intlen=hs_clean_ceiling_intlen)
+            hs_ceil_path = path_sub(hs_merged_dir_template + hs_merged_file_template, dd=dd, rr=hs_clean_ceiling_res, intlen=hs_clean_ceiling_intlen)  # not bias corr
             ras = raslib.raster_load(hs_ceil_path)
 
             # record quantiles
@@ -294,7 +305,8 @@ def main():
             hs_bias.loc[hs_bias.day == dd, "ceiling_value"] = cv
 
             for rr in resolution:
-                hs_in_file = path_sub(hs_bc_file_template, dd=dd, rr=rr, intlen=intlen)
+                # hs_in_file = path_sub(hs_bc_file_template, dd=dd, rr=rr, intlen=intlen)
+                hs_in_file = path_sub(hs_merged_file_template, dd=dd, rr=rr, intlen=intlen)  # not bias corrected
 
                 # load file
                 hs_clean_file = path_sub(hs_clean_file_template, dd=dd, rr=rr, intlen=intlen)
@@ -311,24 +323,25 @@ def main():
 
     hs_bias.to_csv(hs_bias_file_out, index=False)
 
-    # resample points
-    for dd in snow_on:
-        for intlen in interpolation_lengths:
-            # update file paths with date
-            hs_resamp_dir = path_sub(hs_resamp_dir_template, dd=dd, intlen=intlen)
 
-            # create DEM directory if does not exist
-            if not os.path.exists(hs_resamp_dir):
-                os.makedirs(hs_resamp_dir)
-
-            hs_data_file = path_sub(hs_clean_dir_template + hs_clean_file_template, dd=dd, rr=".05", intlen=intlen)
-
-            for rr in resamp_resolution:
-                hs_format_in = path_sub(hs_clean_dir_template + hs_clean_file_template, dd=dd, rr=rr, intlen=intlen)
-                # out file
-                hs_resamp_out = path_sub(hs_resamp_dir_template + hs_resamp_file_template, dd=dd, rr=rr, intlen=intlen)
-
-                raslib.ras_reproject(hs_data_file, hs_format_in, hs_resamp_out, mode="median")
+    # # resample points
+    # for dd in snow_on:
+    #     for intlen in interpolation_lengths:
+    #         # update file paths with date
+    #         hs_resamp_dir = path_sub(hs_resamp_dir_template, dd=dd, intlen=intlen)
+    #
+    #         # create DEM directory if does not exist
+    #         if not os.path.exists(hs_resamp_dir):
+    #             os.makedirs(hs_resamp_dir)
+    #
+    #         hs_data_file = path_sub(hs_clean_dir_template + hs_clean_file_template, dd=dd, rr=".05", intlen=intlen)
+    #
+    #         for rr in resamp_resolution:
+    #             hs_format_in = path_sub(hs_clean_dir_template + hs_clean_file_template, dd=dd, rr=rr, intlen=intlen)
+    #             # out file
+    #             hs_resamp_out = path_sub(hs_resamp_dir_template + hs_resamp_file_template, dd=dd, rr=rr, intlen=intlen)
+    #
+    #             raslib.ras_reproject(hs_data_file, hs_format_in, hs_resamp_out, mode="median")
 
 
     # differential snow depth (dHS)

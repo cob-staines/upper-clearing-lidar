@@ -211,7 +211,7 @@ y_vars = ['chm', 'dnt', 'dce',
           'lrs_sky_view_snow_on', 'lrs_sky_view'
           ]
 y_labs = ['$CHM$', '$DNT$', '$DCE$',
-          r'$mCH$', '$fCov$', '$LPM$-$L$',
+          r'$MCH$', '$fCov$', '$LPM$-$L$',
           r'$MDC$', r'$TGA$',
           # r'$\chi_{1}^{\blacktriangle}$', r'$\chi_{1}^{\vartriangle}$',
           r'$T_{1}^{\vartriangle}$', r'$T_{1}^{\blacktriangle}$',

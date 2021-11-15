@@ -8,7 +8,7 @@ def main():
 
     import pandas as pd
     import numpy as np
-    import libraries.laslib
+    import libraries.laslib as laslib
     import os
 
 

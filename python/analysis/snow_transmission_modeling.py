@@ -110,8 +110,8 @@ hemi_var.loc[:, 'training_set'] = set_param < param_thresh
 hemi_var = pd.read_csv(batch_dir + "hemi_var_lookup.csv")
 
 # build hemiList from training_set only
-# hemiList = hemi_var.loc[hemi_var.training_set, :]  # training only
-hemiList = hemi_var.loc[~hemi_var.training_set, :]  # testing only
+hemiList = hemi_var.loc[hemi_var.training_set, :]  # training only
+# hemiList = hemi_var.loc[~hemi_var.training_set, :]  # testing only
 # hemiList = hemi_var  # load all
 
 
@@ -129,16 +129,16 @@ hemiList = hemi_var.loc[~hemi_var.training_set, :]  # testing only
 # covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_050"], hemiList.loc[:, "count_149"]], axis=0) / 16)
 # covariant_error = covariant_error * 0.1 * 158.56  # 10cm uncertainty * snow density
 
-date = "19_052"
-covariant = hemiList.swe_fcon_19_052
-covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_052"], hemiList.loc[:, "count_149"]], axis=0) / 16)
-covariant_error = covariant_error * 0.1 * 134.48  # 10cm uncertainty * snow density
+# date = "19_052"
+# covariant = hemiList.swe_fcon_19_052
+# covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_052"], hemiList.loc[:, "count_149"]], axis=0) / 16)
+# covariant_error = covariant_error * 0.1 * 134.48  # 10cm uncertainty * snow density
 #
-# date = "045-050"
-# covariant = hemiList.loc[:, "dswe_fnsd_19_045-19_050"]
-# # covariant_error = 1/np.sqrt(hemiList.loc[:, "count_045"]) + 1/np.sqrt(hemiList.loc[:, "count_050"]) + 2/np.sqrt(hemiList.loc[:, "count_149"])/4
-# covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_045"], hemiList.loc[:, "count_050"], hemiList.loc[:, "count_149"]], axis=0) / 16)
-# covariant_error = covariant_error * 0.1 * 85.1  # 10cm uncertainty * snow density
+date = "045-050"
+covariant = hemiList.loc[:, "dswe_fnsd_19_045-19_050"]
+# covariant_error = 1/np.sqrt(hemiList.loc[:, "count_045"]) + 1/np.sqrt(hemiList.loc[:, "count_050"]) + 2/np.sqrt(hemiList.loc[:, "count_149"])/4
+covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_045"], hemiList.loc[:, "count_050"], hemiList.loc[:, "count_149"]], axis=0) / 16)
+covariant_error = covariant_error * 0.1 * 85.1  # 10cm uncertainty * snow density
 
 # date = "050-052"
 # covariant = hemiList.loc[:, "dswe_fnsd_19_050-19_052"]
@@ -272,8 +272,8 @@ imrange_long = imrange.reshape(imrange.size)
 
 
 
-# valid_set = training_valid
-valid_set = testing_valid
+valid_set = training_valid
+# valid_set = testing_valid
 
 imstack_long_valid = imstack_long[valid_set, :]
 def dwst(p0):

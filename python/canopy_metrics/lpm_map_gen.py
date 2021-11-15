@@ -9,9 +9,12 @@ for doy in doy_set:
 
     # load components
     dir_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\%DOY%\\%DOY%_las_proc\\OUTPUT_FILES\\RAS\\".replace("%DOY%", doy)
-    FG_in = "%DOY%_first_ground_point_density_a%ANGLE%_r.10m.bil".replace('%ANGLE%', str(angle)).replace("%DOY%", doy)
-    LG_in = "%DOY%_last_ground_point_density_a%ANGLE%_r.10m.bil".replace('%ANGLE%', str(angle)).replace("%DOY%", doy)
-    FC_in = "%DOY%_first_veg_point_density_a%ANGLE%_r.10m.bil".replace('%ANGLE%', str(angle)).replace("%DOY%", doy)
+    # FG_in = "%DOY%_first_ground_point_density_a%ANGLE%_r.10m.bil".replace('%ANGLE%', str(angle)).replace("%DOY%", doy)
+    # LG_in = "%DOY%_last_ground_point_density_a%ANGLE%_r.10m.bil".replace('%ANGLE%', str(angle)).replace("%DOY%", doy)
+    # FC_in = "%DOY%_first_veg_point_density_a%ANGLE%_r.10m.bil".replace('%ANGLE%', str(angle)).replace("%DOY%", doy)
+    FG_in = "%DOY%_first_ground_point_density_a%ANGLE%_r.25m.bil".replace('%ANGLE%', str(angle)).replace("%DOY%", doy)
+    LG_in = "%DOY%_last_ground_point_density_a%ANGLE%_r.25m.bil".replace('%ANGLE%', str(angle)).replace("%DOY%", doy)
+    FC_in = "%DOY%_first_veg_point_density_a%ANGLE%_r.25m.bil".replace('%ANGLE%', str(angle)).replace("%DOY%", doy)
 
     # outputs
     dir_out = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\%DOY%\\%DOY%_las_proc\\OUTPUT_FILES\\LPM\\".replace("%DOY%", doy)

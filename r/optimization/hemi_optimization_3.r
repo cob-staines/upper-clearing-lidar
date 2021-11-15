@@ -20,9 +20,11 @@ photos = merge(photos_lai, photos_meta, by.x='original_file', by.y='filename', a
 photos = photos[, c("id", "transmission_s_1", "transmission_s_2", "transmission_s_3", "transmission_s_4", "transmission_s_5")]
 
 
-synth_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/synthetic_hemis/opt/flip_rerun/LAI_parsed.dat"
+# synth_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/synthetic_hemis/opt/flip_rerun/LAI_parsed.dat"
+synth_lai_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/synthetic_hemis/opt/opt/LAI_parsed.dat"
 synth_lai = read.csv(synth_lai_in, header=TRUE, na.strings = c("NA",""), sep=",")
-synth_meta_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/synthetic_hemis/opt/flip_rerun/hemimetalog.csv"
+# synth_meta_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/synthetic_hemis/opt/flip_rerun/hemimetalog.csv"
+synth_meta_in = "C:/Users/Cob/index/educational/usask/research/masters/data/lidar/synthetic_hemis/opt/opt/hemimetalog.csv"
 synth_meta = read.csv(synth_meta_in, header=TRUE, na.strings = c("NA",""), sep=",")
 synth_meta$footprint = sqrt(synth_meta$point_size_scalar / (synth_meta$optimization_scalar * 2834.64))
 
@@ -104,7 +106,7 @@ df_agg %>%
 ggplot(., aes(x=optimization_scalar, y=tx_wmb)) +
   geom_point() +
   geom_line() +
-  labs(x="point size scalar [-]", y="transmittance mean bias [-]")
+  labs(x="point size scalar [-]", y="transmittance WMB [-]")
 # ggsave(paste0(plot_out_dir, "point_size_optimization_tx_weighted_mean_bian.png"), width=p_width, height=p_height, dpi=dpi)
 
 # weighted mean bias cn
@@ -135,7 +137,7 @@ ggplot(., aes(x=optimization_scalar, y=tx_wrmse)) +
   geom_line() + 
   # ylim(0, NA) +
   # xlim(0, 0.21) +
-  labs(x="point size scalar [-]", y="transmittance RMSE [-]")
+  labs(x="point size scalar [-]", y="transmittance WRMSE [-]")
 # ggsave(paste0(plot_out_dir, "point_size_optimization_tx_weighted_rmse.png"), width=p_width, height=p_height, dpi=dpi)
 
 # wrmse cn

@@ -1,3 +1,4 @@
+
 library('dplyr')
 library('tidyr')
 library('ggplot2')
@@ -57,7 +58,6 @@ rsm_opt = rsm_opt[, c("id", "lrs_cn_1", "lrs_cn_2", "lrs_cn_3", "lrs_cn_4", "lrs
 colnames(rsm_opt) = c("id", "lrs_cn_opt_1", "lrs_cn_opt_2", "lrs_cn_opt_3", "lrs_cn_opt_4", "lrs_cn_opt_5", "lrs_tx_opt_1", "lrs_tx_opt_2", "lrs_tx_opt_3", "lrs_tx_opt_4", "lrs_tx_opt_5")
 
 
-
 rsm_merge = merge(rsm_bin, rsm_far, by='id')
 rsm_merge = merge(rsm_big, rsm_merge, by='id')
 rsm_merge = merge(rsm_raw, rsm_merge, by='id')
@@ -75,7 +75,7 @@ ggplot(rsm_df, aes(x=lrs_cn_raw, y=lrs_cn_big, color=ring_number)) +
   scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
 # ggsave(paste0(plot_out_dir, "snow_off_cn_res_eval.png"), width=p_width, height=p_height, dpi=dpi)
 # ggsave(paste0(plot_out_dir, "snow_on_cn_res_eval.png"), width=p_width, height=p_height, dpi=dpi)
-size_lm = lm(lrs_cn_big ~ lrs_cn, data = rsm_df)
+size_lm = lm(lrs_cn_big ~ lrs_cn_raw, data = rsm_df)
 summary(size_lm)
 
 ggplot(rsm_df, aes(x=lrs_cn_raw, y=lrs_cn_far, color=ring_number)) +
@@ -85,8 +85,15 @@ ggplot(rsm_df, aes(x=lrs_cn_raw, y=lrs_cn_far, color=ring_number)) +
   scale_color_discrete(labels = c("0-15", "15-30", "30-45", "45-60", "60-75"), breaks=c(1, 2, 3, 4, 5))
 # ggsave(paste0(plot_out_dir, "snow_off_cn_max_eval.png"), width=p_width, height=p_height, dpi=dpi)
 # ggsave(paste0(plot_out_dir, "snow_on_cn_max_eval.png"), width=p_width, height=p_height, dpi=dpi)
-max_lm = lm(lrs_cn_far ~ 0 + lrs_cn, data = rsm_df)
+
+rsm_df_band = rsm_df %>%
+  filter(ring_number != 5)
+max_lm = lm(lrs_cn_far ~ 0 + lrs_cn_raw, data = rsm_df_band)
 summary(max_lm)
+max_band = rsm_df %>%
+  group_by(ring_number) %>%
+  summarize(mb = mean(lrs_cn_far - lrs_cn_raw), rmse = sqrt(mean((lrs_cn_far - lrs_cn_raw)^2)))
+
 
 ggplot(rsm_df, aes(x=-log(lrs_tx_opt), y=lrs_cn_opt, color=ring_number)) +
   geom_abline(intercept = 0, slope = 1) +

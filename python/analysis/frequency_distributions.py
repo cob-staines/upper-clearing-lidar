@@ -366,7 +366,8 @@ ax1.set_title('Frequency distribution of $\Delta$SWE for 14-19 Feb. 2019\n Fores
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 ax1.set_xlim(-10, 20)
-g, d_045_050_uf = resampling_histoplot(data_uf, 'dswe_fnsd_19_045-19_050', 'lpml15', 50, plotbins=250)
+# g, d_045_050_uf = resampling_histoplot(data_uf, 'dswe_fnsd_19_045-19_050', 'lpml15', 50, plotbins=250)
+g, d_045_050_uf = resampling_histoplot(data_uf, 'dswe_ucgo_19_045-19_050', 'lpml15', 50, plotbins=250)
 g.legend_.set_title(None)
 fig.savefig(plot_out_dir + "freq_dist_resampled_dswe_045-050_uf_lpml15.png")
 
@@ -376,7 +377,8 @@ ax1.set_title('Frequency distribution of $\Delta$SWE for 19-21 Feb. 2019\n Fores
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 ax1.set_xlim(-10, 20)
-g, d_050_052_uf = resampling_histoplot(data_uf, 'dswe_fnsd_19_050-19_052', 'lpml15', 50, plotbins=200)
+# g, d_050_052_uf = resampling_histoplot(data_uf, 'dswe_fnsd_19_050-19_052', 'lpml15', 50, plotbins=200)
+g, d_050_052_uf = resampling_histoplot(data_uf, 'dswe_ucgo_19_050-19_052', 'lpml15', 50, plotbins=200)
 g.legend_.set_title(None)
 fig.savefig(plot_out_dir + "freq_dist_resampled_dswe_050-052_uf_lpml15.png")
 

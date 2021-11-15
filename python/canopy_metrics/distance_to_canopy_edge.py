@@ -6,14 +6,16 @@ def main():
 
     import numpy as np
     from scipy.ndimage import convolve
-    import libraries.raslib
+    from libraries import raslib
     import os
 
     # config
     ras_dir = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\CHM\\"
-    ras_file = "19_149_spike_free_chm_r.10m.tif"
+    # ras_file = "19_149_spike_free_chm_r.10m.tif"
+    ras_file = "19_149_spike_free_chm_r.25m.tif"
     ras_in = ras_dir + ras_file  # canopy height model in
-    step_size = 0.10  # in m
+    # step_size = 0.10  # in m
+    step_size = 0.25  # in m
     canopy_min_elev = 2  # height of "canopy edge"
     kernel_dim = 3  # step size = (kernel_dim - 1)/2
     max_scan = 100  # max number of steps
@@ -62,6 +64,10 @@ def main():
     ras_dce = ras
     ras_dce.data = record
     raslib.raster_save(ras_dce, file_out, data_format="float32")
+
+    rec = raslib.raster_load(file_out)
+    rec.data[rec.data != rec.no_data]
+
 
 if __name__ == "__main__":
     main()

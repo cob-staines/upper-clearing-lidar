@@ -15,11 +15,11 @@ def main():
     import os
 
     # call voxel config
-    # import vox_045_050_052_config as vc  # snow on canopy
-    import vox_19_149_config as vc  # snow off canopy
+    # import voxel_ray_sampling_of_lidar.vox_045_050_052_config as vc  # snow on canopy
+    import voxel_ray_sampling_of_lidar.vox_19_149_config as vc  # snow off canopy
     vox = vc.vox
 
-    batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_hemi_optimization_r.25_px1000_snow_off\\'
+    batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\timing\\lrs_hemi_optimization_r.25_px181_snow_off\\'
 
     # batch_dir = 'C:\\Users\\jas600\\workzone\\data\\ray_sampling\\batches\\lrs_hemi_opt_test\\'
 
@@ -66,7 +66,7 @@ def main():
 
     # ray geometry
     # phi_step = (np.pi / 2) / (180 * 2)
-    rshmeta.img_size = 1000  # square, in pixels/ray samples
+    rshmeta.img_size = 181  # square, in pixels/ray samples
     # rshmeta.max_phi_rad = phi_step * rshmeta.img_size
     rshmeta.max_phi_rad = np.pi/2
     hemi_m_above_ground = img_lookup.height_m  # meters
@@ -115,7 +115,7 @@ def main():
 
     rshmeta.file_name = ["las_19_149_id_" + str(id) + ".tif" for id in pts.id]
 
-    rshm = lrs.rs_hemigen(rshmeta, vox, initial_index=6)
+    rshm = lrs.rs_hemigen(rshmeta, vox, initial_index=0)
 
 if __name__ == "__main__":
     main()
