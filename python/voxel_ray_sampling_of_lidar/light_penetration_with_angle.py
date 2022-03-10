@@ -6,6 +6,7 @@ import tifffile as tif
 import matplotlib
 matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # file paths
 las_in = "C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_149\\19_149_las_proc\\OUTPUT_FILES\\LAS\\19_149_UF.las"
@@ -78,11 +79,11 @@ plt.plot(lpm.phi, lpm.g_lpmc, label="g_lpmc")
 plt.legend()
 
 #####
-# # compare with same from ray sampling
+# # # compare with same from ray sampling
 # batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_off_dem_offset.25\\outputs\\'
 # scaling_coef = 0.38686933  # snow_off
 # canopy = "snow_off"
-
+#
 batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\ray_sampling\\batches\\lrs_uf_r.25_px181_snow_on_dem_offset.25\\outputs\\'
 scaling_coef = 0.37181197  # snow_on
 canopy = "snow_on"
@@ -101,6 +102,8 @@ angle_lookup = pd.read_csv(batch_dir + "phi_theta_lookup.csv")
 # build phi image (in radians)
 phi = np.full((imsize, imsize), np.nan)
 phi[(np.array(angle_lookup.y_index), np.array(angle_lookup.x_index))] = angle_lookup.phi
+phideg = phi * 180 / np.pi
+phidegint = np.rint(phideg)
 # build theta image (in radians)
 theta = np.full((imsize, imsize), np.nan)
 theta[(np.array(angle_lookup.y_index), np.array(angle_lookup.x_index))] = angle_lookup.theta
@@ -114,9 +117,11 @@ hemimeta.loc[:, 'training_set'] = set_param < param_thresh
 hemiList = hemimeta.loc[hemimeta.training_set, :].reset_index()
 
 # load contact number
-imstack = np.full([imsize, imsize, len(hemiList)], np.nan)
+# imstack = np.full([imsize, imsize, len(hemiList)], np.nan)
+txstack = np.full([imsize, imsize, len(hemiList)], np.nan)
 for ii in tqdm(range(0, len(hemiList))):
-    imstack[:, :, ii] = tif.imread(batch_dir + hemiList.file_name[ii])[:, :, 0] * scaling_coef
+    # imstack[:, :, ii] = tif.imread(batch_dir + hemiList.file_name[ii])[:, :, 0] * scaling_coef
+    txstack[:, :, ii] = np.exp(-tif.imread(batch_dir + hemiList.file_name[ii])[:, :, 0] * scaling_coef)
 
 intnum = 1
 
@@ -181,7 +186,7 @@ fig.savefig(plot_out_dir + "uf_tx_sd_" + canopy + ".png")
 
 # summarize by angle band
 phi_step = 1  # in degrees
-phi_bin = np.floor(phi * 180 / (np.pi * phi_step)) * phi_step  # similar to ceil, except for int values
+phi_bin = np.floor(phi * 180 / (np.pi * phi_step)) * phi_step  # similar to floor, except for int values
 bins = np.unique(phi_bin)
 bins = bins[~np.isnan(bins)]
 bin_count = len(bins)
@@ -193,6 +198,93 @@ theta_bin = np.floor(theta_bin / theta_step) * theta_step
 t_bins = np.unique(theta_bin)  # N, E, S, W
 t_bins = t_bins[~np.isnan(t_bins)]
 t_bin_count = len(t_bins)
+
+# angle ag
+tx_ang = pd.DataFrame({"phi": bins,
+                       "mean_tx": np.nan,
+                       "q05_tx": np.nan,
+                       "q10_tx": np.nan,
+                       "q15_tx": np.nan,
+                       "q20_tx": np.nan,
+                       "q25_tx": np.nan,
+                       "q30_tx": np.nan,
+                       "q35_tx": np.nan,
+                       "q40_tx": np.nan,
+                       "q45_tx": np.nan,
+                       "q50_tx": np.nan,
+                       "q55_tx": np.nan,
+                       "q60_tx": np.nan,
+                       "q65_tx": np.nan,
+                       "q70_tx": np.nan,
+                       "q75_tx": np.nan,
+                       "q80_tx": np.nan,
+                       "q85_tx": np.nan,
+                       "q90_tx": np.nan,
+                       "q95_tx": np.nan
+                       })
+for ii in bins:
+    bool = (phi_bin == ii)
+    tx_a = txstack[bool, :]
+    tx_ang.loc[ii, "mean_tx"] = np.mean(tx_a)
+    # tx_ang.loc[ii, "q05_tx"] = np.quantile(tx_a, 0.05)
+    # tx_ang.loc[ii, "q10_tx"] = np.quantile(tx_a, 0.10)
+    # tx_ang.loc[ii, "q15_tx"] = np.quantile(tx_a, 0.15)
+    # tx_ang.loc[ii, "q20_tx"] = np.quantile(tx_a, 0.20)
+    # tx_ang.loc[ii, "q25_tx"] = np.quantile(tx_a, 0.25)
+    # tx_ang.loc[ii, "q30_tx"] = np.quantile(tx_a, 0.30)
+    # tx_ang.loc[ii, "q35_tx"] = np.quantile(tx_a, 0.35)
+    # tx_ang.loc[ii, "q40_tx"] = np.quantile(tx_a, 0.40)
+    # tx_ang.loc[ii, "q45_tx"] = np.quantile(tx_a, 0.45)
+    tx_ang.loc[ii, "q50_tx"] = np.quantile(tx_a, 0.50)
+    # tx_ang.loc[ii, "q55_tx"] = np.quantile(tx_a, 0.55)
+    # tx_ang.loc[ii, "q60_tx"] = np.quantile(tx_a, 0.60)
+    # tx_ang.loc[ii, "q65_tx"] = np.quantile(tx_a, 0.65)
+    # tx_ang.loc[ii, "q70_tx"] = np.quantile(tx_a, 0.70)
+    # tx_ang.loc[ii, "q75_tx"] = np.quantile(tx_a, 0.75)
+    # tx_ang.loc[ii, "q80_tx"] = np.quantile(tx_a, 0.80)
+    # tx_ang.loc[ii, "q85_tx"] = np.quantile(tx_a, 0.85)
+    # tx_ang.loc[ii, "q90_tx"] = np.quantile(tx_a, 0.90)
+    # tx_ang.loc[ii, "q95_tx"] = np.quantile(tx_a, 0.95)
+    print(ii)
+
+tx_ang_no = tx_ang.copy()
+
+# tx_ang_snow = tx_ang
+
+fig = plt.figure()
+fig.subplots_adjust(top=0.90, bottom=0.15, left=0.15)
+ax1 = fig.add_subplot(111)
+
+plt.fill_between(tx_ang_snow.phi, tx_ang_snow.q25_tx, tx_ang_snow.q75_tx, alpha=0.30, color='#1f77b4')
+plt.plot(tx_ang_snow.phi, tx_ang_snow.q50_tx, color='#1f77b4', label="snow-on")
+# plt.fill_between(tx_ang.phi, tx_ang.q20_tx, tx_ang.q80_tx, alpha=0.10, color='#1f77b4')
+# plt.fill_between(tx_ang.phi, tx_ang.q15_tx, tx_ang.q85_tx, alpha=0.10, color='#1f77b4')
+# plt.fill_between(tx_ang.phi, tx_ang.q10_tx, tx_ang.q90_tx, alpha=0.10, color='#1f77b4')
+# plt.fill_between(tx_ang_snow.phi, tx_ang_snow.q05_tx, tx_ang_snow.q95_tx, alpha=0.25, color='#1f77b4')
+plt.fill_between(tx_ang_no.phi, tx_ang_no.q25_tx, tx_ang_no.q75_tx, alpha=0.30, color='#ff7f0e')
+plt.plot(tx_ang_no.phi, tx_ang_no.q50_tx, color='#ff7f0e', label="snow-off")
+# plt.fill_between(tx_ang_no.phi, tx_ang_no.q05_tx, tx_ang_no.q95_tx, alpha=0.25, color='#ff7f0e')
+# plt.fill_between(tx_ang.phi, tx_ang.q45_tx, tx_ang.q55_tx, alpha=0.10, color='#1f77b4')
+# plt.fill_between(tx_ang.phi, tx_ang.q40_tx, tx_ang.q60_tx, alpha=0.10, color='#1f77b4')
+# plt.fill_between(tx_ang.phi, tx_ang.q35_tx, tx_ang.q65_tx, alpha=0.10, color='#1f77b4')
+# plt.fill_between(tx_ang.phi, tx_ang.q30_tx, tx_ang.q70_tx, alpha=0.10, color='#1f77b4')
+plt.plot(tx_ang_no.phi, np.cos(tx_ang_no.phi * np.pi / 180))
+
+plt.xlim(0, 90)
+plt.ylim(0, 1)
+ax1.set_ylabel("Light transmittance [-]")
+ax1.set_xlabel("Angle from zenith [$^{\circ}$]")
+plt.legend(title="Canopy conditions")
+fig.savefig(plot_out_dir + "uf_tx_zenith_all_quantiles.png")
+
+vert_tx_snow_off = txstack[90, 90, :]
+# vert_tx_snow_on = txstack[90, 90, :]
+sns.set_style('whitegrid')
+g = sns.kdeplot(y=vert_tx_snow_on, bw_method=0.1)
+h = sns.kdeplot(y=vert_tx_snow_off, bw_method=0.1)
+g.set(ylim=(0, 1))
+h.set(ylim=(0, 1))
+
 
 # all theta
 tx_bin_mean = np.full(bin_count, np.nan)

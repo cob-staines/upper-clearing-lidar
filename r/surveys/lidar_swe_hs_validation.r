@@ -174,6 +174,11 @@ hs_group_veg <- hs_veg %>%
   group_by(doy, lidar_res, vegetation) %>%
   summarise(hs_rmse=rmse(hs_dif), hs_mae=mae(hs_dif), hs_mb=mean(hs_dif, na.rm=TRUE), count=sum(!is.na(hs_dif)))
 
+hs_group_veg_allday <- hs_veg %>%
+  filter(interp_len == 2) %>%
+  group_by(lidar_res, vegetation) %>%
+  summarise(hs_rmse=rmse(hs_dif), hs_mae=mae(hs_dif), hs_mb=mean(hs_dif, na.rm=TRUE), count=sum(!is.na(hs_dif)), cq3d_mean=mean(CQ.3D, na.rm=TRUE))
+
 swe_veg = swe_merge
 # swe_veg$vegetation = "all"
 # swe_veg = rbind(swe_veg, swe_merge)
@@ -182,6 +187,11 @@ swe_group_veg <- swe_veg %>%
   filter(interp_len == 2) %>%
   group_by(doy, lidar_res, density_assumption, vegetation) %>%
   summarise(swe_rmse=rmse(swe_dif), swe_mae=mae(swe_dif), swe_mb=mean(swe_dif, na.rm=TRUE), count=sum(!is.na(swe_dif)))
+
+swe_group_veg_allday <- swe_veg %>%
+  filter(interp_len == 2) %>%
+  group_by(lidar_res, density_assumption, vegetation) %>%
+  summarise(swe_rmse=rmse(swe_dif), swe_mae=mae(swe_dif), swe_mb=mean(swe_dif, na.rm=TRUE), count=sum(!is.na(swe_dif)), cq3d_mean=mean(CQ.3D, na.rm=TRUE))
 
 # plot errors
 ggplot(hs_group_veg, aes(x=lidar_res, y=hs_mb, shape=vegetation, linetype=vegetation)) +

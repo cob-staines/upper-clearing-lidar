@@ -17,6 +17,9 @@ df_25_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\
 df_25 = pd.read_csv(df_25_in)
 df_25.loc[:, 'cc'] = 1 - df_25.loc[:, 'openness']
 
+df_25_ad_in = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\merged_data_products\\merged_uf_r.25m_canopy_19_149_median-snow_alldeg.csv'
+df_25_ad = pd.read_csv(df_25_ad_in)
+
 print(set(df_10.columns) & set(df_25.columns))  # make sure no covariates (canopy metrics) show up in this list!
 df_all = pd.concat([df_10, df_25])
 # dirty renames
@@ -196,32 +199,76 @@ for xx in x_vars:
 
 x_vars = ['swe_fcon_19_045', 'swe_fcon_19_050', 'swe_fcon_19_052', 'dswe_fnsd_19_045-19_050', 'dswe_fnsd_19_050-19_052']
 x_labs = ['SWE\nFeb 14', 'SWE\nFeb 19', 'SWE\nFeb 21', '$\Delta$SWE\nStorm 1', '$\Delta$SWE\nStorm 2']
+#
+# y_vars = ['chm', 'dnt', 'dce',
+#           'mCH_19_149_resampled', 'fcov', 'lpml15',
+#           'mean_dist_to_canopy_1.25', 'total_gap_area_1.25',
+#           # 'lrs_cn_1_deg', 'lrs_cn_1_deg_snow_on',
+#           'lrs_tx_1_deg_snow_on', 'lrs_tx_1_deg',
+#           # 'lrs_cn_1', 'lrs_cn_1_snow_on', 'contactnum_1',
+#           'lrs_tx_1_snow_on', 'lrs_tx_1', 'transmission_s_1',
+#           # 'lrs_cn_5', 'lrs_cn_5_snow_on', 'contactnum_5',
+#           'lrs_tx_2_snow_on', 'lrs_tx_2', 'transmission_s_2',
+#           'lrs_lai_60_deg_snow_on', 'lrs_lai_60_deg', 'lai_s_cc',
+#           'lrs_cc_snow_on', 'lrs_cc', 'cc',
+#           'lrs_sky_view_snow_on', 'lrs_sky_view'
+#           ]
+# y_labs = ['$CHM$', '$DNT$', '$DCE$',
+#           r'$MCH$', '$fCov$', '$LPM$-$L$',
+#           r'$MDC$', r'$TGA$',
+#           # r'$\chi_{1}^{\blacktriangle}$', r'$\chi_{1}^{\vartriangle}$',
+#           r'$T_{1}^{\vartriangle}$', r'$T_{1}^{\blacktriangle}$',
+#           # r'$\chi_{15}^{\blacktriangle}$', r'$\chi_{15}^{\vartriangle}$', r'$\chi_{15}^{\bullet}$',
+#           r'$T_{15}^{\vartriangle}$', r'$T_{15}^{\blacktriangle}$', r'$T_{15}^{\bullet}$',
+#           # r'$\chi_{60-75}^{\blacktriangle}$', r'$\chi_{60-75}^{\vartriangle}$', r'$\chi_{60-75}^{\bullet}$',
+#           r'$T_{15-30}^{\vartriangle}$', r'$T_{15-30}^{\blacktriangle}$', r'$T_{15-30}^{\bullet}$',
+#           r'$LAI_{60}^{\vartriangle}$', r'$LAI_{60}^{\blacktriangle}$', r'$LAI_{2000}^{\bullet}$',
+#           r'$C_{c}^{\vartriangle}$', r'$C_{c}^{\blacktriangle}$', r'$C_{c}^{\bullet}$',
+#           r'$V_{f}^{\vartriangle}$', r'$V_{f}^{\blacktriangle}$'
+#           ]
 
-y_vars = ['chm', 'dnt', 'dce',
-          'mCH_19_149_resampled', 'fcov', 'lpml15',
-          'mean_dist_to_canopy_1.25', 'total_gap_area_1.25',
+# manuscript
+y_vars = ['chm',
+          'dnt',
+          'dce',
+          'lpml15',
+          'mean_dist_to_canopy_1.25',
+          'total_gap_area_1.25',
           # 'lrs_cn_1_deg', 'lrs_cn_1_deg_snow_on',
-          'lrs_tx_1_deg_snow_on', 'lrs_tx_1_deg',
+          # 'lrs_tx_1_deg_snow_on', 'lrs_tx_1_deg',
           # 'lrs_cn_1', 'lrs_cn_1_snow_on', 'contactnum_1',
-          'lrs_tx_1_snow_on', 'lrs_tx_1', 'transmission_s_1',
+          # 'lrs_tx_1_snow_on', 'lrs_tx_1',
           # 'lrs_cn_5', 'lrs_cn_5_snow_on', 'contactnum_5',
-          'lrs_tx_2_snow_on', 'lrs_tx_2', 'transmission_s_2',
-          'lrs_lai_60_deg_snow_on', 'lrs_lai_60_deg', 'lai_s_cc',
-          'lrs_cc_snow_on', 'lrs_cc', 'cc',
-          'lrs_sky_view_snow_on', 'lrs_sky_view'
+          # 'lrs_tx_2_snow_on', 'lrs_tx_2',
+          'lrs_lai_1_deg_snow_on',
+          'lrs_lai_15_deg_snow_on',
+          'lrs_lai_60_deg_snow_on',
+          'lrs_lai_2000_snow_on',
+          'lrs_lai_2000',
+          # 'lrs_lai_60_deg',
+          'lrs_cc_snow_on', 'lrs_cc',
+          # 'lrs_sky_view_snow_on', 'lrs_sky_view'
           ]
-y_labs = ['$CHM$', '$DNT$', '$DCE$',
-          r'$MCH$', '$fCov$', '$LPM$-$L$',
-          r'$MDC$', r'$TGA$',
+y_labs = ['$CHM$',
+          '$DNT$',
+          '$DCE$',
+          '$LPM$-$L$',
+          r'$MDC$',
+          r'$TGA$',
           # r'$\chi_{1}^{\blacktriangle}$', r'$\chi_{1}^{\vartriangle}$',
-          r'$T_{1}^{\vartriangle}$', r'$T_{1}^{\blacktriangle}$',
+          # r'$T_{1}^{\vartriangle}$', r'$T_{1}^{\blacktriangle}$',
           # r'$\chi_{15}^{\blacktriangle}$', r'$\chi_{15}^{\vartriangle}$', r'$\chi_{15}^{\bullet}$',
-          r'$T_{15}^{\vartriangle}$', r'$T_{15}^{\blacktriangle}$', r'$T_{15}^{\bullet}$',
+          # r'$T_{15}^{\vartriangle}$', r'$T_{15}^{\blacktriangle}$',
           # r'$\chi_{60-75}^{\blacktriangle}$', r'$\chi_{60-75}^{\vartriangle}$', r'$\chi_{60-75}^{\bullet}$',
-          r'$T_{15-30}^{\vartriangle}$', r'$T_{15-30}^{\blacktriangle}$', r'$T_{15-30}^{\bullet}$',
-          r'$LAI_{60}^{\vartriangle}$', r'$LAI_{60}^{\blacktriangle}$', r'$LAI_{2000}^{\bullet}$',
-          r'$C_{c}^{\vartriangle}$', r'$C_{c}^{\blacktriangle}$', r'$C_{c}^{\bullet}$',
-          r'$V_{f}^{\vartriangle}$', r'$V_{f}^{\blacktriangle}$'
+          # r'$T_{15-30}^{\vartriangle}$', r'$T_{15-30}^{\blacktriangle}$',
+          r'$LAI_{1}^{\vartriangle}$',
+          r'$LAI_{15}^{\vartriangle}$',
+          r'$LAI_{60}^{\vartriangle}$',
+          r'$LAI_{2000}^{\vartriangle}$',
+          r'$LAI_{2000}^{\blacktriangle}$',
+          # r'$LAI_{60}^{\blacktriangle}$',
+          r'$C_{c}^{\vartriangle}$', r'$C_{c}^{\blacktriangle}$',
+          # r'$V_{f}^{\vartriangle}$', r'$V_{f}^{\blacktriangle}$'
           ]
 
 # # full lables
@@ -238,15 +285,17 @@ y_labs = ['$CHM$', '$DNT$', '$DCE$',
 #           r'Sky view factor ($60^\circ$, ray sampling, snow on) - $V_{f}^{\vartriangle}$ (-)', r'Sky view factor ($60^\circ$, ray sampling, snow off) - $V_{f}^{\blacktriangle}$ (-)',
 #           ]
 
-y_res = [10, 10, 10,
-         10, 10, 10,
-         25, 25,
-         25, 25,
-         25, 25, 25,
-         25, 25, 25,
-         25, 25, 25,
-         25, 25, 25,
-         25, 25
+y_res = [10,
+         10,
+         10,
+         25,
+         25,
+         25,
+         25,
+         25,
+         25,
+         25,
+         25, 25, 25
          ]
 
 # export stats
@@ -264,9 +313,9 @@ for ii in range(len(x_vars)):
         spr[jj, ii], spr_p[jj, ii] = spearmanr(df_all.loc[valid, xx], df_all.loc[valid, yy])
 
 stat_file = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\covariate_stats\\'
-np.savetxt(stat_file + "spearmans_r.csv", spr, delimiter=", ")
-np.savetxt(stat_file + "spearmans_r_p-values.csv", spr_p, delimiter=", ")
-np.savetxt(stat_file + "degrees_of_freedom.csv", df, delimiter=", ")
+np.savetxt(stat_file + "spearmans_r_manuscript.csv", spr, delimiter=", ")
+np.savetxt(stat_file + "spearmans_r_p-values_manuscript.csv", spr_p, delimiter=", ")
+np.savetxt(stat_file + "degrees_of_freedom.csv_manuscript", df, delimiter=", ")
 
 pp = spr_p.astype(str)
 
@@ -283,11 +332,12 @@ for ii in range(0, imax):
             spr_str[ii, jj] = "{0:3.3f}$^*$\n({1:3.3f})".format(spr[ii, jj], spr_p[ii, jj])
 
 # plot heatmap
+
 correlation_mat = df_all.loc[:, x_vars + y_vars].corr(method="spearman")
 correlation_mat_sub = correlation_mat.loc[y_vars, x_vars]
-fig, ax = plt.subplots(figsize=(6, 8), constrained_layout=True)
-sns.heatmap(correlation_mat_sub, annot=spr_str, fmt='', vmin=-1, vmax=1, cmap="RdBu", yticklabels=y_labs, xticklabels=x_labs)
-fig.savefig(plot_out_dir + "spearman_heatmap.png")
+fig, ax = plt.subplots(figsize=(6, 4), constrained_layout=True)
+sns.heatmap(correlation_mat_sub, annot=spr_str, fmt='', vmin=-1, vmax=1, cmap="RdBu", yticklabels=y_labs, xticklabels=x_labs, cbar_kws={'label': "Spearnam's Rank Correlation Coefficient"})
+fig.savefig(plot_out_dir + "spearman_heatmap_manuscript.png")
 
 
 
@@ -320,7 +370,103 @@ for jj in range(len(y_vars)):
         can_stats.median_canopy[jj] = np.nanmedian(df_all.loc[canbool, yy])
         # can_stats.max_canopy[jj] = np.nanmax(df_all.loc[canbool, yy])
 
-can_stats.to_csv(stat_file + "canopy_stats.csv")
+can_stats.to_csv(stat_file + "canopy_stats_manuscript.csv")
+
+
+
+##############################################################
+
+
+# Plot tranmittance correlations across angles
+x_vars = ['swe_fcon_19_045', 'swe_fcon_19_050', 'swe_fcon_19_052', 'dswe_ucgo_19_045-19_050', 'dswe_ucgo_19_050-19_052']
+x_labs = ['SWE\nFeb 14', 'SWE\nFeb 19', 'SWE\nFeb 21', '$\Delta$SWE\nStorm 1', '$\Delta$SWE\nStorm 2']
+
+y_vars_snow_off = []
+for dd in range(1, 91):
+    y_vars_snow_off.append("lrs_tx_" + str(dd) + "_deg")
+
+y_vars_snow_on = []
+for dd in range(1, 91):
+    y_vars_snow_on.append("lrs_tx_" + str(dd) + "_deg_snow_on")
+
+spr_snow_on = np.full((len(y_vars_snow_on), len(x_vars)), np.nan)
+spr_p_snow_on = np.full((len(y_vars_snow_on), len(x_vars)), np.nan)
+
+spr_snow_off = np.full((len(y_vars_snow_off), len(x_vars)), np.nan)
+spr_p_snow_off = np.full((len(y_vars_snow_off), len(x_vars)), np.nan)
+for ii in range(len(x_vars)):
+    xx = x_vars[ii]
+    for jj in range(0, 90):
+        yy_snow_off = y_vars_snow_off[jj]
+        valid = ~np.isnan(df_25_ad[xx]) & ~np.isnan(df_25_ad[yy_snow_off])
+        spr_snow_off[jj, ii], spr_p_snow_off[jj, ii] = spearmanr(df_25_ad.loc[valid, xx], df_25_ad.loc[valid, yy_snow_off])
+
+        yy_snow_on = y_vars_snow_on[jj]
+        valid = ~np.isnan(df_25_ad[xx]) & ~np.isnan(df_25_ad[yy_snow_on])
+        spr_snow_on[jj, ii], spr_p_snow_on[jj, ii] = spearmanr(df_25_ad.loc[valid, xx], df_25_ad.loc[valid, yy_snow_on])
+
+fig = plt.figure()
+axes = fig.add_axes([0.13, 0.1, 0.62, 0.8])
+# adding axes
+plt.xlabel('Max angle from zenith [deg]')
+plt.ylabel('Spearmans Rank Corrolation Coefficient [-]')
+# plt.title('Relative variance of SWE metrics with distance\n Upper Forest, 5cm resolution (n=1200000)')
+
+degmat = np.linspace(1, 90, 90)
+
+axes.plot(degmat, spr_snow_off[:, 0], label=x_labs[0] + "\n(snow off)", color='C0')
+axes.plot(degmat, spr_snow_off[:, 1], label=x_labs[1] + "\n(snow off)", color='C1')
+axes.plot(degmat, spr_snow_off[:, 2], label=x_labs[2] + "\n(snow off)", color='C2')
+
+axes.plot(degmat, spr_snow_on[:, 0], label=x_labs[0] + "\n(snow on)", linestyle="dashed", color='C0')
+axes.plot(degmat, spr_snow_on[:, 1], label=x_labs[1] + "\n(snow on)", linestyle="dashed", color='C1')
+axes.plot(degmat, spr_snow_on[:, 2], label=x_labs[2] + "\n(snow on)", linestyle="dashed", color='C2')
+
+axes.legend(loc='center left', bbox_to_anchor=(1.01, .5), ncol=1,
+            borderaxespad=0, frameon=False)
+
+fig = plt.figure()
+axes = fig.add_axes([0.13, 0.1, 0.62, 0.8])
+# adding axes
+plt.xlabel('Angular footprint of light transmittance [deg]')
+plt.ylabel('Spearmans Rank Corrolation Coefficient [-]\n between canopy light transmittance and snow metrics')
+# plt.title('Relative variance of SWE metrics with distance\n Upper Forest, 5cm resolution (n=1200000)')
+
+degmat = np.linspace(1, 90, 90)
+
+axes.plot(degmat, spr_snow_on[:, 0], label=x_labs[0] + "\n(snow on)", c="C0")
+axes.plot(degmat, spr_snow_off[:, 0], label="(snow off)", linestyle="dashed", c="C0")
+axes.plot(degmat, spr_snow_on[:, 1], label=x_labs[1] + "\n(snow on)", c="C1")
+axes.plot(degmat, spr_snow_off[:, 1], label="(snow off)", linestyle="dashed", c="C1")
+axes.plot(degmat, spr_snow_on[:, 2], label=x_labs[2] + "\n(snow on)", c="C2")
+axes.plot(degmat, spr_snow_off[:, 2], label="(snow off)", linestyle="dashed", c="C2")
+axes.plot(degmat, spr_snow_on[:, 3], label=x_labs[3] + "\n(snow on)", c="C3")
+axes.plot(degmat, spr_snow_off[:, 3], label="(snow off)", linestyle="dashed", c="C3")
+axes.plot(degmat, spr_snow_on[:, 4], label=x_labs[4] + "\n(snow on)", c="C4")
+axes.plot(degmat, spr_snow_off[:, 4], label="(snow off)", linestyle="dashed", c="C4")
+
+axes.legend(loc='center left', bbox_to_anchor=(1.01, .5), ncol=1,
+            borderaxespad=0, frameon=False)
+axes.set_ylim(0,)
+fig.savefig(plot_out_dir + "spearmans_angular_footprint.png")
+
+
+# Determine maxima and location
+np.max(spr_snow_on[:, 0])
+degmat[np.argmax(spr_snow_on[:, 0])]
+
+np.max(spr_snow_on[:, 1])
+degmat[np.argmax(spr_snow_on[:, 1])]
+
+np.max(spr_snow_on[:, 2])
+degmat[np.argmax(spr_snow_on[:, 2])]
+
+np.max(spr_snow_on[:, 3])
+degmat[np.argmax(spr_snow_on[:, 3])]
+
+np.max(spr_snow_on[:, 4])
+degmat[np.argmax(spr_snow_on[:, 4])]
+
 
 
 # # cross scatters

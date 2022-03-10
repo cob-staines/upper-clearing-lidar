@@ -23,13 +23,13 @@ uf_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/pr
 uf_052 = read.csv(uf_052_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
   rename(swe = swe_fcon_19_052)
 
-uf_045_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_dswe_19_045-19_050_uf_fnsd_r.05m_interp2x_by_lpml15.csv'
+uf_045_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_dswe_19_045-19_050_uf_ucgo_r.05m_interp2x_by_lpml15.csv'
 uf_045_050 = read.csv(uf_045_050_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
-  rename(dswe = "dswe_fnsd_19_045.19_050")
+  rename(dswe = "dswe_ucgo_19_045.19_050")
 
-uf_050_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_dswe_19_050-19_052_uf_fnsd_r.05m_interp2x_by_lpml15.csv'
+uf_050_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_dswe_19_050-19_052_uf_ucgo_r.05m_interp2x_by_lpml15.csv'
 uf_050_052 = read.csv(uf_050_052_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
-  rename(dswe = "dswe_fnsd_19_050.19_052")
+  rename(dswe = "dswe_ucgo_19_050.19_052")
 
 
 # upper clearing plot
@@ -45,13 +45,13 @@ uc_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/pr
 uc_052 = read.csv(uc_052_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
   rename(swe = swe_clin_19_052)
 
-uc_045_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_dswe_19_045-19_050_uc_cnsd_r.05m_interp2x_by_lpml15.csv'
+uc_045_050_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_dswe_19_045-19_050_uc_ucgo_r.05m_interp2x_by_lpml15.csv'
 uc_045_050 = read.csv(uc_045_050_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
-  rename(dswe = "dswe_cnsd_19_045.19_050")
+  rename(dswe = "dswe_ucgo_19_045.19_050")
 
-uc_050_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_dswe_19_050-19_052_uc_cnsd_r.05m_interp2x_by_lpml15.csv'
+uc_050_052_in = 'C:/Users/Cob/index/educational/usask/research/masters/data/lidar/products/rejection_sampled/resampled_dswe_19_050-19_052_uc_ucgo_r.05m_interp2x_by_lpml15.csv'
 uc_050_052 = read.csv(uc_050_052_in, header=TRUE, na.strings = c("NA",""), sep=",") %>%
-  rename(dswe = "dswe_cnsd_19_050.19_052")
+  rename(dswe = "dswe_ucgo_19_050.19_052")
 
 
 # Check normality of dswe distributions
@@ -68,6 +68,15 @@ cv_uf_052 = sd(uf_052$swe)/mean(uf_052$swe)
 cv_uc_045 = sd(uc_045$swe)/mean(uc_045$swe)
 cv_uc_050 = sd(uc_050$swe)/mean(uc_050$swe)
 cv_uc_052 = sd(uc_052$swe)/mean(uc_052$swe)
+
+# forest descriptive stats
+mean(uf_045$swe)
+mean(uf_050$swe)
+mean(uf_052$swe)
+
+sd(uf_045$swe)
+sd(uf_050$swe)
+sd(uf_052$swe)
 
 # clearing descriptive stats
 mean(uc_045$swe)

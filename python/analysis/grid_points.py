@@ -6,7 +6,7 @@ def main():
 
     import pandas as pd
     import numpy as np
-    import libraries.raslib
+    from libraries import raslib
     import os
 
     batch_dir = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\site_library\\hemi_grid_points\\mb_65_r.25m_snow_on_offset0\\'

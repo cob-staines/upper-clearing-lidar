@@ -15,7 +15,7 @@ def lrs_footprint_products(batch_dir, cn_coef, file_out=None, threshold=False):
         if threshold:
             file_out = batch_dir + "outputs\\rshmetalog_footprint_products_threshold" + str(threshold) + ".csv"
         else:
-            file_out = batch_dir + "outputs\\rshmetalog_footprint_products.csv"
+            file_out = batch_dir + "outputs\\rshmetalog_footprint_products_alldeg.csv"
 
     rshmeta = pd.read_csv(batch_dir + "outputs\\rshmetalog.csv")
     imsize = rshmeta.img_size_px[0]  # assuming all images have same dimensions
@@ -131,93 +131,96 @@ def lrs_footprint_products(batch_dir, cn_coef, file_out=None, threshold=False):
             return output
 
 
-        footprint_df.loc[z_low:z_high-1, "lrs_tx_1"] = angle_range_stat(0, 15, tx_bin_means)
-        footprint_df.loc[z_low:z_high-1, "lrs_tx_2"] = angle_range_stat(15, 30, tx_bin_means)
-        footprint_df.loc[z_low:z_high-1, "lrs_tx_3"] = angle_range_stat(30, 45, tx_bin_means)
-        footprint_df.loc[z_low:z_high-1, "lrs_tx_4"] = angle_range_stat(45, 60, tx_bin_means)
-        footprint_df.loc[z_low:z_high-1, "lrs_tx_5"] = angle_range_stat(60, 75, tx_bin_means)
+        # footprint_df.loc[z_low:z_high-1, "lrs_tx_1"] = angle_range_stat(0, 15, tx_bin_means)
+        # footprint_df.loc[z_low:z_high-1, "lrs_tx_2"] = angle_range_stat(15, 30, tx_bin_means)
+        # footprint_df.loc[z_low:z_high-1, "lrs_tx_3"] = angle_range_stat(30, 45, tx_bin_means)
+        # footprint_df.loc[z_low:z_high-1, "lrs_tx_4"] = angle_range_stat(45, 60, tx_bin_means)
+        # footprint_df.loc[z_low:z_high-1, "lrs_tx_5"] = angle_range_stat(60, 75, tx_bin_means)
+        #
+        # footprint_df.loc[z_low:z_high-1, "lrs_tx_1_deg"] = angle_range_stat(0, 1, tx_bin_means)
+        # footprint_df.loc[z_low:z_high-1, "lrs_tx_60_deg"] = angle_range_stat(0, 60, tx_bin_means)
+        # footprint_df.loc[z_low:z_high-1, "lrs_tx_75_deg"] = angle_range_stat(0, 75, tx_bin_means)
+        # footprint_df.loc[z_low:z_high-1, "lrs_tx_90_deg"] = angle_range_stat(0, 90, tx_bin_means)
 
-        footprint_df.loc[z_low:z_high-1, "lrs_tx_1_deg"] = angle_range_stat(0, 1, tx_bin_means)
-        footprint_df.loc[z_low:z_high-1, "lrs_tx_60_deg"] = angle_range_stat(0, 60, tx_bin_means)
-        footprint_df.loc[z_low:z_high-1, "lrs_tx_75_deg"] = angle_range_stat(0, 75, tx_bin_means)
-        footprint_df.loc[z_low:z_high-1, "lrs_tx_90_deg"] = angle_range_stat(0, 90, tx_bin_means)
+        for dd in range(1, 91):
+            footprint_df.loc[z_low:z_high - 1, "lrs_tx_" + str(dd) + "_deg"] = angle_range_stat(0, dd, tx_bin_means)
 
         # # calculate contact number bands from transmittance bands
-        if threshold:
-            footprint_df.loc[z_low:z_high-1, "lrs_cn_1"] = -np.log(footprint_df.lrs_tx_1)
-            footprint_df.loc[z_low:z_high-1, "lrs_cn_2"] = -np.log(footprint_df.lrs_tx_2)
-            footprint_df.loc[z_low:z_high-1, "lrs_cn_3"] = -np.log(footprint_df.lrs_tx_3)
-            footprint_df.loc[z_low:z_high-1, "lrs_cn_4"] = -np.log(footprint_df.lrs_tx_4)
-            footprint_df.loc[z_low:z_high-1, "lrs_cn_5"] = -np.log(footprint_df.lrs_tx_5)
-
-            # footprint_df.loc[z_low:z_high-1, "lrs_cn_1_deg"] = -np.log(footprint_df.lrs_tx_1_deg)
-            footprint_df.loc[z_low:z_high-1, "lrs_cn_75_deg"] = -np.log(footprint_df.lrs_tx_75_deg)
-            footprint_df.loc[z_low:z_high-1, "lrs_cn_90_deg"] = -np.log(footprint_df.lrs_tx_90_deg)
-        else:
-            footprint_df.loc[z_low:z_high-1, "lrs_cn_1"] = angle_range_stat(0, 15, cn_bin_means)
-            footprint_df.loc[z_low:z_high-1, "lrs_cn_2"] = angle_range_stat(15, 30, cn_bin_means)
-            footprint_df.loc[z_low:z_high-1, "lrs_cn_3"] = angle_range_stat(30, 45, cn_bin_means)
-            footprint_df.loc[z_low:z_high-1, "lrs_cn_4"] = angle_range_stat(45, 60, cn_bin_means)
-            footprint_df.loc[z_low:z_high-1, "lrs_cn_5"] = angle_range_stat(60, 75, cn_bin_means)
-
-            footprint_df.loc[z_low:z_high-1, "lrs_cn_1_deg"] = angle_range_stat(0, 1, cn_bin_means)
-            footprint_df.loc[z_low:z_high-1, "lrs_cn_60_deg"] = angle_range_stat(0, 60, cn_bin_means)
-            footprint_df.loc[z_low:z_high-1, "lrs_cn_75_deg"] = angle_range_stat(0, 75, cn_bin_means)
-            footprint_df.loc[z_low:z_high-1, "lrs_cn_90_deg"] = angle_range_stat(0, 90, cn_bin_means)
-
-        # # calculate transmittance bands from cn bands
-        # footprint_df.loc[z_low:z_high-1, "lrs_tx_1"] = np.exp(-footprint_df.lrs_cn_1)
-        # footprint_df.loc[z_low:z_high-1, "lrs_tx_2"] = np.exp(-footprint_df.lrs_cn_2)
-        # footprint_df.loc[z_low:z_high-1, "lrs_tx_3"] = np.exp(-footprint_df.lrs_cn_3)
-        # footprint_df.loc[z_low:z_high-1, "lrs_tx_4"] = np.exp(-footprint_df.lrs_cn_4)
-        # footprint_df.loc[z_low:z_high-1, "lrs_tx_5"] = np.exp(-footprint_df.lrs_cn_5)
+        # if threshold:
+        #     footprint_df.loc[z_low:z_high-1, "lrs_cn_1"] = -np.log(footprint_df.lrs_tx_1)
+        #     footprint_df.loc[z_low:z_high-1, "lrs_cn_2"] = -np.log(footprint_df.lrs_tx_2)
+        #     footprint_df.loc[z_low:z_high-1, "lrs_cn_3"] = -np.log(footprint_df.lrs_tx_3)
+        #     footprint_df.loc[z_low:z_high-1, "lrs_cn_4"] = -np.log(footprint_df.lrs_tx_4)
+        #     footprint_df.loc[z_low:z_high-1, "lrs_cn_5"] = -np.log(footprint_df.lrs_tx_5)
         #
-        # footprint_df.loc[z_low:z_high-1, "lrs_tx_1_deg"] = np.exp(-footprint_df.lrs_cn_1_deg)
-        # footprint_df.loc[z_low:z_high-1, "lrs_tx_75_deg"] = np.exp(-footprint_df.lrs_cn_75_deg)
-        # footprint_df.loc[z_low:z_high-1, "lrs_tx_90_deg"] = np.exp(-footprint_df.lrs_cn_90_deg)
-
-        # lai vertical projection
-        cos_proj = np.cos(bins * np.pi / 180)
-
-        # calculate lai from binned cn
-        footprint_df.loc[z_low:z_high - 1, "lrs_lai_1_deg"] = angle_range_stat(0, 1, 2 * cn_bin_means * cos_proj)
-        footprint_df.loc[z_low:z_high - 1, "lrs_lai_15_deg"] = angle_range_stat(0, 15, 2 * cn_bin_means * cos_proj)
-        footprint_df.loc[z_low:z_high - 1, "lrs_lai_60_deg"] = angle_range_stat(0, 60, 2 * cn_bin_means * cos_proj)
-        footprint_df.loc[z_low:z_high - 1, "lrs_lai_75_deg"] = angle_range_stat(0, 75, 2 * cn_bin_means * cos_proj)
-        footprint_df.loc[z_low:z_high - 1, "lrs_lai_90_deg"] = angle_range_stat(0, 90, 2 * cn_bin_means * cos_proj)
-
-        # # calculate lai from binned transmittances
-        # footprint_df.loc[z_low:z_high - 1, "lrs_lai_1_deg"] = angle_range_stat(0, 1, 2 * (-np.log(tx_bin_means)) * cos_proj)
-        # footprint_df.loc[z_low:z_high - 1, "lrs_lai_15_deg"] = angle_range_stat(0, 15, 2 * (-np.log(tx_bin_means)) * cos_proj)
-        # footprint_df.loc[z_low:z_high - 1, "lrs_lai_75_deg"] = angle_range_stat(0, 75, 2 * (-np.log(tx_bin_means)) * cos_proj)
-        # footprint_df.loc[z_low:z_high - 1, "lrs_lai_90_deg"] = angle_range_stat(0, 90, 2 * (-np.log(tx_bin_means)) * cos_proj)
-
-        # cos_mean_phi = np.cos((np.array([1, 2, 3, 4, 5]) * 15 - 15./2) * np.pi / 180)
-
-        weighted_phi = np.full(5, np.nan)
-        weighted_phi[0] = angle_range_stat(0, 15, bins[np.newaxis, :])
-        weighted_phi[1] = angle_range_stat(15, 30, bins[np.newaxis, :])
-        weighted_phi[2] = angle_range_stat(30, 45, bins[np.newaxis, :])
-        weighted_phi[3] = angle_range_stat(45, 60, bins[np.newaxis, :])
-        weighted_phi[4] = angle_range_stat(60, 75, bins[np.newaxis, :])
-
-        cos_mean_phi = np.cos(weighted_phi * np.pi / 180)
-
+        #     # footprint_df.loc[z_low:z_high-1, "lrs_cn_1_deg"] = -np.log(footprint_df.lrs_tx_1_deg)
+        #     footprint_df.loc[z_low:z_high-1, "lrs_cn_75_deg"] = -np.log(footprint_df.lrs_tx_75_deg)
+        #     footprint_df.loc[z_low:z_high-1, "lrs_cn_90_deg"] = -np.log(footprint_df.lrs_tx_90_deg)
+        # else:
+        #     footprint_df.loc[z_low:z_high-1, "lrs_cn_1"] = angle_range_stat(0, 15, cn_bin_means)
+        #     footprint_df.loc[z_low:z_high-1, "lrs_cn_2"] = angle_range_stat(15, 30, cn_bin_means)
+        #     footprint_df.loc[z_low:z_high-1, "lrs_cn_3"] = angle_range_stat(30, 45, cn_bin_means)
+        #     footprint_df.loc[z_low:z_high-1, "lrs_cn_4"] = angle_range_stat(45, 60, cn_bin_means)
+        #     footprint_df.loc[z_low:z_high-1, "lrs_cn_5"] = angle_range_stat(60, 75, cn_bin_means)
+        #
+        #     footprint_df.loc[z_low:z_high-1, "lrs_cn_1_deg"] = angle_range_stat(0, 1, cn_bin_means)
+        #     footprint_df.loc[z_low:z_high-1, "lrs_cn_60_deg"] = angle_range_stat(0, 60, cn_bin_means)
+        #     footprint_df.loc[z_low:z_high-1, "lrs_cn_75_deg"] = angle_range_stat(0, 75, cn_bin_means)
+        #     footprint_df.loc[z_low:z_high-1, "lrs_cn_90_deg"] = angle_range_stat(0, 90, cn_bin_means)
+        #
+        # # # calculate transmittance bands from cn bands
+        # # footprint_df.loc[z_low:z_high-1, "lrs_tx_1"] = np.exp(-footprint_df.lrs_cn_1)
+        # # footprint_df.loc[z_low:z_high-1, "lrs_tx_2"] = np.exp(-footprint_df.lrs_cn_2)
+        # # footprint_df.loc[z_low:z_high-1, "lrs_tx_3"] = np.exp(-footprint_df.lrs_cn_3)
+        # # footprint_df.loc[z_low:z_high-1, "lrs_tx_4"] = np.exp(-footprint_df.lrs_cn_4)
+        # # footprint_df.loc[z_low:z_high-1, "lrs_tx_5"] = np.exp(-footprint_df.lrs_cn_5)
+        # #
+        # # footprint_df.loc[z_low:z_high-1, "lrs_tx_1_deg"] = np.exp(-footprint_df.lrs_cn_1_deg)
+        # # footprint_df.loc[z_low:z_high-1, "lrs_tx_75_deg"] = np.exp(-footprint_df.lrs_cn_75_deg)
+        # # footprint_df.loc[z_low:z_high-1, "lrs_tx_90_deg"] = np.exp(-footprint_df.lrs_cn_90_deg)
+        #
+        # # lai vertical projection
+        # cos_proj = np.cos(bins * np.pi / 180)
+        #
+        # # calculate lai from binned cn
+        # footprint_df.loc[z_low:z_high - 1, "lrs_lai_1_deg"] = angle_range_stat(0, 1, 2 * cn_bin_means * cos_proj)
+        # footprint_df.loc[z_low:z_high - 1, "lrs_lai_15_deg"] = angle_range_stat(0, 15, 2 * cn_bin_means * cos_proj)
+        # footprint_df.loc[z_low:z_high - 1, "lrs_lai_60_deg"] = angle_range_stat(0, 60, 2 * cn_bin_means * cos_proj)
+        # footprint_df.loc[z_low:z_high - 1, "lrs_lai_75_deg"] = angle_range_stat(0, 75, 2 * cn_bin_means * cos_proj)
+        # footprint_df.loc[z_low:z_high - 1, "lrs_lai_90_deg"] = angle_range_stat(0, 90, 2 * cn_bin_means * cos_proj)
+        #
+        # # # calculate lai from binned transmittances
+        # # footprint_df.loc[z_low:z_high - 1, "lrs_lai_1_deg"] = angle_range_stat(0, 1, 2 * (-np.log(tx_bin_means)) * cos_proj)
+        # # footprint_df.loc[z_low:z_high - 1, "lrs_lai_15_deg"] = angle_range_stat(0, 15, 2 * (-np.log(tx_bin_means)) * cos_proj)
+        # # footprint_df.loc[z_low:z_high - 1, "lrs_lai_75_deg"] = angle_range_stat(0, 75, 2 * (-np.log(tx_bin_means)) * cos_proj)
+        # # footprint_df.loc[z_low:z_high - 1, "lrs_lai_90_deg"] = angle_range_stat(0, 90, 2 * (-np.log(tx_bin_means)) * cos_proj)
+        #
+        # # cos_mean_phi = np.cos((np.array([1, 2, 3, 4, 5]) * 15 - 15./2) * np.pi / 180)
+        #
+        # weighted_phi = np.full(5, np.nan)
+        # weighted_phi[0] = angle_range_stat(0, 15, bins[np.newaxis, :])
+        # weighted_phi[1] = angle_range_stat(15, 30, bins[np.newaxis, :])
+        # weighted_phi[2] = angle_range_stat(30, 45, bins[np.newaxis, :])
+        # weighted_phi[3] = angle_range_stat(45, 60, bins[np.newaxis, :])
+        # weighted_phi[4] = angle_range_stat(60, 75, bins[np.newaxis, :])
+        #
+        # cos_mean_phi = np.cos(weighted_phi * np.pi / 180)
+        #
+        # # footprint_df.loc[z_low:z_high - 1, "lrs_lai_2000"] = 2 * (0.034 * footprint_df.lrs_cn_1 * cos_mean_phi[0] +
+        # #                                                           0.104 * footprint_df.lrs_cn_2 * cos_mean_phi[1] +
+        # #                                                           0.160 * footprint_df.lrs_cn_3 * cos_mean_phi[2] +
+        # #                                                           0.218 * footprint_df.lrs_cn_4 * cos_mean_phi[3] +
+        # #                                                           0.484 * footprint_df.lrs_cn_5 * cos_mean_phi[4])
+        #
+        #
+        #
         # footprint_df.loc[z_low:z_high - 1, "lrs_lai_2000"] = 2 * (0.034 * footprint_df.lrs_cn_1 * cos_mean_phi[0] +
         #                                                           0.104 * footprint_df.lrs_cn_2 * cos_mean_phi[1] +
         #                                                           0.160 * footprint_df.lrs_cn_3 * cos_mean_phi[2] +
-        #                                                           0.218 * footprint_df.lrs_cn_4 * cos_mean_phi[3] +
-        #                                                           0.484 * footprint_df.lrs_cn_5 * cos_mean_phi[4])
-
-
-
-        footprint_df.loc[z_low:z_high - 1, "lrs_lai_2000"] = 2 * (0.034 * footprint_df.lrs_cn_1 * cos_mean_phi[0] +
-                                                                  0.104 * footprint_df.lrs_cn_2 * cos_mean_phi[1] +
-                                                                  0.160 * footprint_df.lrs_cn_3 * cos_mean_phi[2] +
-                                                                  (0.218 + 0.484) * footprint_df.lrs_cn_4 * cos_mean_phi[3])  # dropping 5th ring
-
-        footprint_df.loc[z_low:z_high - 1, "lrs_sky_view"] = angle_range_stat(0, 75, tx_bin_means, weight_by="cos")
-        footprint_df.loc[z_low:z_high - 1, "lrs_cc"] = 1 - angle_range_stat(0, 75, tx_bin_means, weight_by="solid_angle")
+        #                                                           (0.218 + 0.484) * footprint_df.lrs_cn_4 * cos_mean_phi[3])  # dropping 5th ring
+        #
+        # footprint_df.loc[z_low:z_high - 1, "lrs_sky_view"] = angle_range_stat(0, 75, tx_bin_means, weight_by="cos")
+        # footprint_df.loc[z_low:z_high - 1, "lrs_cc"] = 1 - angle_range_stat(0, 75, tx_bin_means, weight_by="solid_angle")
 
     if file_out:
         footprint_df.to_csv(file_out, index=False)
@@ -232,8 +235,9 @@ snow_off_coef = 0.38686933  # python tx drop 5
 # snow_off_coef = 0.1921595  # optimized for cn dropping 5th
 # # cn_coef = 0.220319  # optimized for cn
 lrs_footprint_products(snow_off_dir, snow_off_coef, file_out=True)
-threshold = 0.38438069
-lrs_footprint_products(snow_off_dir, snow_off_coef, threshold=threshold, file_out=True)
+# threshold = 0.38438069
+# lrs_footprint_products(snow_off_dir, snow_off_coef, threshold=threshold, file_out=True)
+
 
 #
 #
@@ -243,6 +247,8 @@ snow_on_coef = 0.37181197  # python tx drop 5
 # snow_on_coef = 0.1364611  # optimized for cn dropping 5th
 # cn_coef = 0.141832  # optimized for cn
 lrs_footprint_products(snow_on_dir, snow_on_coef, file_out=True)
+
+
 #
 #
 # # validation set at optimized coef

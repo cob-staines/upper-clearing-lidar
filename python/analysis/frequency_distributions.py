@@ -342,8 +342,10 @@ ax1.set_title('Frequency distributions of SWE for all days\n Forest plot, 5cm re
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 # ax1.set_xlim((0, 240))
+# ax1.set_ylim((0, 0.031))
 plot = sns.histplot(all_swe_uf, x="swe", hue="date", stat="density", common_norm=False, element="step")
 fig.savefig(plot_out_dir + "freq_dist_resampled_all_swe_uf_lpml15.png")
+# fig.savefig(plot_out_dir + "freq_dist_resampled_all_swe_uf_lpml15_scaled.png")
 
 # export rejection sampled points
 e_045_uf = d_045_uf.loc[:, ["x_coord", "y_coord", "swe_fcon_19_045"]]
@@ -383,8 +385,8 @@ g.legend_.set_title(None)
 fig.savefig(plot_out_dir + "freq_dist_resampled_dswe_050-052_uf_lpml15.png")
 
 # plot all together
-d_045_050_uf = d_045_050_uf.assign(interval="14-19 Feb", dswe=d_045_050_uf.loc[:, "dswe_fnsd_19_045-19_050"])
-d_050_052_uf = d_050_052_uf.assign(interval="19-21 Feb", dswe=d_050_052_uf.loc[:, "dswe_fnsd_19_050-19_052"])
+d_045_050_uf = d_045_050_uf.assign(interval="14-19 Feb", dswe=d_045_050_uf.loc[:, "dswe_ucgo_19_045-19_050"])
+d_050_052_uf = d_050_052_uf.assign(interval="19-21 Feb", dswe=d_050_052_uf.loc[:, "dswe_ucgo_19_050-19_052"])
 all_dswe_uf = pd.concat([d_045_050_uf.loc[:, ["dswe", "interval"]], d_050_052_uf.loc[:, ["dswe", "interval"]]])
 
 fig = plt.figure()
@@ -393,19 +395,21 @@ ax1.set_title('Frequency distributions of $\Delta$SWE for all days\n Forest plot
 ax1.set_xlabel("$\Delta$SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 ax1.set_xlim(-10, 20)
+ax1.set_ylim(0, 0.23)
 sns.histplot(all_dswe_uf, x="dswe", hue="interval", stat="density", common_norm=False, element="step", bins=200)
-fig.savefig(plot_out_dir + "freq_dist_resampled_all_dswe_uf_lpml15.png")
+# fig.savefig(plot_out_dir + "freq_dist_resampled_all_dswe_uf_lpml15.png")
+fig.savefig(plot_out_dir + "freq_dist_resampled_all_dswe_uf_lpml15_scaled.png")
 
 # export rejection sampled points
-e_045_050_uf = d_045_050_uf.loc[:, ["x_coord", "y_coord", "dswe_fnsd_19_045-19_050"]]
-e_050_052_uf = d_050_052_uf.loc[:, ["x_coord", "y_coord", "dswe_fnsd_19_050-19_052"]]
+e_045_050_uf = d_045_050_uf.loc[:, ["x_coord", "y_coord", "dswe_ucgo_19_045-19_050"]]
+e_050_052_uf = d_050_052_uf.loc[:, ["x_coord", "y_coord", "dswe_ucgo_19_050-19_052"]]
 
-e_045_050_uf.to_csv(rej_samp_out_file + 'resampled_dswe_19_045-19_050_uf_fnsd_r.05m_interp2x_by_lpml15.csv', index=False)
-e_050_052_uf.to_csv(rej_samp_out_file + 'resampled_dswe_19_050-19_052_uf_fnsd_r.05m_interp2x_by_lpml15.csv', index=False)
+e_045_050_uf.to_csv(rej_samp_out_file + 'resampled_dswe_19_045-19_050_uf_ucgo_r.05m_interp2x_by_lpml15.csv', index=False)
+e_050_052_uf.to_csv(rej_samp_out_file + 'resampled_dswe_19_050-19_052_uf_ucgo_r.05m_interp2x_by_lpml15.csv', index=False)
 
 # # reload rejection samples
-# d_045_050_uf = pd.read_csv(rej_samp_out_file + 'resampled_dswe_19_045-19_050_uf_fnsd_r.05m_interp2x_by_lpml15.csv')
-# d_050_052_uf = pd.read_csv(rej_samp_out_file + 'resampled_dswe_19_050-19_052_uf_fnsd_r.05m_interp2x_by_lpml15.csv')
+# d_045_050_uf = pd.read_csv(rej_samp_out_file + 'resampled_dswe_19_045-19_050_uf_ucgo_r.05m_interp2x_by_lpml15.csv')
+# d_050_052_uf = pd.read_csv(rej_samp_out_file + 'resampled_dswe_19_050-19_052_uf_ucgo_r.05m_interp2x_by_lpml15.csv')
 
 ### uc ###
 
@@ -477,9 +481,9 @@ e_hs_052_uc.to_csv(rej_samp_out_file + 'resampled_hs_19_052_uc_r.10m_interp2x_by
 
 
 # # # Reload samples
-hs_045_uc = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_045_uc_r.10m_interp2x_by_lpml15.csv')
-hs_050_uc = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_050_uc_r.10m_interp2x_by_lpml15.csv')
-hs_052_uc = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_052_uc_r.10m_interp2x_by_lpml15.csv')
+# hs_045_uc = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_045_uc_r.10m_interp2x_by_lpml15.csv')
+# hs_050_uc = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_050_uc_r.10m_interp2x_by_lpml15.csv')
+# hs_052_uc = pd.read_csv(rej_samp_out_file + 'resampled_hs_19_052_uc_r.10m_interp2x_by_lpml15.csv')
 
 # # stats
 #
@@ -584,8 +588,10 @@ ax1.set_title('Frequency distributions of SWE for all days\n Clearing plot, 5cm 
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 # ax1.set_xlim((0, 240))
+# ax1.set_ylim((0, 0.031))
 plot = sns.histplot(all_swe_uc, x="swe", hue="date", stat="density", common_norm=False, element="step")
 fig.savefig(plot_out_dir + "freq_dist_resampled_all_swe_uc_lpml15.png")
+# fig.savefig(plot_out_dir + "freq_dist_resampled_all_swe_uc_lpml15_scaled.png")
 
 # export rejection sampled points
 e_045_uc = d_045_uc.loc[:, ["x_coord", "y_coord", "swe_clin_19_045"]]
@@ -608,7 +614,7 @@ ax1.set_title('Frequency distribution of $\Delta$SWE for 14-19 Feb. 2019\n Clear
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 ax1.set_xlim(-10, 20)
-g, d_045_050_uc = resampling_histoplot(data_uc, 'dswe_cnsd_19_045-19_050', 'lpml15', 50, plotbins=250)
+g, d_045_050_uc = resampling_histoplot(data_uc, 'dswe_ucgo_19_045-19_050', 'lpml15', 50, plotbins=250)
 g.legend_.set_title(None)
 fig.savefig(plot_out_dir + "freq_dist_resampled_dswe_045-050_uc_lpml15.png")
 
@@ -618,13 +624,13 @@ ax1.set_title('Frequency distribution of $\Delta$SWE for 19-21 Feb. 2019\n Clear
 ax1.set_xlabel("SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 ax1.set_xlim(-10, 20)
-g, d_050_052_uc = resampling_histoplot(data_uc, 'dswe_cnsd_19_050-19_052', 'lpml15', 50, plotbins=250)
+g, d_050_052_uc = resampling_histoplot(data_uc, 'dswe_ucgo_19_050-19_052', 'lpml15', 50, plotbins=250)
 g.legend_.set_title(None)
 fig.savefig(plot_out_dir + "freq_dist_resampled_dswe_050-052_uc_lpml15.png")
 
 # plot all together
-d_045_050_uc = d_045_050_uc.assign(interval="14-19 Feb", dswe=d_045_050_uc.loc[:, "dswe_cnsd_19_045-19_050"])
-d_050_052_uc = d_050_052_uc.assign(interval="19-21 Feb", dswe=d_050_052_uc.loc[:, "dswe_cnsd_19_050-19_052"])
+d_045_050_uc = d_045_050_uc.assign(interval="14-19 Feb", dswe=d_045_050_uc.loc[:, "dswe_ucgo_19_045-19_050"])
+d_050_052_uc = d_050_052_uc.assign(interval="19-21 Feb", dswe=d_050_052_uc.loc[:, "dswe_ucgo_19_050-19_052"])
 all_dswe_uc = pd.concat([d_045_050_uc.loc[:, ["dswe", "interval"]], d_050_052_uc.loc[:, ["dswe", "interval"]]])
 
 fig = plt.figure()
@@ -633,24 +639,26 @@ ax1.set_title('Frequency distributions of $\Delta$SWE for all days\n Clearing pl
 ax1.set_xlabel("$\Delta$SWE [mm]")
 ax1.set_ylabel("Relative frequency [-]")
 ax1.set_xlim(-10, 20)
+ax1.set_ylim(0, 0.23)
 sns.histplot(all_dswe_uc, x="dswe", hue="interval", stat="density", common_norm=False, element="step", bins=250)
-fig.savefig(plot_out_dir + "freq_dist_resampled_all_dswe_uc_lpml15.png")
+# fig.savefig(plot_out_dir + "freq_dist_resampled_all_dswe_uc_lpml15.png")
+fig.savefig(plot_out_dir + "freq_dist_resampled_all_dswe_uc_lpml15_scaled.png")
 
 # export rejection sampled points
-e_045_050_uc = d_045_050_uc.loc[:, ["x_coord", "y_coord", "dswe_cnsd_19_045-19_050"]]
-e_050_052_uc = d_050_052_uc.loc[:, ["x_coord", "y_coord", "dswe_cnsd_19_050-19_052"]]
+e_045_050_uc = d_045_050_uc.loc[:, ["x_coord", "y_coord", "dswe_ucgo_19_045-19_050"]]
+e_050_052_uc = d_050_052_uc.loc[:, ["x_coord", "y_coord", "dswe_ucgo_19_050-19_052"]]
 
-e_045_050_uc.to_csv(rej_samp_out_file + 'resampled_dswe_19_045-19_050_uc_cnsd_r.05m_interp2x_by_lpml15.csv', index=False)
-e_050_052_uc.to_csv(rej_samp_out_file + 'resampled_dswe_19_050-19_052_uc_cnsd_r.05m_interp2x_by_lpml15.csv', index=False)
+e_045_050_uc.to_csv(rej_samp_out_file + 'resampled_dswe_19_045-19_050_uc_ucgo_r.05m_interp2x_by_lpml15.csv', index=False)
+e_050_052_uc.to_csv(rej_samp_out_file + 'resampled_dswe_19_050-19_052_uc_ucgo_r.05m_interp2x_by_lpml15.csv', index=False)
 
 # # reload rejection samples
-# d_045_050_uc = pd.read_csv(rej_samp_out_file + 'resampled_dswe_19_045-19_050_uc_cnsd_r.05m_interp2x_by_lpml15.csv')
-# d_050_052_uc = pd.read_csv(rej_samp_out_file + 'resampled_dswe_19_050-19_052_uc_cnsd_r.05m_interp2x_by_lpml15.csv')
+# d_045_050_uc = pd.read_csv(rej_samp_out_file + 'resampled_dswe_19_045-19_050_uc_ucgo_r.05m_interp2x_by_lpml15.csv')
+# d_050_052_uc = pd.read_csv(rej_samp_out_file + 'resampled_dswe_19_050-19_052_uc_ucgo_r.05m_interp2x_by_lpml15.csv')
 
 # combined plot plots
 # plot 045-050 all together
-d_045_050_uf = d_045_050_uf.assign(plot="upper forest", dswe=d_045_050_uf.loc[:, "dswe_fnsd_19_045-19_050"])
-d_045_050_uc = d_045_050_uc.assign(plot="upper clearing", dswe=d_045_050_uc.loc[:, "dswe_cnsd_19_045-19_050"])
+d_045_050_uf = d_045_050_uf.assign(plot="upper forest", dswe=d_045_050_uf.loc[:, "dswe_ucgo_19_045-19_050"])
+d_045_050_uc = d_045_050_uc.assign(plot="upper clearing", dswe=d_045_050_uc.loc[:, "dswe_ucgo_19_045-19_050"])
 d_045_050_dswe = pd.concat([d_045_050_uf.loc[:, ["dswe", "plot"]], d_045_050_uc.loc[:, ["dswe", "plot"]]])
 
 fig = plt.figure()
@@ -662,8 +670,8 @@ sns.histplot(d_045_050_dswe, x="dswe", hue="plot", stat="density", common_norm=F
 fig.savefig(plot_out_dir + "freq_dist_resampled_045_050_dswe_lpml15.png")
 
 # plot 050-052 all together
-d_050_052_uf = d_050_052_uf.assign(plot="upper forest", dswe=d_050_052_uf.loc[:, "dswe_fnsd_19_050-19_052"])
-d_050_052_uc = d_050_052_uc.assign(plot="upper clearing", dswe=d_050_052_uc.loc[:, "dswe_cnsd_19_050-19_052"])
+d_050_052_uf = d_050_052_uf.assign(plot="upper forest", dswe=d_050_052_uf.loc[:, "dswe_ucgo_19_050-19_052"])
+d_050_052_uc = d_050_052_uc.assign(plot="upper clearing", dswe=d_050_052_uc.loc[:, "dswe_ucgo_19_050-19_052"])
 d_050_052_dswe = pd.concat([d_050_052_uf.loc[:, ["dswe", "plot"]], d_050_052_uc.loc[:, ["dswe", "plot"]]])
 
 fig = plt.figure()

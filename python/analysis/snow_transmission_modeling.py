@@ -49,8 +49,11 @@ ddict = {'uf': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\da
          'swe_fcon_19_045': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_045\\19_045_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_045_r.05m_interp2x_masked.tif',
          'swe_fcon_19_050': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_050\\19_050_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_050_r.05m_interp2x_masked.tif',
          'swe_fcon_19_052': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\19_052\\19_052_las_proc\\OUTPUT_FILES\\SWE\\fcon\\interp_2x\\masked\\swe_fcon_19_052_r.05m_interp2x_masked.tif',
-         'dswe_fnsd_19_045-19_050': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_045-19_050\\masked\\dswe_fnsd_19_045-19_050_r.05m_interp2x_masked.tif',
-         'dswe_fnsd_19_050-19_052': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_050-19_052\\masked\\dswe_fnsd_19_050-19_052_r.05m_interp2x_masked.tif'
+         # 'dswe_fnsd_19_045-19_050': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_045-19_050\\masked\\dswe_fnsd_19_045-19_050_r.05m_interp2x_masked.tif',
+         # 'dswe_fnsd_19_050-19_052': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE\\fnsd\\interp_2x\\19_050-19_052\\masked\\dswe_fnsd_19_050-19_052_r.05m_interp2x_masked.tif',
+         'dswe_ucgo_19_045-19_050': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE_bias_corrected\\ucgo\\interp_2x\\19_045-19_050\\masked\\dswe_ucgo_19_045-19_050_r.05m_interp2x_masked.tif',
+         'dswe_ucgo_19_050-19_052': 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\products\\mb_65\\dSWE_bias_corrected\\ucgo\\interp_2x\\19_050-19_052\\masked\\dswe_ucgo_19_050-19_052_r.05m_interp2x_masked.tif',
+
          # 'covariant': var_in
          }
 var = raslib.pd_sample_raster_gdal(ddict, include_nans=False, mode="median")
@@ -105,14 +108,14 @@ set_param = np.random.random(len(hemi_var))
 hemi_var.loc[:, 'training_set'] = set_param < param_thresh
 
 # save to file
-# hemi_var.to_csv(batch_dir + "hemi_var_lookup.csv", index=False)
+hemi_var.to_csv(batch_dir + "hemi_var_lookup_manuscript.csv", index=False)
 
-hemi_var = pd.read_csv(batch_dir + "hemi_var_lookup.csv")
+hemi_var = pd.read_csv(batch_dir + "hemi_var_lookup_manuscript.csv")
 
 # build hemiList from training_set only
-hemiList = hemi_var.loc[hemi_var.training_set, :]  # training only
+# hemiList = hemi_var.loc[hemi_var.training_set, :]  # training only
 # hemiList = hemi_var.loc[~hemi_var.training_set, :]  # testing only
-# hemiList = hemi_var  # load all
+hemiList = hemi_var  # load all
 
 
 
@@ -129,19 +132,21 @@ hemiList = hemi_var.loc[hemi_var.training_set, :]  # training only
 # covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_050"], hemiList.loc[:, "count_149"]], axis=0) / 16)
 # covariant_error = covariant_error * 0.1 * 158.56  # 10cm uncertainty * snow density
 
-# date = "19_052"
-# covariant = hemiList.swe_fcon_19_052
-# covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_052"], hemiList.loc[:, "count_149"]], axis=0) / 16)
-# covariant_error = covariant_error * 0.1 * 134.48  # 10cm uncertainty * snow density
+date = "19_052"
+covariant = hemiList.swe_fcon_19_052
+covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_052"], hemiList.loc[:, "count_149"]], axis=0) / 16)
+covariant_error = covariant_error * 0.1 * 134.48  # 10cm uncertainty * snow density
 #
-date = "045-050"
-covariant = hemiList.loc[:, "dswe_fnsd_19_045-19_050"]
-# covariant_error = 1/np.sqrt(hemiList.loc[:, "count_045"]) + 1/np.sqrt(hemiList.loc[:, "count_050"]) + 2/np.sqrt(hemiList.loc[:, "count_149"])/4
-covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_045"], hemiList.loc[:, "count_050"], hemiList.loc[:, "count_149"]], axis=0) / 16)
-covariant_error = covariant_error * 0.1 * 85.1  # 10cm uncertainty * snow density
+# date = "045-050"
+# # covariant = hemiList.loc[:, "dswe_fnsd_19_045-19_050"]
+# covariant = hemiList.loc[:, "dswe_ucgo_19_045-19_050"]
+# # covariant_error = 1/np.sqrt(hemiList.loc[:, "count_045"]) + 1/np.sqrt(hemiList.loc[:, "count_050"]) + 2/np.sqrt(hemiList.loc[:, "count_149"])/4
+# covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_045"], hemiList.loc[:, "count_050"], hemiList.loc[:, "count_149"]], axis=0) / 16)
+# covariant_error = covariant_error * 0.1 * 85.1  # 10cm uncertainty * snow density
 
 # date = "050-052"
-# covariant = hemiList.loc[:, "dswe_fnsd_19_050-19_052"]
+# # covariant = hemiList.loc[:, "dswe_fnsd_19_050-19_052"]
+# covariant = hemiList.loc[:, "dswe_ucgo_19_050-19_052"]
 # # covariant_error = (1/np.sqrt(hemiList.loc[:, "count_050"]/16) + 1/np.sqrt(hemiList.loc[:, "count_052"]/16) + 2/np.sqrt(hemiList.loc[:, "count_149"]/16))/4
 # covariant_error = 1/np.sqrt(np.min([hemiList.loc[:, "count_050"], hemiList.loc[:, "count_052"], hemiList.loc[:, "count_149"]], axis=0) / 16)
 # covariant_error = covariant_error * 0.1 * 72.2  # 10cm uncertainty * snow density
@@ -155,11 +160,11 @@ valid_all = ~np.isnan(covariant) & ~np.isnan(covariant_error)
 
 # load hemiList images to imstack
 imstack = np.full([imsize, imsize, len(hemiList)], np.nan)
-erstack = np.full([imsize, imsize, len(hemiList)], np.nan)
+# erstack = np.full([imsize, imsize, len(hemiList)], np.nan)
 for ii in tqdm(range(0, len(hemiList)), desc="loading images", ncols=100, leave=True):
     img = tif.imread(batch_dir + "outputs\\" + hemiList.file_name.iloc[ii]) * scaling_coef
     imstack[:, :, ii] = img[:, :, 0]
-    erstack[:, :, ii] = img[:, :, 1]
+    # erstack[:, :, ii] = img[:, :, 1]
     # print(str(ii + 1) + ' of ' + str(len(hemiList)))
 #
 # # preview of correlation coefficient
@@ -678,7 +683,8 @@ elif date == "19_052":
     date_name = "21 Feb 2019"
     var_name = "SWE"
     scale = .64
-    cmap = matplotlib.cm.PiYG
+    cmap = matplotlib.cm.RdBu
+    # cmap = matplotlib.cm.PiYG
     # cmap = matplotlib.cm.PRGn
 
 # colormap parameters

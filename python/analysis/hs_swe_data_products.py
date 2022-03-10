@@ -25,7 +25,7 @@ def main():
     resamp_resolution = [".10", ".25", "1.00"]
 
     # interpolation_lengths = ["0", "1", "2", "3"]
-    interpolation_lengths = ["2"]
+    interpolation_lengths = ["2", "3"]
 
     # dict of density assumption (key) and corresponding parameters (values)
     swe_dens_ass = {}
@@ -73,6 +73,8 @@ def main():
     # dswe_dens_ass["fnsd"] = [85.08949, 72.235068, None, None]  # new snow density from forest SR50
     # dswe_dens_ass["cnsd"] = [96.886757, 83.370217, None, None]  # new snow density from clearing SR50
     dswe_dens_ass["ucgo"] = [196.406605, 91.346775, None, None]  # new snow density from clearing SR50
+
+    dhs_bias = [0.0136670391, -0.0531575101, None, None]  # dhs bias from clearing SR50 for select bias correction
 
     # templates for file naming and management
     dem_in_dir_template = 'C:\\Users\\Cob\\index\\educational\\usask\\research\\masters\\data\\lidar\\<DATE>\\<DATE>_las_proc\\TEMP_FILES\\12_dem\\res_<RES>\\'
@@ -364,6 +366,32 @@ def main():
                 hs = raslib.raster_dif_gdal(ddj_in, ddi_in, inherit_from=2, dif_out=dhs_out)
 
 
+    # Select bias correction of dHS
+    for ii in range(0, len(snow_on) - 1):
+        if dhs_bias[ii] is not None:
+            ddi = snow_on[ii]
+            ddj = snow_on[ii + 1]
+            for intlen in interpolation_lengths:
+                # update file paths with dates
+                dhs_dir = path_sub(dhs_dir_template, ddi=ddi, ddj=ddj, intlen=intlen)
+                dhs_bc_dir = dhs_dir.replace("dHS_no_bias", "dHS_bias_corrected")
+
+                # create sHD directory if does not exist
+                if not os.path.exists(dhs_bc_dir):
+                    os.makedirs(dhs_bc_dir)
+
+                for rr in resolution:
+                    dhs_in = dhs_dir + path_sub(dhs_file_template, ddi=ddi, ddj=ddj, rr=rr, intlen=intlen)
+                    dhs_bc_out = dhs_bc_dir + path_sub(dhs_file_template, ddi=ddi, ddj=ddj, rr=rr, intlen=intlen)
+
+                    # load dhs
+                    ras = raslib.raster_load(dhs_in)
+                    # correct for bias
+                    ras.data[(ras.data != ras.no_data)] = ras.data[(ras.data != ras.no_data)] - dhs_bias[ii]
+                    # save
+                    raslib.raster_save(ras, dhs_bc_out)
+
+
     # run density analysis in r
 
     # calculate SWE products
@@ -424,8 +452,14 @@ def main():
                         os.makedirs(dswe_dir)
                     if not os.path.exists(dswe_masked_dir):
                         os.makedirs(dswe_masked_dir)
+                    if not os.path.exists(dswe_dir.replace("dSWE_no_bias", "dSWE_bias_corrected")):
+                        os.makedirs(dswe_dir.replace("dSWE_no_bias", "dSWE_bias_corrected"))
+                    if not os.path.exists(dswe_masked_dir.replace("dSWE_no_bias", "dSWE_bias_corrected")):
+                        os.makedirs(dswe_masked_dir.replace("dSWE_no_bias", "dSWE_bias_corrected"))
 
                     for rr in resolution:
+
+                        # no bias
                         dhs_in = path_sub([dhs_dir_template, dhs_file_template], ddi=ddi, ddj=ddj, rr=rr, intlen=intlen)
                         dswe_out = path_sub([dswe_dir_template, dswe_file_template], ddi=ddi, ddj=ddj, rr=rr, intlen=intlen, ass=ass)
                         dswe_masked_file = path_sub([dswe_masked_dir_template, dswe_masked_file_template], ddi=ddi, ddj=ddj, rr=rr, intlen=intlen, ass=ass)
@@ -443,6 +477,33 @@ def main():
                         ras = raslib.raster_load(dswe_out)  # load copy
                         raslib.raster_save(ras, dswe_masked_file)  # save copy
                         raslib.raster_burn(dswe_masked_file, trail_mask, ras.no_data)  # burn trampled snow
+
+
+                        # bias_corrected
+                        dhs_in = path_sub([dhs_dir_template, dhs_file_template], ddi=ddi, ddj=ddj, rr=rr, intlen=intlen)
+                        dhs_in = dhs_in.replace("dHS_no_bias", "dHS_bias_corrected")
+                        dswe_out = path_sub([dswe_dir_template, dswe_file_template], ddi=ddi, ddj=ddj, rr=rr,
+                                            intlen=intlen, ass=ass)
+                        dswe_out = dswe_out.replace("dSWE_no_bias", "dSWE_bias_corrected")
+                        dswe_masked_file = path_sub([dswe_masked_dir_template, dswe_masked_file_template], ddi=ddi,
+                                                    ddj=ddj, rr=rr, intlen=intlen, ass=ass)
+                        dswe_masked_file = dswe_masked_file.replace("dSWE_no_bias", "dSWE_bias_corrected")
+
+                        # load data
+                        ras = raslib.raster_load(dhs_in)
+
+                        # multiply differential depth by new snow density
+                        ras.data[ras.data != ras.no_data] = ras.data[ras.data != ras.no_data] * dswe_dens_ass[ass][ii]
+
+                        # save dswe
+                        raslib.raster_save(ras, dswe_out)
+
+                        # mask
+                        ras = raslib.raster_load(dswe_out)  # load copy
+                        raslib.raster_save(ras, dswe_masked_file)  # save copy
+                        raslib.raster_burn(dswe_masked_file, trail_mask, ras.no_data)  # burn trampled snow
+
+
 
 
 
